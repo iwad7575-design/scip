@@ -1,4 +1,4 @@
-"""FastAPI entrypoint for ChatKit backend."""
+"""FastAPI entrypoint for ChatKit backend (Render-ready)."""
 
 from __future__ import annotations
 
@@ -6,11 +6,11 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 
-from .server import StarterChatServer
+from app.server import StarterChatServer  # IMPORTANT: absolute import
 
 app = FastAPI(title="SCIP RAG Agent API")
 
-# CORS configuration
+# ✅ CORS configuration (allow frontend)
 origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
@@ -19,13 +19,13 @@ origins = [
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=origins,  # change to ["*"] if debugging
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Create chat server
+# ✅ Initialize chat server
 chatkit_server = StarterChatServer()
 
 
@@ -50,20 +50,21 @@ async def chatkit_endpoint(request: Request) -> Response:
             {"request": request},
         )
 
-        # Handle streaming responses
+        # ✅ Streaming response (important for ChatKit)
         if hasattr(result, "__aiter__"):
             return StreamingResponse(
                 result,
                 media_type="text/event-stream",
             )
 
-        # Handle JSON responses
+        # ✅ JSON-like response object
         if hasattr(result, "json"):
             return Response(
                 content=result.json,
                 media_type="application/json",
             )
 
+        # ✅ Default JSON response
         return JSONResponse(content=result)
 
     except Exception as e:
