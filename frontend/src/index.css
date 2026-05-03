@@ -32,3 +32,24 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans);
 }
+
+.input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  background: white;
+  color: #0f172a;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.input:focus {
+  border-color: #1B3A6B;
+  box-shadow: 0 0 0 3px rgba(27, 58, 107, 0.12);
+}
+
+.input::placeholder {
+  color: #94a3b8;
+}
