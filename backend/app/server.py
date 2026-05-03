@@ -3,31 +3,29 @@
 from __future__ import annotations
 
 import os
+import uuid
+from datetime import datetime, timezone
 from typing import Any, AsyncIterator
 
-from openai import OpenAI
+from openai import AsyncOpenAI
 from pydantic import BaseModel
 
 from chatkit.server import ChatKitServer
 from chatkit.types import (
+    AssistantMessageContent,
+    AssistantMessageItem,
+    ThreadItemAddedEvent,
+    ThreadItemDoneEvent,
     ThreadMetadata,
     UserMessageItem,
 )
 
 from .memory_store import MemoryStore
 
-# ---------------------------------------------------
-# SETTINGS
-# ---------------------------------------------------
-
 MAX_RECENT_ITEMS = 30
 MODEL = "gpt-5-nano"
 
-client = OpenAI()
-
-# ---------------------------------------------------
-# SYSTEM PROMPT
-# ---------------------------------------------------
+client = AsyncOpenAI()
 
 SYSTEM_PROMPT = """
 -----------------------------------
@@ -62,39 +60,20 @@ Rules:
 
 VECTOR_STORE_ID = os.getenv("VECTOR_STORE_ID", "vs_69d7ea3f2f5c8191abfee9317ddcb1b8")
 
-# ---------------------------------------------------
-# EVENT MODEL (KEY FIX)
-# ---------------------------------------------------
-
-class Event(BaseModel):
-    type: str
-    delta: str | None = None
-
-
-# ---------------------------------------------------
-# HELPER
-# ---------------------------------------------------
 
 def extract_text(content: Any) -> str:
     if isinstance(content, str):
         return content
-
     if isinstance(content, list):
         parts = []
         for c in content:
             if isinstance(c, str):
                 parts.append(c)
-            elif isinstance(c, dict):
-                if c.get("type") == "text":
-                    parts.append(c.get("text", ""))
+            elif isinstance(c, dict) and c.get("type") == "text":
+                parts.append(c.get("text", ""))
         return " ".join(parts)
-
     return ""
 
-
-# ---------------------------------------------------
-# SERVER
-# ---------------------------------------------------
 
 class StarterChatServer(ChatKitServer[dict[str, Any]]):
 
@@ -109,7 +88,6 @@ class StarterChatServer(ChatKitServer[dict[str, Any]]):
         context: dict[str, Any],
     ) -> AsyncIterator[Any]:
 
-        # Load history
         items_page = await self.store.load_thread_items(
             thread.id,
             after=None,
@@ -120,7 +98,6 @@ class StarterChatServer(ChatKitServer[dict[str, Any]]):
 
         items = list(reversed(items_page.data))
 
-        # Extract messages
         messages = []
         for it in items:
             if hasattr(it, "content"):
@@ -128,11 +105,9 @@ class StarterChatServer(ChatKitServer[dict[str, Any]]):
                 if text:
                     messages.append(text)
 
-        # Use latest message only (better for RAG)
         user_input = messages[-1] if messages else ""
 
-        # Call OpenAI
-        response = client.responses.create(
+        response = await client.responses.create(
             model=MODEL,
             input=[
                 {"role": "system", "content": SYSTEM_PROMPT},
@@ -146,24 +121,20 @@ class StarterChatServer(ChatKitServer[dict[str, Any]]):
             ],
         )
 
-        # Extract output text
         output_text = ""
         if response.output:
-            for item in response.output:
-                if item.type == "message":
-                    for content in item.content:
+            for out in response.output:
+                if out.type == "message":
+                    for content in out.content:
                         if content.type == "output_text":
                             output_text += content.text
 
-        # ---------------------------------------------------
-        # ✅ SIMPLE + RELIABLE RESPONSE (NO STREAMING BUGS)
-        # ---------------------------------------------------
-
-        yield Event(
-            type="response.output_text.delta",
-            delta=output_text,
+        assistant_item = AssistantMessageItem(
+            id=str(uuid.uuid4()),
+            thread_id=thread.id,
+            created_at=datetime.now(timezone.utc),
+            content=[AssistantMessageContent(text=output_text)],
         )
 
-        yield Event(
-            type="response.completed",
-        )
+        yield ThreadItemAddedEvent(item=assistant_item)
+        yield ThreadItemDoneEvent(item=assistant_item)
