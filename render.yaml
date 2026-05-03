@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: scip-rag-backend
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    plan: free
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: VECTOR_STORE_ID
+        value: vs_69d7ea3f2f5c8191abfee9317ddcb1b8
+      - key: PYTHON_VERSION
+        value: "3.11"
