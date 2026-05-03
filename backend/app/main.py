@@ -59,9 +59,20 @@ async def chatkit_endpoint(request: Request) -> Response:
 
         # ✅ Streaming response (important for ChatKit)
         if hasattr(result, "__aiter__"):
+            async def encode_stream():
+                async for chunk in result:
+                    if isinstance(chunk, bytes):
+                        yield chunk
+                    elif isinstance(chunk, str):
+                        yield chunk.encode()
+                    elif hasattr(chunk, "model_dump_json"):
+                        yield f"data: {chunk.model_dump_json()}\n\n".encode()
+                    else:
+                        yield f"data: {chunk}\n\n".encode()
             return StreamingResponse(
-                result,
+                encode_stream(),
                 media_type="text/event-stream",
+                headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
             )
 
         # ✅ JSON-like response object
