@@ -8,6 +8,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+import asyncio
+
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response, StreamingResponse
@@ -76,23 +78,42 @@ async def chatkit_endpoint(request: Request, _user=Depends(get_current_user)) ->
     try:
         payload = await request.body()
 
+        auth_header = request.headers.get("Authorization", "")
+        access_token = auth_header.removeprefix("Bearer ").strip()
+
         result = await chatkit_server.process(
             payload,
-            {"request": request},
+            {"request": request, "user": _user, "access_token": access_token},
         )
 
         # ✅ Streaming response (important for ChatKit)
         if hasattr(result, "__aiter__"):
             async def encode_stream():
-                async for chunk in result:
-                    if isinstance(chunk, bytes):
-                        yield chunk
-                    elif isinstance(chunk, str):
-                        yield chunk.encode()
-                    elif hasattr(chunk, "model_dump_json"):
-                        yield f"data: {chunk.model_dump_json()}\n\n".encode()
-                    else:
-                        yield f"data: {chunk}\n\n".encode()
+                # Send SSE keep-alive comments while waiting for the OpenAI
+                # RAG pipeline so the browser doesn't hit the idle timeout.
+                async def _next(it):
+                    try:
+                        return await it.__anext__(), False
+                    except StopAsyncIteration:
+                        return None, True
+
+                it = result.__aiter__()
+                while True:
+                    try:
+                        chunk, done = await asyncio.wait_for(_next(it), timeout=20)
+                        if done:
+                            break
+                        if isinstance(chunk, bytes):
+                            yield chunk
+                        elif isinstance(chunk, str):
+                            yield chunk.encode()
+                        elif hasattr(chunk, "model_dump_json"):
+                            yield f"data: {chunk.model_dump_json()}\n\n".encode()
+                        else:
+                            yield f"data: {chunk}\n\n".encode()
+                    except asyncio.TimeoutError:
+                        yield b": keepalive\n\n"
+
             return StreamingResponse(
                 encode_stream(),
                 media_type="text/event-stream",

@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import asyncio
 import os
 import uuid
 from datetime import datetime, timezone
 from typing import Any, AsyncIterator
 
 from openai import AsyncOpenAI
+from supabase import create_client
 
 from chatkit.server import ChatKitServer
 from chatkit.types import (
@@ -25,6 +27,9 @@ MAX_RECENT_ITEMS = 30
 MODEL = "gpt-5-nano"
 
 client = AsyncOpenAI()
+
+SUPABASE_URL = os.getenv("SUPABASE_URL", "")
+SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY", "")
 
 SYSTEM_PROMPT = """
 -----------------------------------
@@ -68,7 +73,6 @@ VECTOR_STORE_ID = os.getenv("VECTOR_STORE_ID", "vs_69d7ea3f2f5c8191abfee9317ddcb
 
 
 def item_to_text(item: Any) -> str:
-    """Extract plain text from a UserMessageItem or AssistantMessageItem."""
     content = getattr(item, "content", None)
     if not content:
         return ""
@@ -83,6 +87,20 @@ def item_to_text(item: Any) -> str:
                 parts.append(c["text"])
         return " ".join(filter(None, parts))
     return ""
+
+
+def _save_history(access_token: str, user_id: str, question: str, answer: str) -> None:
+    """Synchronous insert — called via run_in_executor."""
+    try:
+        db = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
+        db.postgrest.auth(access_token)
+        db.table("chat_history").insert({
+            "user_id": user_id,
+            "question": question,
+            "answer": answer,
+        }).execute()
+    except Exception as e:
+        print("History save error:", e)
 
 
 class StarterChatServer(ChatKitServer[dict[str, Any]]):
@@ -106,7 +124,6 @@ class StarterChatServer(ChatKitServer[dict[str, Any]]):
             context=context,
         )
 
-        # Build conversation history with proper roles
         messages = []
         for it in reversed(items_page.data):
             text = item_to_text(it)
@@ -120,15 +137,12 @@ class StarterChatServer(ChatKitServer[dict[str, Any]]):
         if not messages:
             return
 
+        user_question = messages[-1]["content"] if messages[-1]["role"] == "user" else ""
+
         response = await client.responses.create(
             model=MODEL,
             input=[{"role": "system", "content": SYSTEM_PROMPT}] + messages,
-            tools=[
-                {
-                    "type": "file_search",
-                    "vector_store_ids": [VECTOR_STORE_ID],
-                }
-            ],
+            tools=[{"type": "file_search", "vector_store_ids": [VECTOR_STORE_ID]}],
         )
 
         output_text = ""
@@ -141,6 +155,16 @@ class StarterChatServer(ChatKitServer[dict[str, Any]]):
 
         if not output_text:
             return
+
+        # Save to chat_history in background (non-blocking)
+        access_token = context.get("access_token", "")
+        user = context.get("user")
+        user_id = str(user.id) if user else ""
+        if access_token and user_id and user_question:
+            loop = asyncio.get_event_loop()
+            loop.run_in_executor(
+                None, _save_history, access_token, user_id, user_question, output_text
+            )
 
         assistant_item = AssistantMessageItem(
             id=str(uuid.uuid4()),
