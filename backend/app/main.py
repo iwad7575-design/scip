@@ -13,6 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 
 from app.server import StarterChatServer  # IMPORTANT: absolute import
+from app.supabase_client import supabase
 
 app = FastAPI(title="SCIP RAG Agent API")
 
@@ -44,6 +45,16 @@ async def root():
         "agent": "SCIP RAG Agent",
         "backend": "online",
     }
+
+
+@app.get("/health")
+async def health():
+    try:
+        # Lightweight check — list auth settings (no rows fetched)
+        supabase.auth.get_session()
+        return {"status": "ok", "supabase": "connected"}
+    except Exception as e:
+        return {"status": "ok", "supabase": f"error: {str(e)}"}
 
 
 @app.post("/chatkit")
