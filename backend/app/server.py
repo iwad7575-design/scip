@@ -8,7 +8,6 @@ from datetime import datetime, timezone
 from typing import Any, AsyncIterator
 
 from openai import AsyncOpenAI
-from pydantic import BaseModel
 
 from chatkit.server import ChatKitServer
 from chatkit.types import (
@@ -61,17 +60,21 @@ Rules:
 VECTOR_STORE_ID = os.getenv("VECTOR_STORE_ID", "vs_69d7ea3f2f5c8191abfee9317ddcb1b8")
 
 
-def extract_text(content: Any) -> str:
+def item_to_text(item: Any) -> str:
+    """Extract plain text from a UserMessageItem or AssistantMessageItem."""
+    content = getattr(item, "content", None)
+    if not content:
+        return ""
     if isinstance(content, str):
         return content
     if isinstance(content, list):
         parts = []
         for c in content:
-            if isinstance(c, str):
-                parts.append(c)
-            elif isinstance(c, dict) and c.get("type") == "text":
-                parts.append(c.get("text", ""))
-        return " ".join(parts)
+            if hasattr(c, "text"):
+                parts.append(c.text)
+            elif isinstance(c, dict) and "text" in c:
+                parts.append(c["text"])
+        return " ".join(filter(None, parts))
     return ""
 
 
@@ -96,23 +99,23 @@ class StarterChatServer(ChatKitServer[dict[str, Any]]):
             context=context,
         )
 
-        items = list(reversed(items_page.data))
-
+        # Build conversation history with proper roles
         messages = []
-        for it in items:
-            if hasattr(it, "content"):
-                text = extract_text(it.content)
-                if text:
-                    messages.append(text)
+        for it in reversed(items_page.data):
+            text = item_to_text(it)
+            if not text:
+                continue
+            if getattr(it, "type", None) == "user_message":
+                messages.append({"role": "user", "content": text})
+            elif getattr(it, "type", None) == "assistant_message":
+                messages.append({"role": "assistant", "content": text})
 
-        user_input = messages[-1] if messages else ""
+        if not messages:
+            return
 
         response = await client.responses.create(
             model=MODEL,
-            input=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": user_input},
-            ],
+            input=[{"role": "system", "content": SYSTEM_PROMPT}] + messages,
             tools=[
                 {
                     "type": "file_search",
@@ -128,6 +131,9 @@ class StarterChatServer(ChatKitServer[dict[str, Any]]):
                     for content in out.content:
                         if content.type == "output_text":
                             output_text += content.text
+
+        if not output_text:
+            return
 
         assistant_item = AssistantMessageItem(
             id=str(uuid.uuid4()),
