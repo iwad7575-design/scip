@@ -6,6 +6,7 @@ import { CHATKIT_API_URL } from "./lib/config";
 import { LoginPage } from "./pages/LoginPage";
 import { SignUpPage } from "./pages/SignUpPage";
 import { DashboardPage } from "./pages/DashboardPage";
+import { AgentPage } from "./pages/AgentPage";
 
 // Attach the Supabase JWT to every backend request.
 const _fetch = window.fetch.bind(window);
@@ -39,6 +40,7 @@ export default function App() {
         <Route path="/login" element={session ? <Navigate to="/dashboard" replace /> : <LoginPage />} />
         <Route path="/signup" element={session ? <Navigate to="/dashboard" replace /> : <SignUpPage />} />
         <Route path="/dashboard" element={session ? <DashboardPage /> : <Navigate to="/login" replace />} />
+        <Route path="/agent" element={session ? <AgentPage /> : <Navigate to="/login" replace />} />
         <Route path="*" element={<Navigate to={session ? "/dashboard" : "/login"} replace />} />
       </Routes>
     </BrowserRouter>
