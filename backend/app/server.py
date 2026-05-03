@@ -55,6 +55,13 @@ Rules:
 - If page number unavailable, omit page
 - Never fabricate page numbers
 - Never write Uploaded Document
+
+-----------------------------------
+DISCLAIMER (MANDATORY)
+-----------------------------------
+After the references, always end every response with exactly this line:
+
+⚠️ This information is intended to support clinical decision-making and should not replace the judgment of a qualified clinician.
 """
 
 VECTOR_STORE_ID = os.getenv("VECTOR_STORE_ID", "vs_69d7ea3f2f5c8191abfee9317ddcb1b8")
