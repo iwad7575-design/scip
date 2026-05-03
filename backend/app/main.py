@@ -8,12 +8,24 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response, StreamingResponse
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.server import StarterChatServer  # IMPORTANT: absolute import
 from app.supabase_client import supabase
+
+bearer = HTTPBearer()
+
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(bearer)):
+    try:
+        result = supabase.auth.get_user(credentials.credentials)
+        if not result.user:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        return result.user
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
 
 app = FastAPI(title="SCIP RAG Agent API")
 
@@ -58,7 +70,7 @@ async def health():
 
 
 @app.post("/chatkit")
-async def chatkit_endpoint(request: Request) -> Response:
+async def chatkit_endpoint(request: Request, _user=Depends(get_current_user)) -> Response:
     """Handle ChatKit frontend requests."""
 
     try:
