@@ -15,13 +15,13 @@ load_dotenv()
 
 app = FastAPI(title="SCIP RAG Agent API")
 
-# Read frontend URL from env so it doesn't need to be changed in code when domains change.
-_frontend_url = os.getenv("FRONTEND_URL", "https://scip-amber.vercel.app")
+_extra = os.getenv("FRONTEND_URL", "")
 
 origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    _frontend_url,
+    "https://scip-eta.vercel.app",
+    *([_extra] if _extra else []),
 ]
 
 app.add_middleware(
