@@ -2,19 +2,15 @@
 
 from __future__ import annotations
 
+import os
 from typing import Any, AsyncIterator
 
 from openai import OpenAI
+from pydantic import BaseModel
 
-from chatkit.agents import (
-    AgentContext,
-    simple_to_agent_input,
-    stream_agent_response,
-)
 from chatkit.server import ChatKitServer
 from chatkit.types import (
     ThreadMetadata,
-    ThreadStreamEvent,
     UserMessageItem,
 )
 
@@ -64,14 +60,43 @@ Rules:
 - Never write Uploaded Document
 """
 
-VECTOR_STORE_ID = "vs_69d7ea3f2f5c8191abfee9317ddcb1b8"
+VECTOR_STORE_ID = os.getenv("VECTOR_STORE_ID", "vs_69d7ea3f2f5c8191abfee9317ddcb1b8")
 
 # ---------------------------------------------------
-# CHATKIT SERVER
+# EVENT MODEL (KEY FIX)
+# ---------------------------------------------------
+
+class Event(BaseModel):
+    type: str
+    delta: str | None = None
+
+
+# ---------------------------------------------------
+# HELPER
+# ---------------------------------------------------
+
+def extract_text(content: Any) -> str:
+    if isinstance(content, str):
+        return content
+
+    if isinstance(content, list):
+        parts = []
+        for c in content:
+            if isinstance(c, str):
+                parts.append(c)
+            elif isinstance(c, dict):
+                if c.get("type") == "text":
+                    parts.append(c.get("text", ""))
+        return " ".join(parts)
+
+    return ""
+
+
+# ---------------------------------------------------
+# SERVER
 # ---------------------------------------------------
 
 class StarterChatServer(ChatKitServer[dict[str, Any]]):
-    """ChatKit server using OpenAI Responses API with file search."""
 
     def __init__(self) -> None:
         self.store: MemoryStore = MemoryStore()
@@ -82,9 +107,9 @@ class StarterChatServer(ChatKitServer[dict[str, Any]]):
         thread: ThreadMetadata,
         item: UserMessageItem | None,
         context: dict[str, Any],
-    ) -> AsyncIterator[ThreadStreamEvent]:
+    ) -> AsyncIterator[Any]:
 
-        # Load previous conversation
+        # Load history
         items_page = await self.store.load_thread_items(
             thread.id,
             after=None,
@@ -95,15 +120,18 @@ class StarterChatServer(ChatKitServer[dict[str, Any]]):
 
         items = list(reversed(items_page.data))
 
-        # Convert chat history into plain text
+        # Extract messages
         messages = []
         for it in items:
             if hasattr(it, "content"):
-                messages.append(it.content)
+                text = extract_text(it.content)
+                if text:
+                    messages.append(text)
 
-        user_input = "\n".join(messages)
+        # Use latest message only (better for RAG)
+        user_input = messages[-1] if messages else ""
 
-        # Call OpenAI Responses API with file search
+        # Call OpenAI
         response = client.responses.create(
             model=MODEL,
             input=[
@@ -118,7 +146,7 @@ class StarterChatServer(ChatKitServer[dict[str, Any]]):
             ],
         )
 
-        # Extract model output text safely
+        # Extract output text
         output_text = ""
         if response.output:
             for item in response.output:
@@ -127,12 +155,15 @@ class StarterChatServer(ChatKitServer[dict[str, Any]]):
                         if content.type == "output_text":
                             output_text += content.text
 
-        # Stream back as ChatKit-compatible event
-        yield ThreadStreamEvent(
+        # ---------------------------------------------------
+        # ✅ SIMPLE + RELIABLE RESPONSE (NO STREAMING BUGS)
+        # ---------------------------------------------------
+
+        yield Event(
             type="response.output_text.delta",
             delta=output_text,
         )
 
-        yield ThreadStreamEvent(
+        yield Event(
             type="response.completed",
         )
