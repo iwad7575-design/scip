@@ -2,7 +2,7 @@
 // hardcoded values so Vercel env vars can't accidentally override them.
 export const CHATKIT_API_URL = import.meta.env.DEV
   ? "/chatkit"
-  : "https://scip-noyz.onrender.com";
+  : "https://scip-noyz.onrender.com/chatkit";
 
 export const CHATKIT_API_DOMAIN_KEY = import.meta.env.DEV
   ? "domain_pk_localhost_dev"
