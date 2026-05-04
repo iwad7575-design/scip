@@ -82,12 +82,7 @@ export function DashboardPage() {
       <header style={{ backgroundColor: "#1B3A6B" }} className="px-4 sm:px-6 py-4">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div
-              className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm bg-white"
-              style={{ color: "#1B3A6B" }}
-            >
-              S
-            </div>
+            <img src="/logo.png" alt="SCIP logo" className="h-8 w-8 object-contain rounded-lg" />
             <span className="text-white font-semibold">SCIP</span>
             <span className="hidden sm:inline text-xs px-2 py-0.5 rounded-full bg-white/20 text-white/80">
               SHIFA Clinical Intelligence Platform
@@ -110,6 +105,12 @@ export function DashboardPage() {
             Welcome back, {welcomeName}
           </h1>
           <p className="text-sm text-slate-500 mt-1">Here's your clinical intelligence summary</p>
+          <p className="text-sm text-slate-600 mt-3 max-w-2xl leading-relaxed">
+            SCIP is an AI-powered clinical decision support tool built for Ethiopian healthcare providers.
+            It draws on national treatment guidelines — including the Standard Treatment Guidelines,
+            National Antenatal Care Guideline, and National Malaria Guidelines — to help you make
+            evidence-based decisions at the point of care.
+          </p>
         </div>
 
         {/* Stats row */}
@@ -406,7 +407,7 @@ function LoadingScreen() {
   return (
     <div className="min-h-screen bg-slate-100 flex items-center justify-center">
       <div className="flex flex-col items-center gap-3">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold" style={{ backgroundColor: "#1B3A6B" }}>S</div>
+        <img src="/logo.png" alt="SCIP logo" className="w-10 h-10 object-contain rounded-xl" />
         <p className="text-sm text-slate-500">Loading your dashboard…</p>
       </div>
     </div>

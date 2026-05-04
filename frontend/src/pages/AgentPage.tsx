@@ -17,9 +17,7 @@ export function AgentPage() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
         </button>
-        <div className="w-7 h-7 rounded-lg bg-white flex items-center justify-center font-bold text-xs" style={{ color: "#1B3A6B" }}>
-          S
-        </div>
+        <img src="/logo.png" alt="SCIP logo" className="w-7 h-7 object-contain rounded-lg" />
         <span className="text-white font-semibold text-sm">SCIP Clinical Assistant</span>
         <button
           onClick={() => supabase.auth.signOut()}
