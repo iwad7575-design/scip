@@ -91,30 +91,35 @@ async def chatkit_endpoint(request: Request, _user=Depends(get_current_user)) ->
         # ✅ Streaming response (important for ChatKit)
         if hasattr(result, "__aiter__"):
             async def encode_stream():
-                # Send SSE keep-alive comments while waiting for the OpenAI
-                # RAG pipeline so the browser doesn't hit the idle timeout.
-                async def _next(it):
-                    try:
-                        return await it.__anext__(), False
-                    except StopAsyncIteration:
-                        return None, True
+                # Collect chunks in a background task so asyncio.wait_for
+                # keepalive timeouts never cancel the OpenAI RAG request.
+                chunks: list[bytes] = []
+                done_event = asyncio.Event()
 
-                it = result.__aiter__()
-                while True:
+                async def collect():
                     try:
-                        chunk, done = await asyncio.wait_for(_next(it), timeout=20)
-                        if done:
-                            break
-                        if isinstance(chunk, bytes):
-                            yield chunk
-                        elif isinstance(chunk, str):
-                            yield chunk.encode()
-                        elif hasattr(chunk, "model_dump_json"):
-                            yield f"data: {chunk.model_dump_json()}\n\n".encode()
-                        else:
-                            yield f"data: {chunk}\n\n".encode()
+                        async for chunk in result:
+                            if isinstance(chunk, bytes):
+                                chunks.append(chunk)
+                            elif isinstance(chunk, str):
+                                chunks.append(chunk.encode())
+                            elif hasattr(chunk, "model_dump_json"):
+                                chunks.append(f"data: {chunk.model_dump_json()}\n\n".encode())
+                            else:
+                                chunks.append(f"data: {chunk}\n\n".encode())
+                    finally:
+                        done_event.set()
+
+                asyncio.create_task(collect())
+
+                while not done_event.is_set():
+                    try:
+                        await asyncio.wait_for(done_event.wait(), timeout=20)
                     except asyncio.TimeoutError:
                         yield b": keepalive\n\n"
+
+                for chunk in chunks:
+                    yield chunk
 
             return StreamingResponse(
                 encode_stream(),
