@@ -138,19 +138,28 @@ class StarterChatServer(ChatKitServer[dict[str, Any]]):
 
         user_question = messages[-1]["content"] if messages[-1]["role"] == "user" else ""
 
-        response = await client.responses.create(
-            model=MODEL,
-            input=[{"role": "system", "content": SYSTEM_PROMPT}] + messages,
-            tools=[{"type": "file_search", "vector_store_ids": [VECTOR_STORE_ID]}],
-        )
+        try:
+            response = await client.responses.create(
+                model=MODEL,
+                input=[{"role": "system", "content": SYSTEM_PROMPT}] + messages,
+                tools=[{"type": "file_search", "vector_store_ids": [VECTOR_STORE_ID]}],
+            )
+        except Exception as e:
+            print(f"OpenAI API error: {type(e).__name__}: {e}")
+            raise
+
+        print(f"OpenAI response output types: {[getattr(o, 'type', type(o).__name__) for o in (response.output or [])]}")
 
         output_text = ""
-        if response.output:
-            for out in response.output:
-                if out.type == "message":
-                    for content in out.content:
-                        if content.type == "output_text":
-                            output_text += content.text
+        for out in (response.output or []):
+            # Capture text from any output item that has a content list
+            content_list = getattr(out, "content", None) or []
+            for content in content_list:
+                text = getattr(content, "text", None)
+                if text:
+                    output_text += text
+
+        print(f"Extracted output_text length: {len(output_text)}")
 
         if not output_text:
             return
