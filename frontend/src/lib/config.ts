@@ -6,4 +6,4 @@ export const CHATKIT_API_URL = import.meta.env.DEV
 
 export const CHATKIT_API_DOMAIN_KEY = import.meta.env.DEV
   ? "domain_pk_localhost_dev"
-  : "domain_pk_69f8b39ff3788195a0ad669691b10db60df5b735fe39805f";
+  : "domain_pk_69f8bb0636408195afca74ace8a68f83078aac657c9cc0e7";
