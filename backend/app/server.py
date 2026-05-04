@@ -28,8 +28,7 @@ MODEL = "gpt-5-nano"
 
 client = AsyncOpenAI()
 
-SUPABASE_URL = os.getenv("SUPABASE_URL", "")
-SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY", "")
+from .supabase_client import SUPABASE_URL, SUPABASE_ANON_KEY
 
 SYSTEM_PROMPT = """
 -----------------------------------
