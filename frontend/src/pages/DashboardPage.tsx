@@ -107,9 +107,8 @@ export function DashboardPage() {
           <p className="text-sm text-slate-500 mt-1">Here's your clinical intelligence summary</p>
           <p className="text-sm text-slate-600 mt-3 max-w-2xl leading-relaxed">
             SCIP is an AI-powered clinical decision support tool built for Ethiopian healthcare providers.
-            It draws on national treatment guidelines — including the Standard Treatment Guidelines,
-            National Antenatal Care Guideline, and National Malaria Guidelines — to help you make
-            evidence-based decisions at the point of care.
+            It draws on a library of 106 validated national guidelines and clinical protocols — covering
+            the full breadth of clinical medicine — to help you make evidence-based decisions at the point of care.
           </p>
         </div>
 
@@ -133,9 +132,12 @@ export function DashboardPage() {
           />
         </div>
 
+        {/* Knowledge Base card */}
+        <KnowledgeBaseCard />
+
         {/* Ask SCIP CTA */}
         <button
-          onClick={() => navigate("/agent")}
+          onClick={() => navigate("/")}
           className="w-full mb-8 rounded-2xl px-6 py-5 flex items-center justify-between text-white group hover:opacity-90 transition-opacity"
           style={{ backgroundColor: "#1B3A6B" }}
         >
@@ -148,7 +150,7 @@ export function DashboardPage() {
             <div className="text-left">
               <div className="font-semibold text-base sm:text-lg">Ask SCIP a Clinical Question</div>
               <div className="text-xs sm:text-sm text-white/70 mt-0.5">
-                Powered by Ethiopian national guidelines
+                Powered by 106+ validated Ethiopian and WHO clinical guidelines
               </div>
             </div>
           </div>
@@ -208,6 +210,56 @@ export function DashboardPage() {
 }
 
 // ─── Sub-components ────────────────────────────────────────────────────────────
+
+function KnowledgeBaseCard() {
+  const categories = [
+    "Infectious Diseases",
+    "Maternal & Neonatal Health",
+    "Pediatrics & Child Health",
+    "Emergency & Critical Care",
+    "Non-Communicable Diseases",
+    "Mental Health",
+    "Surgery & Surgical Nursing",
+    "Nutrition & Dietary Guidance",
+    "Reproductive & Sexual Health",
+    "Palliative Care & Pain Management",
+    "Ophthalmology & Dermatology",
+    "Immunization & Vaccination",
+    "Infection Prevention & Control",
+    "Pharmacy & Medicines",
+    "Nursing Practice & Standards",
+    "Antimicrobial Resistance",
+  ];
+
+  return (
+    <div className="bg-white rounded-2xl shadow-sm p-5 mb-6">
+      <div className="flex items-start justify-between gap-4 mb-4">
+        <div>
+          <h2 className="font-semibold text-slate-900">SCIP Knowledge Base</h2>
+          <p className="text-xs text-slate-400 mt-0.5">
+            106 validated Ethiopian MoH and WHO clinical references
+          </p>
+        </div>
+        <span
+          className="flex-shrink-0 text-xs font-bold px-2.5 py-1 rounded-full text-white"
+          style={{ backgroundColor: "#1B3A6B" }}
+        >
+          106+ docs
+        </span>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {categories.map(cat => (
+          <span
+            key={cat}
+            className="text-xs px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 font-medium"
+          >
+            {cat}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function StatCard({
   icon, value, label, small = false,

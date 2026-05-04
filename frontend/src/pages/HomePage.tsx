@@ -213,10 +213,12 @@ export function HomePage() {
             <p className="text-base sm:text-lg text-slate-500 mb-4 text-center">
               Your AI-Powered Clinical Decision Support Assistant
             </p>
-            <p className="text-sm text-slate-500 mb-8 leading-relaxed text-center max-w-lg">
-              I am trained on Ethiopian national medical guidelines and WHO protocols. Ask me any
-              clinical question and I will give you an evidence-based answer with citations from
-              trusted sources. Designed for healthcare workers in Ethiopia and beyond.
+            <p className="text-sm text-slate-500 mb-8 leading-relaxed text-center max-w-xl">
+              SCIP draws on a library of <strong className="text-slate-700">106 validated national guidelines</strong>,
+              clinical manuals, and medical protocols — spanning infectious diseases, maternal and neonatal
+              health, pediatrics, emergency medicine, non-communicable diseases, mental health, surgery,
+              nutrition, reproductive health, palliative care, and more. Every answer is cited directly
+              from Ethiopian Ministry of Health and WHO-validated sources.
             </p>
 
             <div className="flex flex-col gap-2.5 w-full max-w-xl">
