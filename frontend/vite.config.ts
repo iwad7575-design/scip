@@ -16,6 +16,10 @@ export default defineConfig({
         target: backendTarget,
         changeOrigin: true,
       },
+      "/ask": {
+        target: backendTarget,
+        changeOrigin: true,
+      },
     },
   },
 });

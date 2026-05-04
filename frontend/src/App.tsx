@@ -7,6 +7,7 @@ import { LoginPage } from "./pages/LoginPage";
 import { SignUpPage } from "./pages/SignUpPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { AgentPage } from "./pages/AgentPage";
+import { HomePage } from "./pages/HomePage";
 
 // Attach the Supabase JWT to every backend request.
 const _fetch = window.fetch.bind(window);
@@ -37,11 +38,12 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/login" element={session ? <Navigate to="/dashboard" replace /> : <LoginPage />} />
-        <Route path="/signup" element={session ? <Navigate to="/dashboard" replace /> : <SignUpPage />} />
+        <Route path="/" element={<HomePage />} />
+        <Route path="/login" element={session ? <Navigate to="/" replace /> : <LoginPage />} />
+        <Route path="/signup" element={session ? <Navigate to="/" replace /> : <SignUpPage />} />
         <Route path="/dashboard" element={session ? <DashboardPage /> : <Navigate to="/login" replace />} />
         <Route path="/agent" element={session ? <AgentPage /> : <Navigate to="/login" replace />} />
-        <Route path="*" element={<Navigate to={session ? "/dashboard" : "/login"} replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );

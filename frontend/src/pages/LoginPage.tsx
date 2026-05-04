@@ -23,7 +23,7 @@ export function LoginPage() {
       if (error) {
         setError(friendlyError(error.message));
       } else {
-        navigate("/dashboard");
+        navigate("/");
       }
     } finally {
       setLoading(false);
@@ -51,7 +51,7 @@ export function LoginPage() {
   async function handleGoogle() {
     await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/dashboard` },
+      options: { redirectTo: `${window.location.origin}/` },
     });
   }
 
