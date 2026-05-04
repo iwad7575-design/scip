@@ -115,7 +115,7 @@ class StarterChatServer(ChatKitServer[dict[str, Any]]):
         context: dict[str, Any],
     ) -> AsyncIterator[Any]:
 
-        print(f"respond() called — thread={thread.id} item_type={getattr(item, 'type', None)}")
+        print(f"respond() called — thread={thread.id} item_type={getattr(item, 'type', None)}", flush=True)
 
         items_page = await self.store.load_thread_items(
             thread.id,
@@ -125,7 +125,7 @@ class StarterChatServer(ChatKitServer[dict[str, Any]]):
             context=context,
         )
 
-        print(f"store returned {len(items_page.data)} items")
+        print(f"store returned {len(items_page.data)} items", flush=True)
 
         messages = []
         for it in reversed(items_page.data):
@@ -137,7 +137,13 @@ class StarterChatServer(ChatKitServer[dict[str, Any]]):
             elif getattr(it, "type", None) == "assistant_message":
                 messages.append({"role": "assistant", "content": text})
 
-        print(f"built {len(messages)} messages — returning early: {not messages}")
+        # Fallback: if store has nothing, use the current item directly
+        if not messages and item is not None:
+            current_text = item_to_text(item)
+            if current_text:
+                messages = [{"role": "user", "content": current_text}]
+
+        print(f"built {len(messages)} messages — returning early: {not messages}", flush=True)
         if not messages:
             return
 
@@ -150,10 +156,10 @@ class StarterChatServer(ChatKitServer[dict[str, Any]]):
                 tools=[{"type": "file_search", "vector_store_ids": [VECTOR_STORE_ID]}],
             )
         except Exception as e:
-            print(f"OpenAI API error: {type(e).__name__}: {e}")
+            print(f"OpenAI API error: {type(e).__name__}: {e}", flush=True)
             raise
 
-        print(f"OpenAI response output types: {[getattr(o, 'type', type(o).__name__) for o in (response.output or [])]}")
+        print(f"OpenAI response output types: {[getattr(o, 'type', type(o).__name__) for o in (response.output or [])]}", flush=True)
 
         output_text = ""
         for out in (response.output or []):
@@ -164,7 +170,7 @@ class StarterChatServer(ChatKitServer[dict[str, Any]]):
                 if text:
                     output_text += text
 
-        print(f"Extracted output_text length: {len(output_text)}")
+        print(f"Extracted output_text length: {len(output_text)}", flush=True)
 
         if not output_text:
             return
