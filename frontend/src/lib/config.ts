@@ -4,13 +4,9 @@ const readEnvString = (value: unknown): string | undefined =>
     : undefined;
 
 export const CHATKIT_API_URL =
-  readEnvString(import.meta.env.VITE_CHATKIT_API_URL) ?? "/chatkit";
+  readEnvString(import.meta.env.VITE_CHATKIT_API_URL) ??
+  "https://scip-noyz.onrender.com";
 
-/**
- * ChatKit requires a domain key at runtime. Use the local fallback while
- * developing, and register a production domain key for deployment:
- * https://platform.openai.com/settings/organization/security/domain-allowlist
- */
 export const CHATKIT_API_DOMAIN_KEY =
   readEnvString(import.meta.env.VITE_CHATKIT_API_DOMAIN_KEY) ??
   "domain_pk_localhost_dev";
