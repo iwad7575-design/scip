@@ -9,4 +9,4 @@ export const CHATKIT_API_URL =
 
 export const CHATKIT_API_DOMAIN_KEY =
   readEnvString(import.meta.env.VITE_CHATKIT_API_DOMAIN_KEY) ??
-  "domain_pk_localhost_dev";
+  "domain_pk_69f8b39ff3788195a0ad669691b10db60df5b735fe39805f";
