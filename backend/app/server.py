@@ -115,6 +115,8 @@ class StarterChatServer(ChatKitServer[dict[str, Any]]):
         context: dict[str, Any],
     ) -> AsyncIterator[Any]:
 
+        print(f"respond() called — thread={thread.id} item_type={getattr(item, 'type', None)}")
+
         items_page = await self.store.load_thread_items(
             thread.id,
             after=None,
@@ -122,6 +124,8 @@ class StarterChatServer(ChatKitServer[dict[str, Any]]):
             order="desc",
             context=context,
         )
+
+        print(f"store returned {len(items_page.data)} items")
 
         messages = []
         for it in reversed(items_page.data):
@@ -133,6 +137,7 @@ class StarterChatServer(ChatKitServer[dict[str, Any]]):
             elif getattr(it, "type", None) == "assistant_message":
                 messages.append({"role": "assistant", "content": text})
 
+        print(f"built {len(messages)} messages — returning early: {not messages}")
         if not messages:
             return
 
