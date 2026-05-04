@@ -37,6 +37,8 @@ origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "https://scip-eta.vercel.app",
+    "https://scip-et.com",
+    "https://www.scip-et.com",
     *([_extra] if _extra else []),
 ]
 
