@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import time
 import uuid
 from datetime import datetime, timezone
 from typing import Any, AsyncIterator
@@ -152,17 +153,24 @@ class StarterChatServer(ChatKitServer[dict[str, Any]]):
 
         user_question = messages[-1]["content"] if messages[-1]["role"] == "user" else ""
 
+        t_openai = time.perf_counter()
+        print(f"[TIMING] /chatkit → OpenAI call starting (file_search max_num_results=8)", flush=True)
         try:
             response = await client.responses.create(
                 model=MODEL,
                 input=[{"role": "system", "content": SYSTEM_PROMPT}] + messages,
-                tools=[{"type": "file_search", "vector_store_ids": [VECTOR_STORE_ID]}],
+                tools=[{
+                    "type": "file_search",
+                    "vector_store_ids": [VECTOR_STORE_ID],
+                    "max_num_results": 8,
+                    "ranking_options": {"score_threshold": 0.3},
+                }],
             )
         except Exception as e:
-            print(f"OpenAI API error: {type(e).__name__}: {e}", flush=True)
+            print(f"OpenAI API error after {(time.perf_counter()-t_openai)*1000:.0f}ms: {type(e).__name__}: {e}", flush=True)
             raise
 
-        print(f"OpenAI response output types: {[getattr(o, 'type', type(o).__name__) for o in (response.output or [])]}", flush=True)
+        print(f"[TIMING] /chatkit OpenAI done: {(time.perf_counter()-t_openai)*1000:.0f}ms | output_types={[getattr(o, 'type', type(o).__name__) for o in (response.output or [])]}", flush=True)
 
         output_text = ""
         for out in (response.output or []):

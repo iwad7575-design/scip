@@ -10,6 +10,7 @@ load_dotenv()
 
 import asyncio
 import json
+import time
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -22,24 +23,35 @@ from app.supabase_client import supabase
 bearer = HTTPBearer()
 
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(bearer)):
+    t = time.perf_counter()
     try:
-        result = supabase.auth.get_user(credentials.credentials)
+        loop = asyncio.get_event_loop()
+        result = await loop.run_in_executor(None, lambda: supabase.auth.get_user(credentials.credentials))
+        ms = (time.perf_counter() - t) * 1000
+        print(f"[TIMING] auth(required): {ms:.0f}ms", flush=True)
         if not result.user:
             raise HTTPException(status_code=401, detail="Invalid token")
         return result.user
+    except HTTPException:
+        raise
     except Exception:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
 
 async def get_optional_user(request: Request):
     """Returns the authenticated user, or None for unauthenticated requests."""
     auth = request.headers.get("Authorization", "")
+    t = time.perf_counter()
     if not auth.startswith("Bearer "):
+        request.state.auth_ms = 0.0
         return None
     token = auth.removeprefix("Bearer ").strip()
     try:
-        result = supabase.auth.get_user(token)
+        loop = asyncio.get_event_loop()
+        result = await loop.run_in_executor(None, lambda: supabase.auth.get_user(token))
+        request.state.auth_ms = (time.perf_counter() - t) * 1000
         return result.user if result.user else None
     except Exception:
+        request.state.auth_ms = (time.perf_counter() - t) * 1000
         return None
 
 app = FastAPI(title="SCIP RAG Agent API")
@@ -89,6 +101,10 @@ async def health():
 @app.post("/ask")
 async def ask_endpoint(request: Request, _user=Depends(get_optional_user)):
     """Public chat endpoint — streams SSE text deltas as they arrive."""
+    t0 = time.perf_counter()
+    auth_ms = getattr(request.state, "auth_ms", 0.0)
+    print(f"[TIMING] /ask received | model={MODEL} | auth={auth_ms:.0f}ms | user={'yes' if _user else 'guest'}", flush=True)
+
     body = await request.json()
     messages = body.get("messages", [])
 
@@ -98,26 +114,48 @@ async def ask_endpoint(request: Request, _user=Depends(get_optional_user)):
     auth_header = request.headers.get("Authorization", "")
     access_token = auth_header.removeprefix("Bearer ").strip() if auth_header.startswith("Bearer ") else ""
 
+    t_parse = time.perf_counter()
+    print(f"[TIMING] request parsed: {(t_parse - t0)*1000:.0f}ms | messages={len(messages)}", flush=True)
+
     async def generate():
         full_text = ""
+        first_delta_at: list[float] = []
         queue: asyncio.Queue = asyncio.Queue()
 
         async def run_stream():
+            t_openai_start = time.perf_counter()
+            print(f"[TIMING] → OpenAI stream starting (file_search max_num_results=8, score_threshold=0.3)", flush=True)
             try:
                 async with client.responses.stream(
                     model=MODEL,
                     input=[{"role": "system", "content": SYSTEM_PROMPT}] + messages,
-                    tools=[{"type": "file_search", "vector_store_ids": [VECTOR_STORE_ID]}],
+                    tools=[{
+                        "type": "file_search",
+                        "vector_store_ids": [VECTOR_STORE_ID],
+                        "max_num_results": 8,
+                        "ranking_options": {"score_threshold": 0.3},
+                    }],
                 ) as stream:
                     async for event in stream:
-                        if getattr(event, "type", "") == "response.output_text.delta":
+                        etype = getattr(event, "type", "")
+                        if etype == "response.output_item.added":
+                            item_type = getattr(getattr(event, "item", None), "type", "?")
+                            print(f"[TIMING] output_item.added type={item_type} at {(time.perf_counter()-t_openai_start)*1000:.0f}ms", flush=True)
+                        elif etype == "response.output_text.delta":
                             delta = getattr(event, "delta", "")
                             if delta:
+                                if not first_delta_at:
+                                    ttft = (time.perf_counter() - t_openai_start) * 1000
+                                    total_ttft = (time.perf_counter() - t0) * 1000
+                                    first_delta_at.append(time.perf_counter())
+                                    print(f"[TIMING] ⚡ FIRST TOKEN: {ttft:.0f}ms after OpenAI call | {total_ttft:.0f}ms end-to-end", flush=True)
                                 await queue.put(("delta", delta))
             except Exception as e:
-                print(f"OpenAI /ask stream error: {type(e).__name__}: {e}", flush=True)
+                print(f"[TIMING] OpenAI error after {(time.perf_counter()-t_openai_start)*1000:.0f}ms: {type(e).__name__}: {e}", flush=True)
                 await queue.put(("error", str(e)))
             finally:
+                t_done = time.perf_counter()
+                print(f"[TIMING] ✓ stream done | OpenAI={( t_done - t_openai_start)*1000:.0f}ms | total={( t_done - t0)*1000:.0f}ms | chars={len(full_text)}", flush=True)
                 await queue.put(("done", None))
 
         asyncio.create_task(run_stream())
@@ -134,6 +172,7 @@ async def ask_endpoint(request: Request, _user=Depends(get_optional_user)):
                 elif kind == "done":
                     break
             except asyncio.TimeoutError:
+                print(f"[TIMING] keepalive at {(time.perf_counter()-t0)*1000:.0f}ms (file_search still running)", flush=True)
                 yield ": keepalive\n\n"
 
         if _user and access_token and full_text:
