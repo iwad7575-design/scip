@@ -197,6 +197,130 @@ export function HomePage() {
     .slice(0, 2)
     .toUpperCase() || "?";
 
+  // ── Shared input box (rendered once, pinned at bottom in both modes) ──────
+  const inputBox = (
+    <div
+      className="flex-shrink-0"
+      style={heroMode ? {
+        borderTop: "1px solid rgba(255,255,255,0.1)",
+        background: "rgba(0,0,0,0.18)",
+      } : {
+        borderTop: "1px solid #e2e8f0",
+        background: "#ffffff",
+      }}
+    >
+      <div className="max-w-xl mx-auto w-full px-4 pt-3 pb-4">
+
+        {/* Hero-mode label with pulsing dot */}
+        {heroMode && (
+          <div className="flex items-center gap-2 mb-2">
+            <span
+              className="live-dot inline-block w-2.5 h-2.5 rounded-full flex-shrink-0"
+              style={{ backgroundColor: "#2ECC71" }}
+            />
+            <span className="text-xs font-medium" style={{ color: "rgba(255,255,255,0.6)" }}>
+              Ask SCIP a Clinical Question — SCIP is ready
+            </span>
+          </div>
+        )}
+
+        {/* Chat-mode: signup banner inline */}
+        {showSignupBanner && (
+          <div className="mb-3 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2.5 flex items-center justify-between gap-4">
+            <p className="text-sm text-emerald-800 leading-snug">
+              Sign up free for unlimited questions and chat history.
+            </p>
+            <Link
+              to="/signup"
+              className="flex-shrink-0 px-3 py-1.5 text-xs font-semibold text-white rounded-lg whitespace-nowrap"
+              style={{ backgroundColor: "#2ECC71" }}
+            >
+              Sign Up Free
+            </Link>
+          </div>
+        )}
+
+        {/* Input box */}
+        <div
+          className="rounded-2xl transition-all"
+          style={{
+            border: "2px solid #2ECC71",
+            boxShadow: inputFocused
+              ? "0 0 0 4px rgba(46,204,113,0.28), 0 4px 20px rgba(0,0,0,0.2)"
+              : "0 0 0 2px rgba(46,204,113,0.12)",
+          }}
+        >
+          <div
+            className="flex flex-col sm:flex-row items-stretch sm:items-end gap-2 sm:gap-3 rounded-xl px-4 py-3"
+            style={{ background: heroMode ? "rgba(255,255,255,0.07)" : "transparent" }}
+          >
+            <textarea
+              ref={textareaRef}
+              value={input}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
+              onFocus={() => setInputFocused(true)}
+              onBlur={() => setInputFocused(false)}
+              placeholder={
+                guestBlocked
+                  ? "Sign up to ask more questions…"
+                  : "Type your clinical question here…"
+              }
+              disabled={guestBlocked}
+              rows={1}
+              className="flex-1 w-full bg-transparent resize-none outline-none disabled:cursor-not-allowed"
+              style={{
+                lineHeight: "1.55",
+                minHeight: "44px",
+                maxHeight: "160px",
+                overflowY: "auto",
+                fontSize: "16px",
+                color: heroMode ? "#ffffff" : "#0f172a",
+              }}
+            />
+            <button
+              onClick={() => sendMessage(input)}
+              onMouseEnter={() => setSendHovered(true)}
+              onMouseLeave={() => setSendHovered(false)}
+              disabled={!input.trim() || loading || guestBlocked}
+              className="w-full sm:w-auto flex-shrink-0 flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl font-semibold text-white transition-all disabled:opacity-30"
+              style={{
+                backgroundColor: sendHovered ? "#27ae60" : "#2ECC71",
+                transform:
+                  sendHovered && !(!input.trim() || loading || guestBlocked)
+                    ? "scale(1.04)"
+                    : "scale(1)",
+                fontSize: "14px",
+                whiteSpace: "nowrap",
+              }}
+            >
+              Ask SCIP
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M12 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Sub-text */}
+        {heroMode && isGuest ? (
+          <p className="mt-2 text-xs text-center" style={{ color: "rgba(255,255,255,0.38)" }}>
+            {Math.max(0, GUEST_LIMIT - guestCount)} free{" "}
+            {GUEST_LIMIT - guestCount === 1 ? "question" : "questions"} remaining ·{" "}
+            <Link to="/signup" className="underline hover:opacity-80" style={{ color: "rgba(255,255,255,0.55)" }}>
+              Sign up
+            </Link>{" "}
+            for unlimited access
+          </p>
+        ) : (
+          <p className="mt-2 text-xs text-center" style={{ color: heroMode ? "rgba(255,255,255,0.3)" : "#94a3b8" }}>
+            SCIP is an AI assistant. Always apply clinical judgment.
+          </p>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <>
       <style>{`
@@ -218,40 +342,45 @@ export function HomePage() {
         .anim-fade-in-d3 { animation: fadeInUp 0.6s ease 0.35s both; }
         .anim-fade-in-d4 { animation: fadeInUp 0.6s ease 0.50s both; }
         .anim-fade-in-d5 { animation: fadeInUp 0.6s ease 0.65s both; }
-        .anim-fade-in-d6 { animation: fadeInUp 0.6s ease 0.80s both; }
         .bounce-arrow { animation: bounceDown 0.9s ease-in-out infinite; }
         .live-dot     { animation: scalePulse 1.6s ease-in-out infinite; }
         .hero-dot-grid {
           background-image: radial-gradient(circle, rgba(255,255,255,0.07) 1px, transparent 1px);
           background-size: 28px 28px;
         }
-        .scip-scrollbar::-webkit-scrollbar { width: 5px; }
-        .scip-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .scip-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 9px; }
+        .scip-scrollbar::-webkit-scrollbar       { width: 5px; }
+        .scip-scrollbar::-webkit-scrollbar-track  { background: transparent; }
+        .scip-scrollbar::-webkit-scrollbar-thumb  { background: rgba(255,255,255,0.15); border-radius: 9px; }
       `}</style>
 
+      {/*
+        LAYOUT (ChatGPT / Claude.ai pattern):
+          flex-col h-screen overflow-hidden
+          ├── header          (flex-shrink-0)
+          ├── scrollable area (flex-1, overflow-y-auto)
+          └── pinned input    (flex-shrink-0)
+      */}
       <div
-        className="flex flex-col h-screen"
+        className="flex flex-col overflow-hidden"
         style={{
+          height: "100dvh",  /* dvh shrinks when mobile keyboard opens */
           background: heroMode
             ? "linear-gradient(135deg, #0B2545 0%, #1B3A6B 100%)"
             : "#ffffff",
         }}
       >
-        {/* ── Header ── */}
+
+        {/* ── Header ── flex-shrink-0 ───────────────────────────────────── */}
         <header
-          className="flex-shrink-0 px-4 sm:px-6 py-3 flex items-center justify-between z-20 relative"
+          className="flex-shrink-0 px-4 sm:px-6 py-3 flex items-center justify-between z-20"
           style={{
-            backgroundColor: heroMode ? "transparent" : "#ffffff",
+            background: heroMode ? "transparent" : "#ffffff",
             borderBottom: heroMode ? "none" : "1px solid #e2e8f0",
           }}
         >
           <div className="flex items-center gap-2">
             <img src="/logo.png" alt="SCIP" className="h-8 w-8 object-contain" />
-            <span
-              className="font-bold text-base"
-              style={{ color: heroMode ? "#ffffff" : "#0f172a" }}
-            >
+            <span className="font-bold text-base" style={{ color: heroMode ? "#ffffff" : "#0f172a" }}>
               SCIP
             </span>
           </div>
@@ -310,11 +439,11 @@ export function HomePage() {
                   style={heroMode ? {
                     color: "#ffffff",
                     borderColor: "rgba(255,255,255,0.45)",
-                    backgroundColor: "transparent",
+                    background: "transparent",
                   } : {
                     color: "#334155",
                     borderColor: "#e2e8f0",
-                    backgroundColor: "transparent",
+                    background: "transparent",
                   }}
                 >
                   Login
@@ -331,331 +460,166 @@ export function HomePage() {
           </div>
         </header>
 
-        {/* ── Main area ── */}
-        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+        {/* ── Scrollable content ── flex-1, overflow-y-auto ──────────────── */}
+        {heroMode ? (
+          <div className="flex-1 overflow-y-auto hero-dot-grid scip-scrollbar" style={{ minHeight: 0 }}>
+            <div className="flex flex-col items-center px-4 py-8" style={{ minHeight: "100%" }}>
 
-          {/* ── Hero / Welcome ── */}
-          {heroMode ? (
-            <div className="flex-1 overflow-y-auto hero-dot-grid scip-scrollbar">
-              <div className="flex flex-col items-center justify-center min-h-full px-4 py-10">
-
-                {/* Heading block */}
-                <div className={mounted ? "anim-fade-in" : "opacity-0"}>
-                  <div className="flex flex-col items-center text-center">
-                    <img src="/logo.png" alt="SCIP" className="w-16 h-16 object-contain mb-5" />
-                    <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white mb-3 leading-tight max-w-2xl">
-                      Ethiopia's First AI-Powered
-                      <br className="hidden sm:block" />
-                      <span style={{ color: "#2ECC71" }}> Clinical Decision Support</span>
-                    </h1>
-                    <p className="text-xs sm:text-sm font-semibold tracking-widest uppercase mb-2" style={{ color: "rgba(255,255,255,0.55)" }}>
-                      Built by Ethiopian Health Professionals, for Ethiopian Frontline Care
-                    </p>
-                    <p className="text-xs sm:text-sm" style={{ color: "rgba(255,255,255,0.38)" }}>
-                      Serving frontline doctors, nurses, and health officers across Ethiopia and the Horn of Africa
-                    </p>
-                  </div>
-                </div>
-
-                {/* Description */}
-                <p className={`mt-6 text-sm sm:text-base leading-relaxed text-center max-w-xl ${mounted ? "anim-fade-in-d1" : "opacity-0"}`}
-                  style={{ color: "rgba(255,255,255,0.65)" }}>
-                  SCIP draws on a library of{" "}
-                  <span className="font-semibold text-white">104 validated national guidelines</span>,
-                  clinical manuals, and medical protocols. Every answer comes from{" "}
-                  <span className="font-semibold text-white">Ethiopian Ministry of Health and WHO-validated sources</span>
-                  {" "}— not from the internet.
+              {/* Heading */}
+              <div className={`flex flex-col items-center text-center ${mounted ? "anim-fade-in" : "opacity-0"}`}>
+                <img src="/logo.png" alt="SCIP" className="w-16 h-16 object-contain mb-5" />
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white mb-3 leading-tight max-w-2xl">
+                  Ethiopia's First AI-Powered
+                  <br className="hidden sm:block" />
+                  <span style={{ color: "#2ECC71" }}> Clinical Decision Support</span>
+                </h1>
+                <p className="text-xs sm:text-sm font-semibold tracking-widest uppercase mb-2" style={{ color: "rgba(255,255,255,0.55)" }}>
+                  Built by Ethiopian Health Professionals, for Ethiopian Frontline Care
                 </p>
+                <p className="text-xs sm:text-sm" style={{ color: "rgba(255,255,255,0.38)" }}>
+                  Serving frontline doctors, nurses, and health officers across Ethiopia and the Horn of Africa
+                </p>
+              </div>
 
-                {/* Stats bar */}
-                <div className={`mt-7 flex flex-wrap justify-center gap-3 ${mounted ? "anim-fade-in-d2" : "opacity-0"}`}>
-                  {[
-                    { icon: "📚", label: "104 Guidelines",          sub: "MoH & WHO validated"      },
-                    { icon: "🌍", label: "15+ Specialties",          sub: "Full clinical breadth"    },
-                    { icon: "⚕️",  label: "Ethiopian Frontline Care", sub: "Designed for the field"  },
-                  ].map(stat => (
-                    <div
-                      key={stat.label}
-                      className="flex items-center gap-3 px-4 py-2.5 rounded-xl"
-                      style={{
-                        backgroundColor: "rgba(255,255,255,0.08)",
-                        border: "1px solid rgba(255,255,255,0.14)",
-                      }}
-                    >
-                      <span className="text-xl">{stat.icon}</span>
-                      <div>
-                        <div className="text-white text-xs font-bold leading-tight">{stat.label}</div>
-                        <div className="text-xs leading-tight" style={{ color: "rgba(255,255,255,0.45)" }}>{stat.sub}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+              {/* Description */}
+              <p className={`mt-6 text-sm sm:text-base leading-relaxed text-center max-w-xl ${mounted ? "anim-fade-in-d1" : "opacity-0"}`}
+                style={{ color: "rgba(255,255,255,0.65)" }}>
+                SCIP draws on a library of{" "}
+                <span className="font-semibold text-white">104 validated national guidelines</span>,
+                clinical manuals, and medical protocols. Every answer comes from{" "}
+                <span className="font-semibold text-white">Ethiopian Ministry of Health and WHO-validated sources</span>
+                {" "}— not from the internet.
+              </p>
 
-                {/* Trust badges */}
-                <div className={`mt-4 flex flex-wrap justify-center gap-2 ${mounted ? "anim-fade-in-d3" : "opacity-0"}`}>
-                  {["🇪🇹 Ethiopian MoH", "🌐 WHO", "🔒 Secure", "📱 Mobile Optimized"].map(badge => (
-                    <span
-                      key={badge}
-                      className="px-3 py-1 rounded-full text-xs font-medium"
-                      style={{
-                        color: "rgba(255,255,255,0.65)",
-                        backgroundColor: "rgba(255,255,255,0.06)",
-                        border: "1px solid rgba(255,255,255,0.11)",
-                      }}
-                    >
-                      {badge}
-                    </span>
-                  ))}
-                </div>
-
-                {/* Example questions */}
-                <div className={`mt-8 flex flex-col gap-2.5 w-full max-w-xl ${mounted ? "anim-fade-in-d4" : "opacity-0"}`}>
-                  {EXAMPLE_QUESTIONS.map(q => (
-                    <button
-                      key={q}
-                      onClick={() => sendMessage(q)}
-                      onMouseEnter={() => setHoveredQuestion(q)}
-                      onMouseLeave={() => setHoveredQuestion(null)}
-                      className="text-left px-4 py-3 rounded-xl text-sm text-white flex items-center justify-between gap-3 transition-all"
-                      style={{
-                        backgroundColor: hoveredQuestion === q ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.07)",
-                        border: hoveredQuestion === q
-                          ? "1px solid #2ECC71"
-                          : "1px solid rgba(255,255,255,0.14)",
-                        borderLeft: hoveredQuestion === q ? "3px solid #2ECC71" : undefined,
-                      }}
-                    >
-                      <span className="leading-snug">{q}</span>
-                      <span className="flex-shrink-0 font-bold" style={{ color: "#2ECC71" }}>→</span>
-                    </button>
-                  ))}
-                </div>
-
-                {/* Bouncing arrow */}
-                {showBounceArrow && (
+              {/* Stats bar */}
+              <div className={`mt-7 flex flex-wrap justify-center gap-3 ${mounted ? "anim-fade-in-d2" : "opacity-0"}`}>
+                {[
+                  { icon: "📚", label: "104 Guidelines",          sub: "MoH & WHO validated"      },
+                  { icon: "🌍", label: "15+ Specialties",          sub: "Full clinical breadth"    },
+                  { icon: "⚕️",  label: "Ethiopian Frontline Care", sub: "Designed for the field"  },
+                ].map(stat => (
                   <div
-                    className="bounce-arrow mt-5 text-2xl"
-                    style={{ color: "#2ECC71" }}
-                  >
-                    ↓
-                  </div>
-                )}
-
-                {/* Input area */}
-                <div className={`mt-5 w-full max-w-xl ${mounted ? "anim-fade-in-d5" : "opacity-0"}`}>
-                  {/* Label + live dot */}
-                  <div className="flex items-center gap-2 mb-2">
-                    <span
-                      className="live-dot inline-block w-2.5 h-2.5 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: "#2ECC71" }}
-                    />
-                    <span className="text-xs font-medium" style={{ color: "rgba(255,255,255,0.6)" }}>
-                      Ask SCIP a Clinical Question — SCIP is ready
-                    </span>
-                  </div>
-
-                  {/* Input box */}
-                  <div
-                    className="rounded-2xl transition-all"
+                    key={stat.label}
+                    className="flex items-center gap-3 px-4 py-2.5 rounded-xl"
                     style={{
-                      border: "2px solid #2ECC71",
-                      boxShadow: inputFocused
-                        ? "0 0 0 4px rgba(46,204,113,0.3), 0 8px 32px rgba(0,0,0,0.35)"
-                        : "0 0 0 2px rgba(46,204,113,0.15), 0 4px 20px rgba(0,0,0,0.25)",
+                      background: "rgba(255,255,255,0.08)",
+                      border: "1px solid rgba(255,255,255,0.14)",
                     }}
                   >
-                    <div
-                      className="flex flex-col sm:flex-row items-stretch sm:items-end gap-2 sm:gap-3 rounded-xl px-4 py-3"
-                      style={{ backgroundColor: "rgba(255,255,255,0.07)" }}
-                    >
-                      <textarea
-                        ref={textareaRef}
-                        value={input}
-                        onChange={handleInputChange}
-                        onKeyDown={handleKeyDown}
-                        onFocus={() => setInputFocused(true)}
-                        onBlur={() => setInputFocused(false)}
-                        placeholder={
-                          guestBlocked
-                            ? "Sign up to ask more questions…"
-                            : "Type your clinical question here…"
-                        }
-                        disabled={guestBlocked}
-                        rows={1}
-                        className="flex-1 w-full bg-transparent resize-none outline-none placeholder:text-white/35 disabled:cursor-not-allowed text-white"
-                        style={{ lineHeight: "1.55", minHeight: "60px", maxHeight: "160px", overflowY: "auto", fontSize: "16px" }}
-                      />
-                      <button
-                        onClick={() => sendMessage(input)}
-                        onMouseEnter={() => setSendHovered(true)}
-                        onMouseLeave={() => setSendHovered(false)}
-                        disabled={!input.trim() || loading || guestBlocked}
-                        className="w-full sm:w-auto flex-shrink-0 flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl font-semibold text-white transition-all disabled:opacity-30"
-                        style={{
-                          backgroundColor: sendHovered ? "#27ae60" : "#2ECC71",
-                          transform: sendHovered && !(!input.trim() || loading || guestBlocked) ? "scale(1.04)" : "scale(1)",
-                          fontSize: "14px",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        Ask SCIP
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M12 5l7 7-7 7" />
-                        </svg>
-                      </button>
+                    <span className="text-xl">{stat.icon}</span>
+                    <div>
+                      <div className="text-white text-xs font-bold leading-tight">{stat.label}</div>
+                      <div className="text-xs leading-tight" style={{ color: "rgba(255,255,255,0.45)" }}>{stat.sub}</div>
                     </div>
                   </div>
-
-                  {isGuest && (
-                    <p className="mt-2 text-xs text-center" style={{ color: "rgba(255,255,255,0.38)" }}>
-                      {Math.max(0, GUEST_LIMIT - guestCount)} free{" "}
-                      {GUEST_LIMIT - guestCount === 1 ? "question" : "questions"} remaining ·{" "}
-                      <Link to="/signup" className="underline hover:text-white/70" style={{ color: "rgba(255,255,255,0.55)" }}>
-                        Sign up
-                      </Link>{" "}
-                      for unlimited access
-                    </p>
-                  )}
-                </div>
-
-                {/* Footer */}
-                <p
-                  className={`mt-8 text-xs text-center max-w-xl pb-2 ${mounted ? "anim-fade-in-d6" : "opacity-0"}`}
-                  style={{ color: "rgba(255,255,255,0.28)" }}
-                >
-                  ⚕️ SCIP supports clinical decisions — it does not replace clinical judgment or specialist consultation.{" "}
-                  Developed by SHIFA | scip-et.com
-                </p>
+                ))}
               </div>
+
+              {/* Trust badges */}
+              <div className={`mt-4 flex flex-wrap justify-center gap-2 ${mounted ? "anim-fade-in-d3" : "opacity-0"}`}>
+                {["🇪🇹 Ethiopian MoH", "🌐 WHO", "🔒 Secure", "📱 Mobile Optimized"].map(badge => (
+                  <span
+                    key={badge}
+                    className="px-3 py-1 rounded-full text-xs font-medium"
+                    style={{
+                      color: "rgba(255,255,255,0.65)",
+                      background: "rgba(255,255,255,0.06)",
+                      border: "1px solid rgba(255,255,255,0.11)",
+                    }}
+                  >
+                    {badge}
+                  </span>
+                ))}
+              </div>
+
+              {/* Example questions */}
+              <div className={`mt-8 flex flex-col gap-2.5 w-full max-w-xl ${mounted ? "anim-fade-in-d4" : "opacity-0"}`}>
+                {EXAMPLE_QUESTIONS.map(q => (
+                  <button
+                    key={q}
+                    onClick={() => sendMessage(q)}
+                    onMouseEnter={() => setHoveredQuestion(q)}
+                    onMouseLeave={() => setHoveredQuestion(null)}
+                    className="text-left px-4 py-3 rounded-xl text-sm text-white flex items-center justify-between gap-3 transition-all"
+                    style={{
+                      background: hoveredQuestion === q ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.07)",
+                      border: hoveredQuestion === q ? "1px solid #2ECC71" : "1px solid rgba(255,255,255,0.14)",
+                      borderLeft: hoveredQuestion === q ? "3px solid #2ECC71" : undefined,
+                    }}
+                  >
+                    <span className="leading-snug">{q}</span>
+                    <span className="flex-shrink-0 font-bold" style={{ color: "#2ECC71" }}>→</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Bouncing arrow */}
+              {showBounceArrow && (
+                <div className={`bounce-arrow mt-6 text-2xl ${mounted ? "anim-fade-in-d5" : "opacity-0"}`} style={{ color: "#2ECC71" }}>
+                  ↓
+                </div>
+              )}
+
+              {/* Footer */}
+              <p
+                className={`mt-8 pb-2 text-xs text-center max-w-xl ${mounted ? "anim-fade-in-d5" : "opacity-0"}`}
+                style={{ color: "rgba(255,255,255,0.28)" }}
+              >
+                ⚕️ SCIP supports clinical decisions — it does not replace clinical judgment or specialist consultation.{" "}
+                Developed by SHIFA | scip-et.com
+              </p>
             </div>
-
-          ) : (
-            /* ── Chat mode ── */
-            <>
-              <div className="flex-1 overflow-y-auto px-4 py-6 bg-white">
-                <div className="max-w-2xl mx-auto flex flex-col gap-6">
-                  {messages.map((msg, i) => (
-                    <div key={i} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                      {msg.role === "assistant" && (
-                        <img
-                          src="/logo.png"
-                          alt="SCIP"
-                          className="w-7 h-7 object-contain rounded-full flex-shrink-0 mt-1"
-                        />
-                      )}
-                      <div
-                        className={`max-w-[85%] px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
-                          msg.role === "user"
-                            ? "text-white rounded-br-sm"
-                            : "bg-slate-100 text-slate-800 rounded-bl-sm"
-                        }`}
-                        style={msg.role === "user" ? { backgroundColor: "#1B3A6B" } : {}}
-                      >
-                        {msg.content}
-                      </div>
-                    </div>
-                  ))}
-
-                  {loading && (
-                    <div className="flex gap-3 justify-start">
-                      <img src="/logo.png" alt="SCIP" className="w-7 h-7 object-contain rounded-full flex-shrink-0 mt-1" />
-                      <div className="bg-slate-100 px-4 py-3 rounded-2xl rounded-bl-sm">
-                        <div className="flex gap-1 items-center">
-                          {[0, 150, 300].map(delay => (
-                            <span
-                              key={delay}
-                              className="w-2 h-2 rounded-full bg-slate-400 animate-bounce"
-                              style={{ animationDelay: `${delay}ms` }}
-                            />
-                          ))}
-                        </div>
-                        <p className="text-xs text-slate-400 mt-1.5">
-                          {elapsed < 4 ? "Searching guidelines…" : `Searching guidelines… ${elapsed}s`}
-                        </p>
-                      </div>
-                    </div>
+          </div>
+        ) : (
+          /* Chat messages */
+          <div className="flex-1 overflow-y-auto px-4 py-6 bg-white" style={{ minHeight: 0 }}>
+            <div className="max-w-2xl mx-auto flex flex-col gap-6">
+              {messages.map((msg, i) => (
+                <div key={i} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                  {msg.role === "assistant" && (
+                    <img src="/logo.png" alt="SCIP" className="w-7 h-7 object-contain rounded-full flex-shrink-0 mt-1" />
                   )}
-
-                  <div ref={messagesEndRef} />
+                  <div
+                    className={`max-w-[85%] px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
+                      msg.role === "user"
+                        ? "text-white rounded-br-sm"
+                        : "bg-slate-100 text-slate-800 rounded-bl-sm"
+                    }`}
+                    style={msg.role === "user" ? { backgroundColor: "#1B3A6B" } : {}}
+                  >
+                    {msg.content}
+                  </div>
                 </div>
-              </div>
+              ))}
 
-              {/* Guest signup banner */}
-              {showSignupBanner && (
-                <div className="flex-shrink-0 px-4 pb-3">
-                  <div className="max-w-2xl mx-auto bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 flex items-center justify-between gap-4">
-                    <p className="text-sm text-emerald-800 leading-snug">
-                      Sign up free to save your chat history and ask unlimited questions.
+              {loading && (
+                <div className="flex gap-3 justify-start">
+                  <img src="/logo.png" alt="SCIP" className="w-7 h-7 object-contain rounded-full flex-shrink-0 mt-1" />
+                  <div className="bg-slate-100 px-4 py-3 rounded-2xl rounded-bl-sm">
+                    <div className="flex gap-1 items-center">
+                      {[0, 150, 300].map(delay => (
+                        <span
+                          key={delay}
+                          className="w-2 h-2 rounded-full bg-slate-400 animate-bounce"
+                          style={{ animationDelay: `${delay}ms` }}
+                        />
+                      ))}
+                    </div>
+                    <p className="text-xs text-slate-400 mt-1.5">
+                      {elapsed < 4 ? "Searching guidelines…" : `Searching guidelines… ${elapsed}s`}
                     </p>
-                    <Link
-                      to="/signup"
-                      className="flex-shrink-0 px-3 py-1.5 text-xs font-semibold text-white rounded-lg whitespace-nowrap"
-                      style={{ backgroundColor: "#2ECC71" }}
-                    >
-                      Sign Up Free
-                    </Link>
                   </div>
                 </div>
               )}
 
-              {/* Chat input bar */}
-              <div className="flex-shrink-0 border-t border-slate-200 px-4 py-3 bg-white">
-                <div className="max-w-2xl mx-auto">
-                  <div
-                    className="rounded-2xl transition-all"
-                    style={{
-                      border: "2px solid #2ECC71",
-                      boxShadow: inputFocused
-                        ? "0 0 0 4px rgba(46,204,113,0.25)"
-                        : "0 0 0 2px rgba(46,204,113,0.1)",
-                    }}
-                  >
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-2 sm:gap-3 px-4 py-3">
-                      <textarea
-                        ref={textareaRef}
-                        value={input}
-                        onChange={handleInputChange}
-                        onKeyDown={handleKeyDown}
-                        onFocus={() => setInputFocused(true)}
-                        onBlur={() => setInputFocused(false)}
-                        placeholder={
-                          guestBlocked
-                            ? "Sign up to ask more questions…"
-                            : "Type your clinical question here…"
-                        }
-                        disabled={guestBlocked}
-                        rows={1}
-                        className="flex-1 w-full bg-transparent resize-none outline-none text-slate-900 placeholder:text-slate-400 disabled:cursor-not-allowed"
-                        style={{ lineHeight: "1.55", minHeight: "44px", maxHeight: "160px", overflowY: "auto", fontSize: "16px" }}
-                      />
-                      <button
-                        onClick={() => sendMessage(input)}
-                        onMouseEnter={() => setSendHovered(true)}
-                        onMouseLeave={() => setSendHovered(false)}
-                        disabled={!input.trim() || loading || guestBlocked}
-                        className="w-full sm:w-auto flex-shrink-0 flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl font-semibold text-white transition-all disabled:opacity-30"
-                        style={{
-                          backgroundColor: sendHovered ? "#27ae60" : "#2ECC71",
-                          transform: sendHovered && !(!input.trim() || loading || guestBlocked) ? "scale(1.04)" : "scale(1)",
-                          fontSize: "14px",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        Ask SCIP
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M12 5l7 7-7 7" />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                  <p className="text-xs text-center text-slate-400 mt-2">
-                    SCIP is an AI assistant. Always apply clinical judgment.
-                  </p>
-                </div>
-              </div>
-            </>
-          )}
-        </div>
+              <div ref={messagesEndRef} />
+            </div>
+          </div>
+        )}
+
+        {/* ── Pinned input ── flex-shrink-0, always at bottom ────────────── */}
+        {inputBox}
+
       </div>
     </>
   );
