@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import asyncio
+import json
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -87,7 +88,7 @@ async def health():
 
 @app.post("/ask")
 async def ask_endpoint(request: Request, _user=Depends(get_optional_user)):
-    """Public chat endpoint — no auth required, history saved for logged-in users."""
+    """Public chat endpoint — streams SSE text deltas as they arrive."""
     body = await request.json()
     messages = body.get("messages", [])
 
@@ -97,33 +98,59 @@ async def ask_endpoint(request: Request, _user=Depends(get_optional_user)):
     auth_header = request.headers.get("Authorization", "")
     access_token = auth_header.removeprefix("Bearer ").strip() if auth_header.startswith("Bearer ") else ""
 
-    try:
-        response = await client.responses.create(
-            model=MODEL,
-            input=[{"role": "system", "content": SYSTEM_PROMPT}] + messages,
-            tools=[{"type": "file_search", "vector_store_ids": [VECTOR_STORE_ID]}],
-        )
-    except Exception as e:
-        print(f"OpenAI /ask error: {type(e).__name__}: {e}", flush=True)
-        return JSONResponse(status_code=500, content={"error": str(e)})
+    async def generate():
+        full_text = ""
+        queue: asyncio.Queue = asyncio.Queue()
 
-    output_text = ""
-    for out in (response.output or []):
-        content_list = getattr(out, "content", None) or []
-        for content in content_list:
-            text = getattr(content, "text", None)
-            if text:
-                output_text += text
+        async def run_stream():
+            try:
+                async with client.responses.stream(
+                    model=MODEL,
+                    input=[{"role": "system", "content": SYSTEM_PROMPT}] + messages,
+                    tools=[{"type": "file_search", "vector_store_ids": [VECTOR_STORE_ID]}],
+                ) as stream:
+                    async for event in stream:
+                        if getattr(event, "type", "") == "response.output_text.delta":
+                            delta = getattr(event, "delta", "")
+                            if delta:
+                                await queue.put(("delta", delta))
+            except Exception as e:
+                print(f"OpenAI /ask stream error: {type(e).__name__}: {e}", flush=True)
+                await queue.put(("error", str(e)))
+            finally:
+                await queue.put(("done", None))
 
-    if _user and access_token and output_text:
-        user_question = next(
-            (m["content"] for m in reversed(messages) if m.get("role") == "user"), ""
-        )
-        if user_question:
-            loop = asyncio.get_event_loop()
-            loop.run_in_executor(None, _save_history, access_token, str(_user.id), user_question, output_text)
+        asyncio.create_task(run_stream())
 
-    return JSONResponse({"text": output_text or "I'm sorry, I couldn't generate a response. Please try again."})
+        while True:
+            try:
+                kind, value = await asyncio.wait_for(queue.get(), timeout=15)
+                if kind == "delta":
+                    full_text += value
+                    yield f"data: {json.dumps({'delta': value})}\n\n"
+                elif kind == "error":
+                    yield f"data: {json.dumps({'error': 'Failed to generate a response. Please try again.'})}\n\n"
+                    return
+                elif kind == "done":
+                    break
+            except asyncio.TimeoutError:
+                yield ": keepalive\n\n"
+
+        if _user and access_token and full_text:
+            user_question = next(
+                (m["content"] for m in reversed(messages) if m.get("role") == "user"), ""
+            )
+            if user_question:
+                loop = asyncio.get_event_loop()
+                loop.run_in_executor(None, _save_history, access_token, str(_user.id), user_question, full_text)
+
+        yield f"data: {json.dumps({'done': True})}\n\n"
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 @app.post("/chatkit")

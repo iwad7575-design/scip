@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
-import { ASK_API_URL } from "../lib/config";
+import { ASK_API_URL, BACKEND_HEALTH_URL } from "../lib/config";
 
 const GUEST_COUNT_KEY = "scip_guest_count";
 const GUEST_LIMIT = 3;
@@ -19,6 +19,7 @@ export function HomePage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
   const [user, setUser] = useState<User | null | undefined>(undefined);
   const [showDropdown, setShowDropdown] = useState(false);
   const [guestCount, setGuestCount] = useState(() =>
@@ -29,6 +30,11 @@ export function HomePage() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
+  // Ping backend on mount to wake Render from sleep before user asks anything
+  useEffect(() => {
+    fetch(BACKEND_HEALTH_URL).catch(() => {});
+  }, []);
+
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data.user));
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
@@ -36,6 +42,13 @@ export function HomePage() {
     });
     return () => subscription.unsubscribe();
   }, []);
+
+  // Increment elapsed counter while waiting for the first response token
+  useEffect(() => {
+    if (!loading) { setElapsed(0); return; }
+    const id = setInterval(() => setElapsed(s => s + 1), 1000);
+    return () => clearInterval(id);
+  }, [loading]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -63,9 +76,7 @@ export function HomePage() {
     setMessages(newMessages);
     setInput("");
 
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-    }
+    if (textareaRef.current) textareaRef.current.style.height = "auto";
 
     if (isGuest) {
       const newCount = guestCount + 1;
@@ -74,6 +85,7 @@ export function HomePage() {
     }
 
     setLoading(true);
+
     try {
       const { data } = await supabase.auth.getSession();
       const token = data.session?.access_token;
@@ -86,15 +98,66 @@ export function HomePage() {
         body: JSON.stringify({ messages: newMessages }),
       });
 
-      const json = await res.json();
-      setMessages(prev => [...prev, {
-        role: "assistant",
-        content: json.text || "No response received. Please try again.",
-      }]);
+      if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let started = false;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const raw = line.slice(6).trim();
+          if (!raw) continue;
+          try {
+            const evt = JSON.parse(raw);
+
+            if (evt.delta) {
+              if (!started) {
+                started = true;
+                setLoading(false);
+                // Insert the empty assistant bubble that we stream text into
+                setMessages(prev => [...prev, { role: "assistant", content: "" }]);
+              }
+              setMessages(prev => {
+                const updated = [...prev];
+                const last = updated[updated.length - 1];
+                if (last?.role === "assistant") {
+                  updated[updated.length - 1] = { ...last, content: last.content + evt.delta };
+                }
+                return updated;
+              });
+            }
+
+            if (evt.error && !started) {
+              setMessages(prev => [...prev, {
+                role: "assistant",
+                content: "I'm sorry, something went wrong. Please try again.",
+              }]);
+            }
+          } catch { /* malformed SSE line — ignore */ }
+        }
+      }
+
+      // No deltas arrived at all (empty response)
+      if (!started) {
+        setMessages(prev => [...prev, {
+          role: "assistant",
+          content: "I'm sorry, I couldn't generate a response. Please try again.",
+        }]);
+      }
     } catch {
       setMessages(prev => [...prev, {
         role: "assistant",
-        content: "Something went wrong connecting to the server. Please try again.",
+        content: "Failed to connect to the server. Please try again.",
       }]);
     } finally {
       setLoading(false);
@@ -268,7 +331,7 @@ export function HomePage() {
                 <div className="flex gap-3 justify-start">
                   <img src="/logo.png" alt="SCIP" className="w-7 h-7 object-contain rounded-full flex-shrink-0 mt-1" />
                   <div className="bg-slate-100 px-4 py-3 rounded-2xl rounded-bl-sm">
-                    <div className="flex gap-1 items-center h-4">
+                    <div className="flex gap-1 items-center">
                       {[0, 150, 300].map(delay => (
                         <span
                           key={delay}
@@ -277,6 +340,11 @@ export function HomePage() {
                         />
                       ))}
                     </div>
+                    <p className="text-xs text-slate-400 mt-1.5">
+                      {elapsed < 4
+                        ? "Searching guidelines…"
+                        : `Searching guidelines… ${elapsed}s`}
+                    </p>
                   </div>
                 </div>
               )}
