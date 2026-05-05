@@ -277,7 +277,7 @@ export function HomePage() {
               Your AI-Powered Clinical Decision Support Assistant
             </p>
             <p className="text-sm text-slate-500 mb-8 leading-relaxed text-center max-w-xl">
-              SCIP draws on a library of <strong className="text-slate-700">106 validated national guidelines</strong>,
+              SCIP draws on a library of <strong className="text-slate-700">104 validated national guidelines</strong>,
               clinical manuals, and medical protocols — spanning infectious diseases, maternal and neonatal
               health, pediatrics, emergency medicine, non-communicable diseases, mental health, surgery,
               nutrition, reproductive health, palliative care, and more. Every answer is cited directly
