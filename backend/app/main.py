@@ -11,6 +11,7 @@ load_dotenv()
 import asyncio
 import json
 import time
+from collections import OrderedDict
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -21,6 +22,56 @@ from app.server import StarterChatServer, MODEL, SYSTEM_PROMPT, VECTOR_STORE_ID,
 from app.supabase_client import supabase
 
 bearer = HTTPBearer()
+
+# ── In-memory response cache ──────────────────────────────────────────────────
+# Stores up to 50 single-turn question→answer pairs for 24 hours.
+# Only caches the first message in a session (multi-turn answers depend on
+# prior context, so the same last message can produce different answers).
+
+_CACHE_TTL = 86_400   # 24 hours
+_CACHE_SIZE = 50
+_STREAM_TIMEOUT_S = 30  # Cancel OpenAI call if no first token within this time
+
+
+class _ResponseCache:
+    def __init__(self) -> None:
+        self._data: OrderedDict[str, tuple[str, float]] = OrderedDict()
+
+    def _key(self, q: str) -> str:
+        return " ".join(q.lower().strip().split())
+
+    def get(self, question: str) -> str | None:
+        k = self._key(question)
+        entry = self._data.get(k)
+        if entry is None:
+            return None
+        answer, ts = entry
+        if time.time() - ts > _CACHE_TTL:
+            del self._data[k]
+            return None
+        self._data.move_to_end(k)
+        return answer
+
+    def set(self, question: str, answer: str) -> None:
+        if not answer.strip():
+            return
+        k = self._key(question)
+        if k in self._data:
+            self._data.move_to_end(k)
+        elif len(self._data) >= _CACHE_SIZE:
+            self._data.popitem(last=False)  # evict oldest
+        self._data[k] = (answer, time.time())
+
+
+_cache = _ResponseCache()
+
+
+def _num_results(messages: list[dict]) -> int:
+    """Return 3 for short questions (≤10 words), 5 for longer ones."""
+    last = next((m.get("content", "") for m in reversed(messages) if m.get("role") == "user"), "")
+    return 3 if len(last.split()) <= 10 else 5
+
+# ─────────────────────────────────────────────────────────────────────────────
 
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(bearer)):
     t = time.perf_counter()
@@ -123,14 +174,44 @@ async def ask_endpoint(request: Request, _user=Depends(get_optional_user)):
     t_parse = time.perf_counter()
     print(f"[TIMING] request parsed: {(t_parse - t0)*1000:.0f}ms | messages={len(messages)}", flush=True)
 
+    # Extract last user question for cache lookup
+    user_messages = [m for m in messages if m.get("role") == "user"]
+    user_question = user_messages[-1].get("content", "") if user_messages else ""
+    is_single_turn = len(user_messages) == 1  # Only cache first-turn; follow-ups depend on context
+
+    # ── Cache hit: stream the cached answer immediately ───────────────────────
+    if is_single_turn and user_question:
+        cached = _cache.get(user_question)
+        if cached:
+            print(f"[CACHE] ✓ hit | chars={len(cached)} | question={user_question[:60]}", flush=True)
+
+            async def _cached_gen():
+                yield f"data: {json.dumps({'delta': cached})}\n\n"
+                yield f"data: {json.dumps({'done': True})}\n\n"
+
+            return StreamingResponse(
+                _cached_gen(),
+                media_type="text/event-stream",
+                headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+            )
+
+    num_results = _num_results(messages)
+    print(f"[TIMING] num_results={num_results} (question words: {len(user_question.split())})", flush=True)
+
     async def generate():
+        nonlocal user_question
         full_text = ""
         first_delta_at: list[float] = []
         queue: asyncio.Queue = asyncio.Queue()
+        got_first_token = False
 
         async def run_stream():
             t_openai_start = time.perf_counter()
-            print(f"[TIMING] → OpenAI stream starting (file_search max_num_results=5, score_threshold=0.3)", flush=True)
+            print(
+                f"[TIMING] → OpenAI stream starting "
+                f"(file_search max_num_results={num_results}, score_threshold=0.5)",
+                flush=True,
+            )
             try:
                 async with client.responses.stream(
                     model=MODEL,
@@ -138,8 +219,8 @@ async def ask_endpoint(request: Request, _user=Depends(get_optional_user)):
                     tools=[{
                         "type": "file_search",
                         "vector_store_ids": [VECTOR_STORE_ID],
-                        "max_num_results": 5,
-                        "ranking_options": {"score_threshold": 0.3},
+                        "max_num_results": num_results,
+                        "ranking_options": {"score_threshold": 0.5},
                     }],
                 ) as stream:
                     async for event in stream:
@@ -156,20 +237,32 @@ async def ask_endpoint(request: Request, _user=Depends(get_optional_user)):
                                     first_delta_at.append(time.perf_counter())
                                     print(f"[TIMING] ⚡ FIRST TOKEN: {ttft:.0f}ms after OpenAI call | {total_ttft:.0f}ms end-to-end", flush=True)
                                 await queue.put(("delta", delta))
+            except asyncio.CancelledError:
+                print(f"[TIMING] ⏰ stream cancelled by watchdog (no first token in {_STREAM_TIMEOUT_S}s)", flush=True)
             except Exception as e:
                 print(f"[TIMING] OpenAI error after {(time.perf_counter()-t_openai_start)*1000:.0f}ms: {type(e).__name__}: {e}", flush=True)
-                await queue.put(("error", str(e)))
+                queue.put_nowait(("error", str(e)))
             finally:
                 t_done = time.perf_counter()
-                print(f"[TIMING] ✓ stream done | OpenAI={( t_done - t_openai_start)*1000:.0f}ms | total={( t_done - t0)*1000:.0f}ms | chars={len(full_text)}", flush=True)
-                await queue.put(("done", None))
+                print(f"[TIMING] ✓ stream done | total={( t_done - t0)*1000:.0f}ms | chars={len(full_text)}", flush=True)
+                queue.put_nowait(("done", None))
 
-        asyncio.create_task(run_stream())
+        stream_task = asyncio.create_task(run_stream())
+
+        # Watchdog: cancel the OpenAI call if no first token within timeout
+        async def _watchdog():
+            await asyncio.sleep(_STREAM_TIMEOUT_S)
+            if not stream_task.done() and not got_first_token:
+                stream_task.cancel()
+                queue.put_nowait(("error", "timeout"))
+
+        asyncio.create_task(_watchdog())
 
         while True:
             try:
                 kind, value = await asyncio.wait_for(queue.get(), timeout=15)
                 if kind == "delta":
+                    got_first_token = True  # type: ignore[assignment]  # nonlocal via closure
                     full_text += value
                     yield f"data: {json.dumps({'delta': value})}\n\n"
                 elif kind == "error":
@@ -181,10 +274,12 @@ async def ask_endpoint(request: Request, _user=Depends(get_optional_user)):
                 print(f"[TIMING] keepalive at {(time.perf_counter()-t0)*1000:.0f}ms (file_search still running)", flush=True)
                 yield ": keepalive\n\n"
 
+        # Store in cache (single-turn questions only, non-empty answers)
+        if is_single_turn and user_question and full_text:
+            _cache.set(user_question, full_text)
+            print(f"[CACHE] stored | chars={len(full_text)} | question={user_question[:60]}", flush=True)
+
         if _user and access_token and full_text:
-            user_question = next(
-                (m["content"] for m in reversed(messages) if m.get("role") == "user"), ""
-            )
             if user_question:
                 loop = asyncio.get_event_loop()
                 loop.run_in_executor(None, _save_history, access_token, str(_user.id), user_question, full_text)

@@ -27,6 +27,12 @@ from .memory_store import MemoryStore
 MAX_RECENT_ITEMS = 30
 MODEL = "gpt-5-nano"
 
+
+def _num_results(messages: list[dict]) -> int:
+    """Return 3 for short questions (≤10 words), 5 for longer ones."""
+    last = next((m.get("content", "") for m in reversed(messages) if m.get("role") == "user"), "")
+    return 3 if len(last.split()) <= 10 else 5
+
 client = AsyncOpenAI()
 
 from .supabase_client import SUPABASE_URL, SUPABASE_ANON_KEY
@@ -228,7 +234,8 @@ class StarterChatServer(ChatKitServer[dict[str, Any]]):
         user_question = messages[-1]["content"] if messages[-1]["role"] == "user" else ""
 
         t_openai = time.perf_counter()
-        print(f"[TIMING] /chatkit → OpenAI call starting (file_search max_num_results=5)", flush=True)
+        n = _num_results(messages)
+        print(f"[TIMING] /chatkit → OpenAI call starting (file_search max_num_results={n}, score_threshold=0.5)", flush=True)
         try:
             response = await client.responses.create(
                 model=MODEL,
@@ -236,8 +243,8 @@ class StarterChatServer(ChatKitServer[dict[str, Any]]):
                 tools=[{
                     "type": "file_search",
                     "vector_store_ids": [VECTOR_STORE_ID],
-                    "max_num_results": 5,
-                    "ranking_options": {"score_threshold": 0.3},
+                    "max_num_results": n,
+                    "ranking_options": {"score_threshold": 0.5},
                 }],
             )
         except Exception as e:
