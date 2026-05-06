@@ -130,12 +130,11 @@ async def ask_endpoint(request: Request, _user=Depends(get_optional_user)):
 
         async def run_stream():
             t_openai_start = time.perf_counter()
-            print(f"[TIMING] → OpenAI stream starting (file_search max_num_results=5, score_threshold=0.3, max_output_tokens=800)", flush=True)
+            print(f"[TIMING] → OpenAI stream starting (file_search max_num_results=5, score_threshold=0.3)", flush=True)
             try:
                 async with client.responses.stream(
                     model=MODEL,
                     input=[{"role": "system", "content": SYSTEM_PROMPT}] + messages,
-                    max_output_tokens=800,
                     tools=[{
                         "type": "file_search",
                         "vector_store_ids": [VECTOR_STORE_ID],

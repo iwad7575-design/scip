@@ -116,6 +116,7 @@ export function HomePage() {
       const decoder = new TextDecoder();
       let buffer = "";
       let started = false;
+      let errorOccurred = false;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -148,7 +149,8 @@ export function HomePage() {
               });
             }
 
-            if (evt.error && !started) {
+            if (evt.error && !started && !errorOccurred) {
+              errorOccurred = true;
               setMessages(prev => [...prev, {
                 role: "assistant",
                 content: "I'm sorry, something went wrong. Please try again.",
@@ -158,7 +160,8 @@ export function HomePage() {
         }
       }
 
-      if (!started) {
+      // Only show fallback if no tokens AND no error message was already shown
+      if (!started && !errorOccurred) {
         setMessages(prev => [...prev, {
           role: "assistant",
           content: "I'm sorry, I couldn't generate a response. Please try again.",
@@ -528,32 +531,23 @@ export function HomePage() {
           /* Chat messages */
           <div className="flex-1 overflow-y-auto px-4 py-6 bg-white" style={{ minHeight: 0 }}>
             <div className="max-w-2xl mx-auto flex flex-col gap-6">
-              {messages.map((msg, i) => {
-                // Add blinking cursor to the last assistant message while streaming
-                const isStreamingTail =
-                  !loading &&
-                  msg.role === "assistant" &&
-                  i === messages.length - 1 &&
-                  msg.content.length > 0 &&
-                  !msg.content.endsWith("judgment of a qualified clinician.");
-                return (
-                  <div key={i} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                    {msg.role === "assistant" && (
-                      <img src="/logo.png" alt="SCIP" className="w-7 h-7 object-contain rounded-full flex-shrink-0 mt-1" />
-                    )}
-                    <div
-                      className={`max-w-[85%] px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
-                        msg.role === "user"
-                          ? "text-white rounded-br-sm"
-                          : "bg-slate-100 text-slate-800 rounded-bl-sm"
-                      } ${isStreamingTail ? "cursor-blink" : ""}`}
-                      style={msg.role === "user" ? { backgroundColor: "#1B3A6B" } : {}}
-                    >
-                      {msg.content}
-                    </div>
+              {messages.map((msg, i) => (
+                <div key={i} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                  {msg.role === "assistant" && (
+                    <img src="/logo.png" alt="SCIP" className="w-7 h-7 object-contain rounded-full flex-shrink-0 mt-1" />
+                  )}
+                  <div
+                    className={`max-w-[85%] px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
+                      msg.role === "user"
+                        ? "text-white rounded-br-sm"
+                        : "bg-slate-100 text-slate-800 rounded-bl-sm"
+                    }`}
+                    style={msg.role === "user" ? { backgroundColor: "#1B3A6B" } : {}}
+                  >
+                    {msg.content}
                   </div>
-                );
-              })}
+                </div>
+              ))}
 
               {loading && (
                 <div className="flex gap-3 justify-start">
