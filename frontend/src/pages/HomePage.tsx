@@ -4,9 +4,6 @@ import type { User } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
 import { ASK_API_URL, BACKEND_HEALTH_URL } from "../lib/config";
 
-const GUEST_COUNT_KEY = "scip_guest_count";
-const GUEST_LIMIT = 3;
-
 const EXAMPLE_QUESTIONS = [
   "Management of severe acute malnutrition in children under 5",
   "First line treatment for malaria in pregnant women",
@@ -22,9 +19,6 @@ export function HomePage() {
   const [elapsed, setElapsed] = useState(0);
   const [user, setUser] = useState<User | null | undefined>(undefined);
   const [showDropdown, setShowDropdown] = useState(false);
-  const [guestCount, setGuestCount] = useState(() =>
-    parseInt(localStorage.getItem(GUEST_COUNT_KEY) || "0", 10)
-  );
   const [inputFocused, setInputFocused] = useState(false);
   const [showBounceArrow, setShowBounceArrow] = useState(true);
   const [mounted, setMounted] = useState(false);
@@ -75,11 +69,9 @@ export function HomePage() {
   }, []);
 
   const isGuest = user === null;
-  const guestBlocked = isGuest && guestCount >= GUEST_LIMIT;
-  const showSignupBanner = isGuest && guestCount >= GUEST_LIMIT && messages.length > 0;
 
   const sendMessage = useCallback(async (text: string) => {
-    if (!text.trim() || loading || guestBlocked) return;
+    if (!text.trim() || loading) return;
 
     const userMsg: Message = { role: "user", content: text };
     const newMessages = [...messages, userMsg];
@@ -87,12 +79,6 @@ export function HomePage() {
     setInput("");
 
     if (textareaRef.current) textareaRef.current.style.height = "auto";
-
-    if (isGuest) {
-      const newCount = guestCount + 1;
-      setGuestCount(newCount);
-      localStorage.setItem(GUEST_COUNT_KEY, String(newCount));
-    }
 
     setLoading(true);
 
@@ -170,7 +156,7 @@ export function HomePage() {
     } finally {
       setLoading(false);
     }
-  }, [messages, loading, guestBlocked, isGuest, guestCount]);
+  }, [messages, loading]);
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -224,22 +210,6 @@ export function HomePage() {
           </div>
         )}
 
-        {/* Chat-mode: signup banner inline */}
-        {showSignupBanner && (
-          <div className="mb-3 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2.5 flex items-center justify-between gap-4">
-            <p className="text-sm text-emerald-800 leading-snug">
-              Sign up free for unlimited questions and chat history.
-            </p>
-            <Link
-              to="/signup"
-              className="flex-shrink-0 px-3 py-1.5 text-xs font-semibold text-white rounded-lg whitespace-nowrap"
-              style={{ backgroundColor: "#2ECC71" }}
-            >
-              Sign Up Free
-            </Link>
-          </div>
-        )}
-
         {/* Input box */}
         <div
           className="rounded-2xl transition-all"
@@ -261,12 +231,7 @@ export function HomePage() {
               onKeyDown={handleKeyDown}
               onFocus={() => setInputFocused(true)}
               onBlur={() => setInputFocused(false)}
-              placeholder={
-                guestBlocked
-                  ? "Sign up to ask more questions…"
-                  : "Type your clinical question here…"
-              }
-              disabled={guestBlocked}
+              placeholder="Type your clinical question here…"
               rows={1}
               className="flex-1 w-full bg-transparent resize-none outline-none disabled:cursor-not-allowed"
               style={{
@@ -282,12 +247,12 @@ export function HomePage() {
               onClick={() => sendMessage(input)}
               onMouseEnter={() => setSendHovered(true)}
               onMouseLeave={() => setSendHovered(false)}
-              disabled={!input.trim() || loading || guestBlocked}
+              disabled={!input.trim() || loading}
               className="w-full sm:w-auto flex-shrink-0 flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl font-semibold text-white transition-all disabled:opacity-30"
               style={{
                 backgroundColor: sendHovered ? "#27ae60" : "#2ECC71",
                 transform:
-                  sendHovered && !(!input.trim() || loading || guestBlocked)
+                  sendHovered && !(!input.trim() || loading)
                     ? "scale(1.04)"
                     : "scale(1)",
                 fontSize: "14px",
@@ -302,21 +267,9 @@ export function HomePage() {
           </div>
         </div>
 
-        {/* Sub-text */}
-        {heroMode && isGuest ? (
-          <p className="mt-2 text-xs text-center" style={{ color: "rgba(255,255,255,0.38)" }}>
-            {Math.max(0, GUEST_LIMIT - guestCount)} free{" "}
-            {GUEST_LIMIT - guestCount === 1 ? "question" : "questions"} remaining ·{" "}
-            <Link to="/signup" className="underline hover:opacity-80" style={{ color: "rgba(255,255,255,0.55)" }}>
-              Sign up
-            </Link>{" "}
-            for unlimited access
-          </p>
-        ) : (
-          <p className="mt-2 text-xs text-center" style={{ color: heroMode ? "rgba(255,255,255,0.3)" : "#94a3b8" }}>
-            SCIP is an AI assistant. Always apply clinical judgment.
-          </p>
-        )}
+        <p className="mt-2 text-xs text-center" style={{ color: heroMode ? "rgba(255,255,255,0.3)" : "#94a3b8" }}>
+          SCIP is an AI assistant. Always apply clinical judgment.
+        </p>
       </div>
     </div>
   );
