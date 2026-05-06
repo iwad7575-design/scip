@@ -30,7 +30,7 @@ bearer = HTTPBearer()
 
 _CACHE_TTL = 86_400   # 24 hours
 _CACHE_SIZE = 50
-_STREAM_TIMEOUT_S = 30  # Cancel OpenAI call if no first token within this time
+_STREAM_TIMEOUT_S = 55  # Cancel OpenAI call if no first token within this time
 
 
 class _ResponseCache:
@@ -216,6 +216,7 @@ async def ask_endpoint(request: Request, _user=Depends(get_optional_user)):
                 async with client.responses.stream(
                     model=MODEL,
                     input=[{"role": "system", "content": SYSTEM_PROMPT}] + messages,
+                    reasoning={"effort": "low"},
                     tools=[{
                         "type": "file_search",
                         "vector_store_ids": [VECTOR_STORE_ID],

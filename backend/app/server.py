@@ -240,6 +240,7 @@ class StarterChatServer(ChatKitServer[dict[str, Any]]):
             response = await client.responses.create(
                 model=MODEL,
                 input=[{"role": "system", "content": SYSTEM_PROMPT}] + messages,
+                reasoning={"effort": "low"},
                 tools=[{
                     "type": "file_search",
                     "vector_store_ids": [VECTOR_STORE_ID],
