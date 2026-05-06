@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
-import { ASK_API_URL, BACKEND_HEALTH_URL } from "../lib/config";
+import { ASK_API_URL, BACKEND_HEALTH_URL, BACKEND_PING_URL } from "../lib/config";
 
 const EXAMPLE_QUESTIONS = [
   "Management of severe acute malnutrition in children under 5",
@@ -10,7 +10,15 @@ const EXAMPLE_QUESTIONS = [
   "Signs and management of neonatal sepsis",
 ];
 
+const TIMEOUT_SECONDS = 30;
+
 type Message = { role: "user" | "assistant"; content: string };
+
+function loadingPhaseMessage(elapsed: number): string {
+  if (elapsed < 3)  return "Searching 104 medical guidelines…";
+  if (elapsed < 7)  return "Retrieving relevant protocols…";
+  return               `Generating cited response… ${elapsed}s`;
+}
 
 export function HomePage() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -28,16 +36,23 @@ export function HomePage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const lastQuestionRef = useRef<string>("");
   const navigate = useNavigate();
 
+  // Wake Render on page load
+  useEffect(() => { fetch(BACKEND_HEALTH_URL).catch(() => {}); }, []);
+
+  // Keep Render warm — ping every 10 minutes silently
   useEffect(() => {
-    fetch(BACKEND_HEALTH_URL).catch(() => {});
+    const id = setInterval(() => fetch(BACKEND_PING_URL).catch(() => {}), 10 * 60 * 1000);
+    return () => clearInterval(id);
   }, []);
 
   useEffect(() => {
     setMounted(true);
-    const timer = setTimeout(() => setShowBounceArrow(false), 3000);
-    return () => clearTimeout(timer);
+    const t = setTimeout(() => setShowBounceArrow(false), 3000);
+    return () => clearTimeout(t);
   }, []);
 
   useEffect(() => {
@@ -69,17 +84,22 @@ export function HomePage() {
   }, []);
 
   const isGuest = user === null;
+  const timedOut = loading && elapsed >= TIMEOUT_SECONDS;
 
   const sendMessage = useCallback(async (text: string) => {
     if (!text.trim() || loading) return;
+
+    // Abort any in-flight request before starting a new one
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    lastQuestionRef.current = text;
 
     const userMsg: Message = { role: "user", content: text };
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
     setInput("");
-
     if (textareaRef.current) textareaRef.current.style.height = "auto";
-
     setLoading(true);
 
     try {
@@ -92,6 +112,7 @@ export function HomePage() {
         method: "POST",
         headers,
         body: JSON.stringify({ messages: newMessages }),
+        signal: controller.signal,
       });
 
       if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
@@ -148,7 +169,8 @@ export function HomePage() {
           content: "I'm sorry, I couldn't generate a response. Please try again.",
         }]);
       }
-    } catch {
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") return;
       setMessages(prev => [...prev, {
         role: "assistant",
         content: "Failed to connect to the server. Please try again.",
@@ -171,6 +193,23 @@ export function HomePage() {
     e.target.style.height = `${Math.min(e.target.scrollHeight, 160)}px`;
   }
 
+  function handleRetry() {
+    // Cancel the timed-out fetch
+    abortControllerRef.current?.abort();
+    // Remove the last user message (will be re-sent)
+    setMessages(prev => {
+      const next = [...prev];
+      while (next.length && next[next.length - 1].role === "assistant") next.pop();
+      if (next.length && next[next.length - 1].role === "user") next.pop();
+      return next;
+    });
+    setLoading(false);
+    // Put the question back in the input so the user can re-send
+    const q = lastQuestionRef.current;
+    setInput(q);
+    setTimeout(() => textareaRef.current?.focus(), 50);
+  }
+
   const hasMessages = messages.length > 0;
   const heroMode = !hasMessages;
   const meta = (user?.user_metadata ?? {}) as Record<string, string>;
@@ -183,7 +222,7 @@ export function HomePage() {
     .slice(0, 2)
     .toUpperCase() || "?";
 
-  // ── Shared input box (rendered once, pinned at bottom in both modes) ──────
+  // ── Shared pinned input ──────────────────────────────────────────────────
   const inputBox = (
     <div
       className="flex-shrink-0"
@@ -197,7 +236,6 @@ export function HomePage() {
     >
       <div className="max-w-xl mx-auto w-full px-4 pt-3 pb-4">
 
-        {/* Hero-mode label with pulsing dot */}
         {heroMode && (
           <div className="flex items-center gap-2 mb-2">
             <span
@@ -210,7 +248,6 @@ export function HomePage() {
           </div>
         )}
 
-        {/* Input box */}
         <div
           className="rounded-2xl transition-all"
           style={{
@@ -232,6 +269,7 @@ export function HomePage() {
               onFocus={() => setInputFocused(true)}
               onBlur={() => setInputFocused(false)}
               placeholder="Type your clinical question here…"
+              disabled={loading}
               rows={1}
               className="flex-1 w-full bg-transparent resize-none outline-none disabled:cursor-not-allowed"
               style={{
@@ -251,10 +289,7 @@ export function HomePage() {
               className="w-full sm:w-auto flex-shrink-0 flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl font-semibold text-white transition-all disabled:opacity-30"
               style={{
                 backgroundColor: sendHovered ? "#27ae60" : "#2ECC71",
-                transform:
-                  sendHovered && !(!input.trim() || loading)
-                    ? "scale(1.04)"
-                    : "scale(1)",
+                transform: sendHovered && !(!input.trim() || loading) ? "scale(1.04)" : "scale(1)",
                 fontSize: "14px",
                 whiteSpace: "nowrap",
               }}
@@ -304,19 +339,14 @@ export function HomePage() {
         .scip-scrollbar::-webkit-scrollbar       { width: 5px; }
         .scip-scrollbar::-webkit-scrollbar-track  { background: transparent; }
         .scip-scrollbar::-webkit-scrollbar-thumb  { background: rgba(255,255,255,0.15); border-radius: 9px; }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+        .cursor-blink::after { content:"▋"; animation: blink 0.8s step-start infinite; }
       `}</style>
 
-      {/*
-        LAYOUT (ChatGPT / Claude.ai pattern):
-          flex-col h-screen overflow-hidden
-          ├── header          (flex-shrink-0)
-          ├── scrollable area (flex-1, overflow-y-auto)
-          └── pinned input    (flex-shrink-0)
-      */}
       <div
         className="flex flex-col overflow-hidden"
         style={{
-          height: "100dvh",  /* dvh shrinks when mobile keyboard opens */
+          height: "100dvh",
           background: heroMode
             ? "linear-gradient(135deg, #0B2545 0%, #1B3A6B 100%)"
             : "#ffffff",
@@ -418,7 +448,6 @@ export function HomePage() {
           <div className="flex-1 overflow-y-auto hero-dot-grid scip-scrollbar" style={{ minHeight: 0 }}>
             <div className="flex flex-col items-center px-4 py-8" style={{ minHeight: "100%" }}>
 
-              {/* Heading */}
               <div className={`flex flex-col items-center text-center ${mounted ? "anim-fade-in" : "opacity-0"}`}>
                 <img src="/logo.png" alt="SCIP" className="w-16 h-16 object-contain mb-5" />
                 <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white mb-3 leading-tight max-w-2xl">
@@ -434,7 +463,6 @@ export function HomePage() {
                 </p>
               </div>
 
-              {/* Description */}
               <p className={`mt-6 text-sm sm:text-base leading-relaxed text-center max-w-xl ${mounted ? "anim-fade-in-d1" : "opacity-0"}`}
                 style={{ color: "rgba(255,255,255,0.65)" }}>
                 SCIP draws on a library of{" "}
@@ -444,12 +472,11 @@ export function HomePage() {
                 {" "}— not from the internet.
               </p>
 
-              {/* Stats bar */}
               <div className={`mt-7 flex flex-wrap justify-center gap-3 ${mounted ? "anim-fade-in-d2" : "opacity-0"}`}>
                 {[
-                  { icon: "📚", label: "104 Guidelines",          sub: "MoH & WHO validated"      },
-                  { icon: "🌍", label: "15+ Specialties",          sub: "Full clinical breadth"    },
-                  { icon: "⚕️",  label: "Ethiopian Frontline Care", sub: "Designed for the field"  },
+                  { icon: "📚", label: "104 Guidelines",          sub: "MoH & WHO validated"     },
+                  { icon: "🌍", label: "15+ Specialties",          sub: "Full clinical breadth"   },
+                  { icon: "⚕️",  label: "Ethiopian Frontline Care", sub: "Designed for the field" },
                 ].map(stat => (
                   <div
                     key={stat.label}
@@ -468,7 +495,6 @@ export function HomePage() {
                 ))}
               </div>
 
-              {/* Trust badges */}
               <div className={`mt-4 flex flex-wrap justify-center gap-2 ${mounted ? "anim-fade-in-d3" : "opacity-0"}`}>
                 {["🇪🇹 Ethiopian MoH", "🌐 WHO", "🔒 Secure", "📱 Mobile Optimized"].map(badge => (
                   <span
@@ -485,7 +511,6 @@ export function HomePage() {
                 ))}
               </div>
 
-              {/* Example questions */}
               <div className={`mt-8 flex flex-col gap-2.5 w-full max-w-xl ${mounted ? "anim-fade-in-d4" : "opacity-0"}`}>
                 {EXAMPLE_QUESTIONS.map(q => (
                   <button
@@ -506,14 +531,12 @@ export function HomePage() {
                 ))}
               </div>
 
-              {/* Bouncing arrow */}
               {showBounceArrow && (
                 <div className={`bounce-arrow mt-6 text-2xl ${mounted ? "anim-fade-in-d5" : "opacity-0"}`} style={{ color: "#2ECC71" }}>
                   ↓
                 </div>
               )}
 
-              {/* Footer */}
               <p
                 className={`mt-8 pb-2 text-xs text-center max-w-xl ${mounted ? "anim-fade-in-d5" : "opacity-0"}`}
                 style={{ color: "rgba(255,255,255,0.28)" }}
@@ -527,40 +550,71 @@ export function HomePage() {
           /* Chat messages */
           <div className="flex-1 overflow-y-auto px-4 py-6 bg-white" style={{ minHeight: 0 }}>
             <div className="max-w-2xl mx-auto flex flex-col gap-6">
-              {messages.map((msg, i) => (
-                <div key={i} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                  {msg.role === "assistant" && (
-                    <img src="/logo.png" alt="SCIP" className="w-7 h-7 object-contain rounded-full flex-shrink-0 mt-1" />
-                  )}
-                  <div
-                    className={`max-w-[85%] px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
-                      msg.role === "user"
-                        ? "text-white rounded-br-sm"
-                        : "bg-slate-100 text-slate-800 rounded-bl-sm"
-                    }`}
-                    style={msg.role === "user" ? { backgroundColor: "#1B3A6B" } : {}}
-                  >
-                    {msg.content}
+              {messages.map((msg, i) => {
+                // Add blinking cursor to the last assistant message while streaming
+                const isStreamingTail =
+                  !loading &&
+                  msg.role === "assistant" &&
+                  i === messages.length - 1 &&
+                  msg.content.length > 0 &&
+                  !msg.content.endsWith("judgment of a qualified clinician.");
+                return (
+                  <div key={i} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                    {msg.role === "assistant" && (
+                      <img src="/logo.png" alt="SCIP" className="w-7 h-7 object-contain rounded-full flex-shrink-0 mt-1" />
+                    )}
+                    <div
+                      className={`max-w-[85%] px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
+                        msg.role === "user"
+                          ? "text-white rounded-br-sm"
+                          : "bg-slate-100 text-slate-800 rounded-bl-sm"
+                      } ${isStreamingTail ? "cursor-blink" : ""}`}
+                      style={msg.role === "user" ? { backgroundColor: "#1B3A6B" } : {}}
+                    >
+                      {msg.content}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
 
               {loading && (
                 <div className="flex gap-3 justify-start">
                   <img src="/logo.png" alt="SCIP" className="w-7 h-7 object-contain rounded-full flex-shrink-0 mt-1" />
                   <div className="bg-slate-100 px-4 py-3 rounded-2xl rounded-bl-sm">
-                    <div className="flex gap-1 items-center">
-                      {[0, 150, 300].map(delay => (
-                        <span
-                          key={delay}
-                          className="w-2 h-2 rounded-full bg-slate-400 animate-bounce"
-                          style={{ animationDelay: `${delay}ms` }}
-                        />
-                      ))}
-                    </div>
-                    <p className="text-xs text-slate-400 mt-1.5">
-                      {elapsed < 4 ? "Searching guidelines…" : `Searching guidelines… ${elapsed}s`}
-                    </p>
+                    {timedOut ? (
+                      /* ── Timeout UI ── */
+                      <div className="flex flex-col gap-2">
+                        <p className="text-sm text-slate-700 font-medium">
+                          SCIP is taking longer than usual.
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          This may be due to a slow connection or server wake-up. Please try again.
+                        </p>
+                        <button
+                          onClick={handleRetry}
+                          className="mt-1 self-start px-4 py-1.5 rounded-lg text-xs font-semibold text-white transition-all hover:opacity-90"
+                          style={{ backgroundColor: "#2ECC71" }}
+                        >
+                          ↺ Try Again
+                        </button>
+                      </div>
+                    ) : (
+                      /* ── Normal loading dots ── */
+                      <>
+                        <div className="flex gap-1 items-center">
+                          {[0, 150, 300].map(delay => (
+                            <span
+                              key={delay}
+                              className="w-2 h-2 rounded-full bg-slate-400 animate-bounce"
+                              style={{ animationDelay: `${delay}ms` }}
+                            />
+                          ))}
+                        </div>
+                        <p className="text-xs text-slate-400 mt-1.5">
+                          {loadingPhaseMessage(elapsed)}
+                        </p>
+                      </>
+                    )}
                   </div>
                 </div>
               )}

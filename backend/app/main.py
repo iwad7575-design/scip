@@ -88,6 +88,12 @@ async def root():
     }
 
 
+@app.get("/ping")
+async def ping():
+    """Ultra-lightweight keep-alive endpoint — no DB call."""
+    return {"status": "alive"}
+
+
 @app.get("/health")
 async def health():
     try:
@@ -124,15 +130,17 @@ async def ask_endpoint(request: Request, _user=Depends(get_optional_user)):
 
         async def run_stream():
             t_openai_start = time.perf_counter()
-            print(f"[TIMING] → OpenAI stream starting (file_search max_num_results=8, score_threshold=0.3)", flush=True)
+            print(f"[TIMING] → OpenAI stream starting (file_search max_num_results=5, score_threshold=0.3, max_output_tokens=800, temp=0.1)", flush=True)
             try:
                 async with client.responses.stream(
                     model=MODEL,
                     input=[{"role": "system", "content": SYSTEM_PROMPT}] + messages,
+                    temperature=0.1,
+                    max_output_tokens=800,
                     tools=[{
                         "type": "file_search",
                         "vector_store_ids": [VECTOR_STORE_ID],
-                        "max_num_results": 8,
+                        "max_num_results": 5,
                         "ranking_options": {"score_threshold": 0.3},
                     }],
                 ) as stream:

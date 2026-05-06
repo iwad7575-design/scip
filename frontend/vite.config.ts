@@ -18,6 +18,7 @@ export default defineConfig({
       },
       "/ask":    { target: backendTarget, changeOrigin: true },
       "/health": { target: backendTarget, changeOrigin: true },
+      "/ping":   { target: backendTarget, changeOrigin: true },
     },
   },
 });
