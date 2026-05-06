@@ -10,7 +10,7 @@ const EXAMPLE_QUESTIONS = [
   "Signs and management of neonatal sepsis",
 ];
 
-type Message = { role: "user" | "assistant"; content: string };
+type Message = { role: "user" | "assistant"; content: string; stopped?: boolean };
 
 function loadingPhaseMessage(elapsed: number): string {
   if (elapsed < 3)  return "Searching 104 medical guidelines…";
@@ -81,6 +81,21 @@ export function HomePage() {
   }, []);
 
   const isGuest = user === null;
+
+  function handleStop() {
+    abortControllerRef.current?.abort();
+    setLoading(false); // immediate button swap; finally block will also call this (harmless)
+  }
+
+  // Escape key cancels generation (desktop only — no-op on mobile)
+  useEffect(() => {
+    if (!loading) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") handleStop();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [loading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const sendMessage = useCallback(async (text: string) => {
     if (!text.trim() || loading) return;
@@ -168,7 +183,18 @@ export function HomePage() {
         }]);
       }
     } catch (err) {
-      if (err instanceof Error && err.name === "AbortError") return;
+      if (err instanceof Error && err.name === "AbortError") {
+        // Keep whatever was streamed; mark it as stopped if there's content
+        setMessages(prev => {
+          if (!prev.length) return prev;
+          const last = prev[prev.length - 1];
+          if (last.role === "assistant" && last.content.trim()) {
+            return [...prev.slice(0, -1), { ...last, stopped: true }];
+          }
+          return prev;
+        });
+        return;
+      }
       setMessages(prev => [...prev, {
         role: "assistant",
         content: "Failed to connect to the server. Please try again.",
@@ -249,10 +275,10 @@ export function HomePage() {
               onKeyDown={handleKeyDown}
               onFocus={() => setInputFocused(true)}
               onBlur={() => setInputFocused(false)}
-              placeholder="Type your clinical question here…"
+              placeholder={loading ? "SCIP is generating a response…" : "Type your clinical question here…"}
               disabled={loading}
               rows={1}
-              className="flex-1 w-full bg-transparent resize-none outline-none disabled:cursor-not-allowed"
+              className="flex-1 w-full bg-transparent resize-none outline-none disabled:cursor-not-allowed disabled:opacity-50"
               style={{
                 lineHeight: "1.55",
                 minHeight: "44px",
@@ -262,24 +288,50 @@ export function HomePage() {
                 color: heroMode ? "#ffffff" : "#0f172a",
               }}
             />
-            <button
-              onClick={() => sendMessage(input)}
-              onMouseEnter={() => setSendHovered(true)}
-              onMouseLeave={() => setSendHovered(false)}
-              disabled={!input.trim() || loading}
-              className="w-full sm:w-auto flex-shrink-0 flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl font-semibold text-white transition-all disabled:opacity-30"
-              style={{
-                backgroundColor: sendHovered ? "#27ae60" : "#2ECC71",
-                transform: sendHovered && !(!input.trim() || loading) ? "scale(1.04)" : "scale(1)",
-                fontSize: "14px",
-                whiteSpace: "nowrap",
-              }}
-            >
-              Ask SCIP
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M12 5l7 7-7 7" />
-              </svg>
-            </button>
+
+            {/* Stop button while loading, Send button otherwise */}
+            {loading ? (
+              <button
+                onClick={handleStop}
+                className="stop-pulse w-full sm:w-auto flex-shrink-0 flex items-center justify-center gap-2 rounded-xl font-semibold text-white transition-colors"
+                style={{
+                  backgroundColor: "#ef4444",
+                  fontSize: "14px",
+                  whiteSpace: "nowrap",
+                  minHeight: "44px",
+                  minWidth: "44px",
+                  padding: "0 20px",
+                }}
+                title="Stop generating (Esc)"
+              >
+                {/* Filled square stop icon */}
+                <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                  <rect x="4" y="4" width="16" height="16" rx="2.5" />
+                </svg>
+                <span className="hidden sm:inline">Stop generating</span>
+                <span className="sm:hidden">Stop</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => sendMessage(input)}
+                onMouseEnter={() => setSendHovered(true)}
+                onMouseLeave={() => setSendHovered(false)}
+                disabled={!input.trim()}
+                className="w-full sm:w-auto flex-shrink-0 flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl font-semibold text-white transition-all disabled:opacity-30"
+                style={{
+                  backgroundColor: sendHovered ? "#27ae60" : "#2ECC71",
+                  transform: sendHovered && !!input.trim() ? "scale(1.04)" : "scale(1)",
+                  fontSize: "14px",
+                  whiteSpace: "nowrap",
+                  minHeight: "44px",
+                }}
+              >
+                Ask SCIP
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
+              </button>
+            )}
           </div>
         </div>
 
@@ -320,8 +372,11 @@ export function HomePage() {
         .scip-scrollbar::-webkit-scrollbar       { width: 5px; }
         .scip-scrollbar::-webkit-scrollbar-track  { background: transparent; }
         .scip-scrollbar::-webkit-scrollbar-thumb  { background: rgba(255,255,255,0.15); border-radius: 9px; }
-        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
-        .cursor-blink::after { content:"▋"; animation: blink 0.8s step-start infinite; }
+        @keyframes stopPulse {
+          0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.55); }
+          50%      { box-shadow: 0 0 0 7px rgba(239,68,68,0); }
+        }
+        .stop-pulse { animation: stopPulse 1.4s ease-in-out infinite; }
       `}</style>
 
       <div
@@ -536,15 +591,22 @@ export function HomePage() {
                   {msg.role === "assistant" && (
                     <img src="/logo.png" alt="SCIP" className="w-7 h-7 object-contain rounded-full flex-shrink-0 mt-1" />
                   )}
-                  <div
-                    className={`max-w-[85%] px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
-                      msg.role === "user"
-                        ? "text-white rounded-br-sm"
-                        : "bg-slate-100 text-slate-800 rounded-bl-sm"
-                    }`}
-                    style={msg.role === "user" ? { backgroundColor: "#1B3A6B" } : {}}
-                  >
-                    {msg.content}
+                  <div className="flex flex-col gap-1 max-w-[85%]">
+                    <div
+                      className={`px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
+                        msg.role === "user"
+                          ? "text-white rounded-br-sm"
+                          : "bg-slate-100 text-slate-800 rounded-bl-sm"
+                      }`}
+                      style={msg.role === "user" ? { backgroundColor: "#1B3A6B" } : {}}
+                    >
+                      {msg.content}
+                    </div>
+                    {msg.stopped && (
+                      <p className="text-xs text-slate-400 italic px-1">
+                        Response stopped by user
+                      </p>
+                    )}
                   </div>
                 </div>
               ))}
