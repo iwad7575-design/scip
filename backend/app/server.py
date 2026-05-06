@@ -154,12 +154,11 @@ class StarterChatServer(ChatKitServer[dict[str, Any]]):
         user_question = messages[-1]["content"] if messages[-1]["role"] == "user" else ""
 
         t_openai = time.perf_counter()
-        print(f"[TIMING] /chatkit → OpenAI call starting (file_search max_num_results=5, max_output_tokens=800, temp=0.1)", flush=True)
+        print(f"[TIMING] /chatkit → OpenAI call starting (file_search max_num_results=5, max_output_tokens=800)", flush=True)
         try:
             response = await client.responses.create(
                 model=MODEL,
                 input=[{"role": "system", "content": SYSTEM_PROMPT}] + messages,
-                temperature=0.1,
                 max_output_tokens=800,
                 tools=[{
                     "type": "file_search",
