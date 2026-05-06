@@ -10,8 +10,6 @@ const EXAMPLE_QUESTIONS = [
   "Signs and management of neonatal sepsis",
 ];
 
-const TIMEOUT_SECONDS = 30;
-
 type Message = { role: "user" | "assistant"; content: string };
 
 function loadingPhaseMessage(elapsed: number): string {
@@ -37,7 +35,6 @@ export function HomePage() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
-  const lastQuestionRef = useRef<string>("");
   const navigate = useNavigate();
 
   // Wake Render on page load
@@ -84,7 +81,6 @@ export function HomePage() {
   }, []);
 
   const isGuest = user === null;
-  const timedOut = loading && elapsed >= TIMEOUT_SECONDS;
 
   const sendMessage = useCallback(async (text: string) => {
     if (!text.trim() || loading) return;
@@ -93,7 +89,6 @@ export function HomePage() {
     abortControllerRef.current?.abort();
     const controller = new AbortController();
     abortControllerRef.current = controller;
-    lastQuestionRef.current = text;
 
     const userMsg: Message = { role: "user", content: text };
     const newMessages = [...messages, userMsg];
@@ -191,23 +186,6 @@ export function HomePage() {
     setInput(e.target.value);
     e.target.style.height = "auto";
     e.target.style.height = `${Math.min(e.target.scrollHeight, 160)}px`;
-  }
-
-  function handleRetry() {
-    // Cancel the timed-out fetch
-    abortControllerRef.current?.abort();
-    // Remove the last user message (will be re-sent)
-    setMessages(prev => {
-      const next = [...prev];
-      while (next.length && next[next.length - 1].role === "assistant") next.pop();
-      if (next.length && next[next.length - 1].role === "user") next.pop();
-      return next;
-    });
-    setLoading(false);
-    // Put the question back in the input so the user can re-send
-    const q = lastQuestionRef.current;
-    setInput(q);
-    setTimeout(() => textareaRef.current?.focus(), 50);
   }
 
   const hasMessages = messages.length > 0;
@@ -581,40 +559,18 @@ export function HomePage() {
                 <div className="flex gap-3 justify-start">
                   <img src="/logo.png" alt="SCIP" className="w-7 h-7 object-contain rounded-full flex-shrink-0 mt-1" />
                   <div className="bg-slate-100 px-4 py-3 rounded-2xl rounded-bl-sm">
-                    {timedOut ? (
-                      /* ── Timeout UI ── */
-                      <div className="flex flex-col gap-2">
-                        <p className="text-sm text-slate-700 font-medium">
-                          SCIP is taking longer than usual.
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          This may be due to a slow connection or server wake-up. Please try again.
-                        </p>
-                        <button
-                          onClick={handleRetry}
-                          className="mt-1 self-start px-4 py-1.5 rounded-lg text-xs font-semibold text-white transition-all hover:opacity-90"
-                          style={{ backgroundColor: "#2ECC71" }}
-                        >
-                          ↺ Try Again
-                        </button>
-                      </div>
-                    ) : (
-                      /* ── Normal loading dots ── */
-                      <>
-                        <div className="flex gap-1 items-center">
-                          {[0, 150, 300].map(delay => (
-                            <span
-                              key={delay}
-                              className="w-2 h-2 rounded-full bg-slate-400 animate-bounce"
-                              style={{ animationDelay: `${delay}ms` }}
-                            />
-                          ))}
-                        </div>
-                        <p className="text-xs text-slate-400 mt-1.5">
-                          {loadingPhaseMessage(elapsed)}
-                        </p>
-                      </>
-                    )}
+                    <div className="flex gap-1 items-center">
+                      {[0, 150, 300].map(delay => (
+                        <span
+                          key={delay}
+                          className="w-2 h-2 rounded-full bg-slate-400 animate-bounce"
+                          style={{ animationDelay: `${delay}ms` }}
+                        />
+                      ))}
+                    </div>
+                    <p className="text-xs text-slate-400 mt-1.5">
+                      {loadingPhaseMessage(elapsed)}
+                    </p>
                   </div>
                 </div>
               )}
