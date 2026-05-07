@@ -107,7 +107,7 @@ export function DashboardPage() {
           <p className="text-sm text-slate-500 mt-1">Here's your clinical intelligence summary</p>
           <p className="text-sm text-slate-600 mt-3 max-w-2xl leading-relaxed">
             SCIP is an AI-powered clinical decision support tool built for Ethiopian healthcare providers.
-            It draws on a library of 104 validated national guidelines and clinical protocols — covering
+            It draws on a library of 106 validated national guidelines and clinical protocols — covering
             the full breadth of clinical medicine — to help you make evidence-based decisions at the point of care.
           </p>
         </div>
@@ -150,7 +150,7 @@ export function DashboardPage() {
             <div className="text-left">
               <div className="font-semibold text-base sm:text-lg">Ask SCIP a Clinical Question</div>
               <div className="text-xs sm:text-sm text-white/70 mt-0.5">
-                Powered by 104 validated Ethiopian and WHO clinical guidelines
+                Powered by 106 validated Ethiopian and WHO clinical guidelines
               </div>
             </div>
           </div>
@@ -237,14 +237,14 @@ function KnowledgeBaseCard() {
         <div>
           <h2 className="font-semibold text-slate-900">SCIP Knowledge Base</h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            104 validated Ethiopian MoH and WHO clinical references
+            106 validated Ethiopian MoH and WHO clinical references
           </p>
         </div>
         <span
           className="flex-shrink-0 text-xs font-bold px-2.5 py-1 rounded-full text-white"
           style={{ backgroundColor: "#1B3A6B" }}
         >
-          104 docs
+          106 docs
         </span>
       </div>
       <div className="flex flex-wrap gap-2">

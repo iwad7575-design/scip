@@ -13,7 +13,7 @@ const EXAMPLE_QUESTIONS = [
 type Message = { role: "user" | "assistant"; content: string; stopped?: boolean };
 
 function loadingPhaseMessage(elapsed: number): string {
-  if (elapsed < 3)  return "Searching 104 medical guidelines…";
+  if (elapsed < 3)  return "Searching 106 medical guidelines…";
   if (elapsed < 7)  return "Retrieving relevant protocols…";
   return               `Generating cited response… ${elapsed}s`;
 }
@@ -305,11 +305,9 @@ export function HomePage() {
                 title="Stop generating (Esc)"
               >
                 {/* Filled square stop icon */}
-                <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                   <rect x="4" y="4" width="16" height="16" rx="2.5" />
                 </svg>
-                <span className="hidden sm:inline">Stop generating</span>
-                <span className="sm:hidden">Stop</span>
               </button>
             ) : (
               <button
@@ -502,7 +500,7 @@ export function HomePage() {
               <p className={`mt-6 text-sm sm:text-base leading-relaxed text-center max-w-xl ${mounted ? "anim-fade-in-d1" : "opacity-0"}`}
                 style={{ color: "rgba(255,255,255,0.65)" }}>
                 SCIP draws on a library of{" "}
-                <span className="font-semibold text-white">104 validated national guidelines</span>,
+                <span className="font-semibold text-white">106 validated national guidelines</span>,
                 clinical manuals, and medical protocols. Every answer comes from{" "}
                 <span className="font-semibold text-white">Ethiopian Ministry of Health and WHO-validated sources</span>
                 {" "}— not from the internet.
@@ -510,7 +508,7 @@ export function HomePage() {
 
               <div className={`mt-7 flex flex-wrap justify-center gap-3 ${mounted ? "anim-fade-in-d2" : "opacity-0"}`}>
                 {[
-                  { icon: "📚", label: "104 Guidelines",          sub: "MoH & WHO validated"     },
+                  { icon: "📚", label: "106 Guidelines",          sub: "MoH & WHO validated"     },
                   { icon: "🌍", label: "15+ Specialties",          sub: "Full clinical breadth"   },
                   { icon: "⚕️",  label: "Ethiopian Frontline Care", sub: "Designed for the field" },
                 ].map(stat => (
