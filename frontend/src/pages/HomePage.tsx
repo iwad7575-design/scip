@@ -12,6 +12,11 @@ const EXAMPLE_QUESTIONS = [
 
 type Message = { role: "user" | "assistant"; content: string; stopped?: boolean };
 
+const CITATION_RE = /filecite\s*turn\d+\s*file\d+|turn\d+file\d+|【[^】]*】/gi;
+function cleanCitations(text: string): string {
+  return text.replace(CITATION_RE, "").replace(/ {2,}/g, " ").replace(/ ([,\.;:!?])/g, "$1");
+}
+
 function loadingPhaseMessage(elapsed: number): string {
   if (elapsed < 3)  return "Searching 106 medical guidelines…";
   if (elapsed < 7)  return "Retrieving relevant protocols…";
@@ -158,7 +163,7 @@ export function HomePage() {
                 const updated = [...prev];
                 const last = updated[updated.length - 1];
                 if (last?.role === "assistant") {
-                  updated[updated.length - 1] = { ...last, content: last.content + evt.delta };
+                  updated[updated.length - 1] = { ...last, content: last.content + cleanCitations(evt.delta) };
                 }
                 return updated;
               });

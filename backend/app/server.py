@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import re
 import time
 import uuid
 from datetime import datetime, timezone
@@ -26,6 +27,19 @@ from .memory_store import MemoryStore
 
 MAX_RECENT_ITEMS = 30
 MODEL = "gpt-5-nano"
+
+_CITATION_RE = re.compile(
+    r"filecite\s*turn\d+\s*file\d+"
+    r"|turn\d+file\d+"
+    r"|【[^】]*】",
+    re.IGNORECASE,
+)
+
+def _clean_citations(text: str) -> str:
+    text = _CITATION_RE.sub("", text)
+    text = re.sub(r" {2,}", " ", text)
+    text = re.sub(r" ([,\.;:!?])", r"\1", text)
+    return text
 
 
 def _num_results(messages: list[dict]) -> int:
@@ -263,6 +277,7 @@ class StarterChatServer(ChatKitServer[dict[str, Any]]):
                 if text:
                     output_text += text
 
+        output_text = _clean_citations(output_text)
         print(f"Extracted output_text length: {len(output_text)}", flush=True)
 
         if not output_text:

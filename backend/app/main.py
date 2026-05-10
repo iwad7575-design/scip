@@ -10,6 +10,7 @@ load_dotenv()
 
 import asyncio
 import json
+import re
 import time
 from collections import OrderedDict
 
@@ -31,6 +32,19 @@ bearer = HTTPBearer()
 _CACHE_TTL = 86_400   # 24 hours
 _CACHE_SIZE = 50
 _STREAM_TIMEOUT_S = 55  # Cancel OpenAI call if no first token within this time
+
+_CITATION_RE = re.compile(
+    r"filecite\s*turn\d+\s*file\d+"   # fileciteturn0file1
+    r"|turn\d+file\d+"                 # turn0file0
+    r"|【[^】]*】",                    # 【4:0†source】
+    re.IGNORECASE,
+)
+
+def _clean_citations(text: str) -> str:
+    text = _CITATION_RE.sub("", text)
+    text = re.sub(r" {2,}", " ", text)          # collapse double spaces
+    text = re.sub(r" ([,\.;:!?])", r"\1", text) # remove space before punctuation
+    return text
 
 
 class _ResponseCache:
@@ -237,7 +251,7 @@ async def ask_endpoint(request: Request, _user=Depends(get_optional_user)):
                                     total_ttft = (time.perf_counter() - t0) * 1000
                                     first_delta_at.append(time.perf_counter())
                                     print(f"[TIMING] ⚡ FIRST TOKEN: {ttft:.0f}ms after OpenAI call | {total_ttft:.0f}ms end-to-end", flush=True)
-                                await queue.put(("delta", delta))
+                                await queue.put(("delta", _clean_citations(delta)))
             except asyncio.CancelledError:
                 print(f"[TIMING] ⏰ stream cancelled by watchdog (no first token in {_STREAM_TIMEOUT_S}s)", flush=True)
             except Exception as e:
