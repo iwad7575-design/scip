@@ -30,12 +30,12 @@
 html,
 body,
 #root {
-  height: 100%;
   margin: 0;
   padding: 0;
-  overflow: hidden;
-  max-width: 100%;
 }
+
+/* Prevent horizontal scroll on any page */
+html { overflow-x: hidden; }
 
 /* Prevent iOS zoom on input focus (font-size < 16px triggers zoom) */
 input, textarea, select {
