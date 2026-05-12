@@ -6,7 +6,7 @@ import { ASK_API_URL, BACKEND_HEALTH_URL, BACKEND_PING_URL } from "../lib/config
 
 const EXAMPLE_QUESTIONS = [
   "Management of severe acute malnutrition in children under 5",
-  "First line treatment for malaria in pregnant women",
+  "First line treatment and dose for malaria in pregnant women in Ethiopia",
   "Signs and management of neonatal sepsis",
 ];
 

@@ -47,6 +47,31 @@ def _clean_citations(text: str) -> str:
     return text
 
 
+_COMMON_DRUGS = [
+    "artemether", "lumefantrine", "artesunate", "quinine",
+    "amoxicillin", "ampicillin", "penicillin", "ceftriaxone",
+    "cotrimoxazole", "metronidazole", "doxycycline", "azithromycin",
+    "ciprofloxacin", "gentamicin", "isoniazid", "rifampicin",
+    "ethambutol", "pyrazinamide", "fluconazole",
+    "nevirapine", "tenofovir", "lamivudine", "efavirenz",
+    "oxytocin", "magnesium sulfate", "diazepam", "hydrocortisone",
+    "dexamethasone", "salbutamol", "adrenaline", "atropine",
+    "furosemide", "digoxin", "morphine", "paracetamol", "ibuprofen",
+    "insulin", "zinc", "vitamin A",
+]
+_DOSE_RE = re.compile(r"\d+\s*(?:mg|mcg|g\b|IU|ml|mL|units?|tabs?)", re.IGNORECASE)
+
+def _check_drug_doses(text: str) -> None:
+    lower = text.lower()
+    for drug in _COMMON_DRUGS:
+        idx = lower.find(drug.lower())
+        if idx == -1:
+            continue
+        window = text[max(0, idx - 20): idx + len(drug) + 80]
+        if not _DOSE_RE.search(window):
+            print(f"[DRUG WARNING] mentioned without dose: {drug}", flush=True)
+
+
 class _ResponseCache:
     def __init__(self) -> None:
         self._data: OrderedDict[str, tuple[str, float]] = OrderedDict()
@@ -288,6 +313,9 @@ async def ask_endpoint(request: Request, _user=Depends(get_optional_user)):
             except asyncio.TimeoutError:
                 print(f"[TIMING] keepalive at {(time.perf_counter()-t0)*1000:.0f}ms (file_search still running)", flush=True)
                 yield ": keepalive\n\n"
+
+        if full_text:
+            _check_drug_doses(full_text)
 
         # Store in cache (single-turn questions only, non-empty answers)
         if is_single_turn and user_question and full_text:

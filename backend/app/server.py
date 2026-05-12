@@ -42,6 +42,31 @@ def _clean_citations(text: str) -> str:
     return text
 
 
+_COMMON_DRUGS = [
+    "artemether", "lumefantrine", "artesunate", "quinine",
+    "amoxicillin", "ampicillin", "penicillin", "ceftriaxone",
+    "cotrimoxazole", "metronidazole", "doxycycline", "azithromycin",
+    "ciprofloxacin", "gentamicin", "isoniazid", "rifampicin",
+    "ethambutol", "pyrazinamide", "fluconazole",
+    "nevirapine", "tenofovir", "lamivudine", "efavirenz",
+    "oxytocin", "magnesium sulfate", "diazepam", "hydrocortisone",
+    "dexamethasone", "salbutamol", "adrenaline", "atropine",
+    "furosemide", "digoxin", "morphine", "paracetamol", "ibuprofen",
+    "insulin", "zinc", "vitamin A",
+]
+_DOSE_RE = re.compile(r"\d+\s*(?:mg|mcg|g\b|IU|ml|mL|units?|tabs?)", re.IGNORECASE)
+
+def _check_drug_doses(text: str) -> None:
+    lower = text.lower()
+    for drug in _COMMON_DRUGS:
+        idx = lower.find(drug.lower())
+        if idx == -1:
+            continue
+        window = text[max(0, idx - 20): idx + len(drug) + 80]
+        if not _DOSE_RE.search(window):
+            print(f"[DRUG WARNING] mentioned without dose: {drug}", flush=True)
+
+
 def _num_results(messages: list[dict]) -> int:
     """Return 3 for short questions (≤10 words), 5 for longer ones."""
     last = next((m.get("content", "") for m in reversed(messages) if m.get("role") == "user"), "")
@@ -142,6 +167,39 @@ RULES FOR TERMINOLOGY:
 - If genuinely unsure of meaning, state both possible interpretations and ask
   the clinician to clarify before giving clinical guidance.
 - Never let a terminology misunderstanding lead to wrong clinical advice.
+
+-----------------------------------
+DRUG DOSING RULE (MANDATORY)
+-----------------------------------
+Whenever you mention any drug, medication, or treatment in your response
+you MUST immediately include:
+- Dose (amount, e.g. 500mg, 80mg/480mg)
+- Route (oral, IV, IM, rectal, topical)
+- Frequency (once daily, twice daily, every 8 hours, etc.)
+- Duration (3 days, 5 days, 14 days, etc.)
+- Any critical special instructions (e.g. "take with food", "avoid in first trimester")
+
+Format after every drug name:
+Drug Name (abbreviation if any) — dose, route, frequency, duration
+
+Examples:
+✓ Artemether-lumefantrine (AL) — 80mg/480mg, oral, twice daily for 3 days, take with food
+✓ Amoxicillin — 500mg, oral, three times daily for 7 days
+✓ Oxytocin — 10 IU, IM, single dose after delivery
+✓ Ceftriaxone — 2g, IV, once daily for 10–14 days
+✓ ORS — 200–400ml after each loose stool, oral, until diarrhoea stops
+
+RULES:
+- NEVER mention a drug without its dose.
+- If dose varies by age or weight, show both adult and paediatric doses:
+    Adults: 500mg twice daily
+    Children: 25mg/kg/day in 2 divided doses
+- For weight-based dosing, show the formula (e.g. "Gentamicin — 5mg/kg, IV, once daily").
+- Use the dose relevant to the clinical question being asked.
+- If the retrieved guideline does not specify the dose, write:
+    "Dose: refer to [guideline name] for weight/age-specific dosing"
+- Never guess or fabricate doses — only use doses from the uploaded guidelines.
+- This rule applies to ALL responses without exception.
 
 -----------------------------------
 REFERENCING (MANDATORY)
@@ -278,6 +336,7 @@ class StarterChatServer(ChatKitServer[dict[str, Any]]):
                     output_text += text
 
         output_text = _clean_citations(output_text)
+        _check_drug_doses(output_text)
         print(f"Extracted output_text length: {len(output_text)}", flush=True)
 
         if not output_text:
