@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { ScipLogo } from "../components/ScipLogo";
 import { GoogleButton } from "../components/GoogleButton";
@@ -7,10 +7,12 @@ import { Divider } from "../components/Divider";
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const successBanner = (location.state as { successMessage?: string } | null)?.successMessage ?? "";
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [unconfirmed, setUnconfirmed] = useState(false);
 
@@ -28,7 +30,6 @@ export function LoginPage() {
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-    setMessage("");
     setUnconfirmed(false);
     setResendMessage("");
     setLoading(true);
@@ -46,25 +47,6 @@ export function LoginPage() {
       } else {
         navigate("/");
       }
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleForgotPassword() {
-    if (!email) {
-      setError("Enter your email address above, then click Forgot password.");
-      return;
-    }
-    setLoading(true);
-    setError("");
-    setUnconfirmed(false);
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      });
-      if (error) setError(error.message);
-      else setMessage("Password reset link sent — check your inbox.");
     } finally {
       setLoading(false);
     }
@@ -101,6 +83,11 @@ export function LoginPage() {
   return (
     <div className="min-h-screen bg-slate-100 flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-md">
+        {successBanner && (
+          <div className="mb-4 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 text-sm text-emerald-700 font-medium text-center">
+            ✅ {successBanner}
+          </div>
+        )}
         <ScipLogo className="mb-8" />
 
         <div className="bg-white rounded-2xl shadow-sm px-8 py-8">
@@ -132,14 +119,13 @@ export function LoginPage() {
                 placeholder="••••••••"
                 className="input"
               />
-              <button
-                type="button"
-                onClick={handleForgotPassword}
-                className="mt-1 text-xs text-right w-full"
+              <Link
+                to="/forgot-password"
+                className="mt-1 text-xs text-right w-full block text-right"
                 style={{ color: "#1B3A6B" }}
               >
                 Forgot password?
-              </button>
+              </Link>
             </Field>
 
             {error && (
@@ -169,8 +155,6 @@ export function LoginPage() {
                 )}
               </div>
             )}
-
-            {message && <p className="text-sm text-emerald-600">{message}</p>}
 
             <button
               type="submit"
