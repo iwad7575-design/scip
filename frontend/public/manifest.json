@@ -1,0 +1,22 @@
+{
+  "name": "SCIP - Clinical Decision Support",
+  "short_name": "SCIP",
+  "description": "AI clinical decision support for Ethiopian healthcare workers. Access 106 validated medical guidelines instantly.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0B2545",
+  "theme_color": "#0B2545",
+  "orientation": "portrait",
+  "lang": "en",
+  "icons": [
+    { "src": "/logo.png", "sizes": "72x72",  "type": "image/png", "purpose": "any" },
+    { "src": "/logo.png", "sizes": "96x96",  "type": "image/png", "purpose": "any" },
+    { "src": "/logo.png", "sizes": "128x128","type": "image/png", "purpose": "any" },
+    { "src": "/logo.png", "sizes": "144x144","type": "image/png", "purpose": "any" },
+    { "src": "/logo.png", "sizes": "152x152","type": "image/png", "purpose": "any" },
+    { "src": "/logo.png", "sizes": "192x192","type": "image/png", "purpose": "any maskable" },
+    { "src": "/logo.png", "sizes": "384x384","type": "image/png", "purpose": "any" },
+    { "src": "/logo.png", "sizes": "512x512","type": "image/png", "purpose": "any maskable" }
+  ]
+}

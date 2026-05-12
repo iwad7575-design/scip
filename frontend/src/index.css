@@ -34,6 +34,12 @@ body,
   margin: 0;
   padding: 0;
   overflow: hidden;
+  max-width: 100%;
+}
+
+/* Prevent iOS zoom on input focus (font-size < 16px triggers zoom) */
+input, textarea, select {
+  font-size: 16px;
 }
 
 body {

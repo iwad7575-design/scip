@@ -577,11 +577,19 @@ export function HomePage() {
               )}
 
               <p
-                className={`mt-8 pb-2 text-xs text-center max-w-xl ${mounted ? "anim-fade-in-d5" : "opacity-0"}`}
+                className={`mt-8 pb-1 text-xs text-center max-w-xl ${mounted ? "anim-fade-in-d5" : "opacity-0"}`}
                 style={{ color: "rgba(255,255,255,0.28)" }}
               >
                 ⚕️ SCIP supports clinical decisions — it does not replace clinical judgment or specialist consultation.{" "}
                 Developed by SHIFA | scip-et.com
+              </p>
+              <p className={`pb-4 text-xs text-center ${mounted ? "anim-fade-in-d5" : "opacity-0"}`}>
+                <Link
+                  to="/install"
+                  style={{ color: "rgba(255,255,255,0.4)", textDecoration: "none" }}
+                >
+                  📱 Install the App
+                </Link>
               </p>
             </div>
           </div>
