@@ -9,6 +9,7 @@ import { DashboardPage } from "./pages/DashboardPage";
 import { AgentPage } from "./pages/AgentPage";
 import { HomePage } from "./pages/HomePage";
 import { InstallPage } from "./pages/InstallPage";
+import { AuthCallbackPage } from "./pages/AuthCallbackPage";
 import { InstallBanner } from "./components/InstallBanner";
 
 // Attach the Supabase JWT to every backend request.
@@ -46,6 +47,7 @@ export default function App() {
         <Route path="/dashboard" element={session ? <DashboardPage /> : <Navigate to="/login" replace />} />
         <Route path="/agent" element={session ? <AgentPage /> : <Navigate to="/login" replace />} />
         <Route path="/install" element={<InstallPage />} />
+        <Route path="/auth/callback" element={<AuthCallbackPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <InstallBanner />

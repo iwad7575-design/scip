@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { ScipLogo } from "../components/ScipLogo";
@@ -12,16 +12,37 @@ export function LoginPage() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [unconfirmed, setUnconfirmed] = useState(false);
+
+  // Resend confirmation state
+  const [resendMessage, setResendMessage] = useState("");
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [resendLoading, setResendLoading] = useState(false);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const t = setTimeout(() => setResendCooldown(c => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendCooldown]);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setMessage("");
+    setUnconfirmed(false);
+    setResendMessage("");
     setLoading(true);
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
-        setError(friendlyError(error.message));
+        const isUnconfirmed = error.message.toLowerCase().includes("email not confirmed")
+          || error.message.toLowerCase().includes("not confirmed");
+        if (isUnconfirmed) {
+          setUnconfirmed(true);
+          setError("Please confirm your email before logging in. Check your inbox for a confirmation link from SCIP.");
+        } else {
+          setError(friendlyError(error.message));
+        }
       } else {
         navigate("/");
       }
@@ -37,9 +58,10 @@ export function LoginPage() {
     }
     setLoading(true);
     setError("");
+    setUnconfirmed(false);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: `${window.location.origin}/auth/callback`,
       });
       if (error) setError(error.message);
       else setMessage("Password reset link sent — check your inbox.");
@@ -48,10 +70,31 @@ export function LoginPage() {
     }
   }
 
+  async function handleResend() {
+    if (resendCooldown > 0 || !email) return;
+    setResendLoading(true);
+    setResendMessage("");
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email,
+        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+      });
+      if (error) {
+        setResendMessage(error.message);
+      } else {
+        setResendMessage("Confirmation email resent! Please check your inbox.");
+        setResendCooldown(60);
+      }
+    } finally {
+      setResendLoading(false);
+    }
+  }
+
   async function handleGoogle() {
     await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/` },
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
     });
   }
 
@@ -73,7 +116,7 @@ export function LoginPage() {
                 required
                 autoComplete="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => { setEmail(e.target.value); setUnconfirmed(false); setError(""); }}
                 placeholder="you@example.com"
                 className="input"
               />
@@ -99,7 +142,34 @@ export function LoginPage() {
               </button>
             </Field>
 
-            {error && <p className="text-sm text-red-600">{error}</p>}
+            {error && (
+              <div className={`text-sm rounded-lg px-3 py-2.5 ${unconfirmed ? "bg-amber-50 text-amber-800" : "bg-red-50 text-red-600"}`}>
+                <p>{error}</p>
+                {unconfirmed && (
+                  <div className="mt-2 pt-2 border-t border-amber-200">
+                    {resendMessage && (
+                      <p className={`text-xs mb-2 font-medium ${resendMessage.startsWith("Confirmation") ? "text-emerald-700" : "text-red-600"}`}>
+                        {resendMessage}
+                      </p>
+                    )}
+                    <button
+                      type="button"
+                      onClick={handleResend}
+                      disabled={resendCooldown > 0 || resendLoading}
+                      className="text-xs font-semibold underline disabled:no-underline disabled:opacity-50"
+                      style={{ color: "#1B3A6B" }}
+                    >
+                      {resendLoading
+                        ? "Sending…"
+                        : resendCooldown > 0
+                        ? `Resend in ${resendCooldown}s…`
+                        : "Resend confirmation email"}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
             {message && <p className="text-sm text-emerald-600">{message}</p>}
 
             <button
@@ -138,7 +208,6 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 function friendlyError(msg: string): string {
   if (msg.includes("Invalid login credentials")) return "Incorrect email or password.";
-  if (msg.includes("Email not confirmed")) return "Please confirm your email before signing in.";
   if (msg.includes("Too many requests")) return "Too many attempts. Wait a moment and try again.";
   return msg;
 }
