@@ -19,6 +19,7 @@ interface Props {
   refreshKey: number;
   isMobileOpen: boolean;
   onMobileClose: () => void;
+  isDesktopOpen?: boolean;
 }
 
 type DateGroup = "Today" | "Yesterday" | "Previous 7 days" | "Previous 30 days" | "Older";
@@ -48,6 +49,7 @@ export function Sidebar({
   refreshKey,
   isMobileOpen,
   onMobileClose,
+  isDesktopOpen = true,
 }: Props) {
   const navigate = useNavigate();
   const [sessions, setSessions] = useState<ChatSession[]>([]);
@@ -91,7 +93,13 @@ export function Sidebar({
       )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    // Fallback poll every 30s in case real-time is not enabled on this table
+    const pollId = setInterval(loadSessions, 30_000);
+
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(pollId);
+    };
   }, [user.id, refreshKey]);
 
   useEffect(() => {
@@ -390,10 +398,12 @@ export function Sidebar({
 
   return (
     <>
-      {/* Desktop sidebar — always in flow */}
-      <div className="hidden lg:flex" style={{ height: "100dvh", flexShrink: 0 }}>
-        {inner}
-      </div>
+      {/* Desktop sidebar — in flow, collapsible via isDesktopOpen */}
+      {isDesktopOpen && (
+        <div className="hidden lg:flex" style={{ height: "100dvh", flexShrink: 0 }}>
+          {inner}
+        </div>
+      )}
       {/* Mobile sidebar — fixed overlay when open */}
       {isMobileOpen && (
         <div

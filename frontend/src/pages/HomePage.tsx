@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
 import { Sidebar } from "../components/Sidebar";
@@ -25,6 +25,8 @@ function loadingPhaseMessage(elapsed: number): string {
 }
 
 export function HomePage() {
+  const navigate = useNavigate();
+
   const [messages, setMessages]               = useState<Message[]>([]);
   const [input, setInput]                     = useState("");
   const [loading, setLoading]                 = useState(false);
@@ -35,9 +37,10 @@ export function HomePage() {
   const [mounted, setMounted]                 = useState(false);
 
   // Sidebar / session state
-  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
-  const [sidebarRefreshKey, setSidebarRefreshKey] = useState(0);
-  const [isSidebarOpen, setIsSidebarOpen]       = useState(false);
+  const [currentSessionId, setCurrentSessionId]   = useState<string | null>(null);
+  const [sidebarRefreshKey, setSidebarRefreshKey]  = useState(0);
+  const [isSidebarOpen, setIsSidebarOpen]          = useState(false);
+  const [isSidebarDesktopOpen, setIsSidebarDesktopOpen] = useState(true);
 
   const messagesEndRef    = useRef<HTMLDivElement>(null);
   const textareaRef       = useRef<HTMLTextAreaElement>(null);
@@ -97,6 +100,14 @@ export function HomePage() {
     setCurrentSessionId(null);
   }
 
+  function handleHamburgerClick() {
+    if (window.innerWidth < 1024) {
+      setIsSidebarOpen(v => !v);
+    } else {
+      setIsSidebarDesktopOpen(v => !v);
+    }
+  }
+
   async function handleSelectSession(sessionId: string) {
     const { data } = await supabase
       .from("chat_sessions")
@@ -145,6 +156,7 @@ export function HomePage() {
             user_id: currentUser.id,
             title: text.trim().slice(0, 60),
             messages: [],
+            updated_at: new Date().toISOString(),
           })
           .select("id")
           .single();
@@ -769,6 +781,7 @@ export function HomePage() {
               refreshKey={sidebarRefreshKey}
               isMobileOpen={isSidebarOpen}
               onMobileClose={() => setIsSidebarOpen(false)}
+              isDesktopOpen={isSidebarDesktopOpen}
             />
           </>
         )}
@@ -789,6 +802,7 @@ export function HomePage() {
           {!loggedIn ? (
             <header
               style={{
+                position: "relative",
                 flexShrink: 0,
                 padding: "12px 20px",
                 display: "flex",
@@ -799,12 +813,12 @@ export function HomePage() {
                 borderBottom: heroMode ? "none" : "1px solid var(--border)",
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <Link to="/" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}>
                 <img src="/logo.png" alt="SCIP" style={{ width: 30, height: 30, objectFit: "contain" }} />
                 <span style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 15, color: heroMode ? "#ffffff" : "var(--text-primary)" }}>
                   SCIP
                 </span>
-              </div>
+              </Link>
               {user !== undefined && (
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <Link
@@ -842,10 +856,10 @@ export function HomePage() {
               )}
             </header>
           ) : (
-            /* Mobile hamburger header — hidden on lg+ */
+            /* Logged-in header — hamburger visible on all screen sizes */
             <header
-              className="lg:hidden"
               style={{
+                position: "relative",
                 flexShrink: 0,
                 padding: "10px 16px",
                 display: "flex",
@@ -857,7 +871,7 @@ export function HomePage() {
               }}
             >
               <button
-                onClick={() => setIsSidebarOpen(true)}
+                onClick={handleHamburgerClick}
                 style={{
                   background: "none",
                   border: "none",
@@ -868,16 +882,19 @@ export function HomePage() {
                   alignItems: "center",
                   borderRadius: 6,
                 }}
-                aria-label="Open menu"
+                aria-label="Toggle sidebar"
               >
                 <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
               </button>
-              <img src="/logo.png" alt="SCIP" style={{ height: 24, width: 24, objectFit: "contain" }} />
-              <span style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 15, color: heroMode ? "#ffffff" : "var(--text-primary)" }}>
-                SCIP
-              </span>
+              {/* SCIP logo — mobile only; desktop sidebar already shows it */}
+              <Link to="/" className="lg:hidden" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}>
+                <img src="/logo.png" alt="SCIP" style={{ height: 24, width: 24, objectFit: "contain" }} />
+                <span style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 15, color: heroMode ? "#ffffff" : "var(--text-primary)" }}>
+                  SCIP
+                </span>
+              </Link>
             </header>
           )}
 
