@@ -8,18 +8,29 @@ import { Divider } from "../components/Divider";
 export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const successBanner = (location.state as { successMessage?: string } | null)?.successMessage ?? "";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [unconfirmed, setUnconfirmed] = useState(false);
+  const [successBanner, setSuccessBanner] = useState(
+    (location.state as { successMessage?: string } | null)?.successMessage ?? ""
+  );
 
   // Resend confirmation state
   const [resendMessage, setResendMessage] = useState("");
   const [resendCooldown, setResendCooldown] = useState(0);
   const [resendLoading, setResendLoading] = useState(false);
+
+  useEffect(() => {
+    // Detect success message from full-page redirect after password reset.
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("reset") === "success") {
+      setSuccessBanner("Password updated successfully! Please log in with your new password.");
+      window.history.replaceState({}, "", "/login");
+    }
+  }, []);
 
   useEffect(() => {
     if (resendCooldown <= 0) return;

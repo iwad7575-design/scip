@@ -112,22 +112,17 @@ export function ResetPasswordPage() {
           setError(updateError.message);
         }
       } else {
-        // Mark success BEFORE any async calls so the ref is set if the
-        // component re-renders due to SIGNED_OUT from the signOut below.
         passwordUpdated.current = true;
         setPageState("success");
 
-        // Navigate to /login first, THEN sign out.
-        // Calling signOut() before navigate() fires SIGNED_OUT which can
-        // cause the component to re-mount and show "Reset link expired"
-        // before the navigation completes.
-        setTimeout(() => {
-          navigate("/login", {
-            state: { successMessage: "Password updated. Please log in with your new password." },
-            replace: true,
-          });
-          setTimeout(() => { supabase.auth.signOut(); }, 100);
-        }, 2000);
+        // Use a full-page redirect instead of React Router navigate().
+        // This clears all module-level state (including initialAuthType),
+        // so AuthRedirectHandler cannot redirect back to /reset-password.
+        // Sign out first so the login page doesn't see an active session.
+        setTimeout(async () => {
+          await supabase.auth.signOut();
+          window.location.replace("/login?reset=success");
+        }, 1500);
       }
     } finally {
       setLoading(false);

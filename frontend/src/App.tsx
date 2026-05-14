@@ -37,7 +37,12 @@ function AuthRedirectHandler() {
     if (initialAuthType === "recovery" && window.location.pathname !== "/reset-password") {
       navigate("/reset-password", { replace: true });
     }
-  }, [navigate]);
+    // Empty deps: must run ONCE on mount only. initialAuthType is a module-level
+    // constant set at page load. If [navigate] were used, the effect would re-run
+    // every time navigate's reference changes (which happens on every navigation
+    // in React Router v6), permanently redirecting back to /reset-password.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   return null;
 }
 
