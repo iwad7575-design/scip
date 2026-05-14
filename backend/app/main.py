@@ -34,9 +34,10 @@ _CACHE_SIZE = 50
 _STREAM_TIMEOUT_S = 55  # Cancel OpenAI call if no first token within this time
 
 _CITATION_RE = re.compile(
-    r"filecite\s*turn\d+\s*file\d+"   # fileciteturn0file1
+    r"filecite\s*turn\d+\s*file\d+"   # fileciteturn0file1  (full pattern)
     r"|turn\d+file\d+"                 # turn0file0
-    r"|【[^】]*】",                    # 【4:0†source】
+    r"|【[^】]*】"                     # 【4:0†source】
+    r"|filecite\w*",                   # orphaned filecite prefix split across streaming chunks
     re.IGNORECASE,
 )
 
