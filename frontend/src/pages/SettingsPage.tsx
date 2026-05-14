@@ -31,25 +31,37 @@ export function SettingsPage() {
   if (!user) return null;
 
   return (
-    <div style={{ minHeight: "100dvh", background: "#f1f5f9" }}>
+    <div style={{ minHeight: "100dvh", background: "var(--bg)" }}>
       {/* Header */}
-      <div style={{ background: "#0B2545", padding: "12px 16px", display: "flex", alignItems: "center", gap: 12 }}>
+      <div style={{ background: "var(--brand-navy)", padding: "12px 20px", display: "flex", alignItems: "center", gap: 12 }}>
         <button
           onClick={() => navigate("/")}
-          style={{ color: "rgba(255,255,255,0.65)", background: "none", border: "none", cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", gap: 4, padding: 0 }}
+          style={{
+            color: "rgba(255,255,255,0.6)",
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            fontSize: 13,
+            fontFamily: "var(--font-heading)",
+            display: "flex",
+            alignItems: "center",
+            gap: 5,
+            padding: "4px 0",
+          }}
         >
           <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
           Back
         </button>
+        <div style={{ width: 1, height: 16, background: "rgba(255,255,255,0.15)" }} />
         <img src="/logo.png" alt="SCIP" style={{ height: 22, width: 22, objectFit: "contain" }} />
-        <span style={{ color: "#ffffff", fontWeight: 700, fontSize: 15 }}>Settings</span>
+        <span style={{ color: "#ffffff", fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 15 }}>Settings</span>
       </div>
 
       <div style={{ maxWidth: 720, margin: "0 auto", padding: "28px 16px" }}>
         {/* Tab bar */}
-        <div style={{ background: "#ffffff", borderRadius: 14, padding: 6, display: "flex", gap: 4, marginBottom: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.07)", overflowX: "auto" }}>
+        <div style={{ background: "var(--surface)", borderRadius: "var(--radius-lg)", padding: 5, display: "flex", gap: 3, marginBottom: 20, boxShadow: "var(--shadow-xs)", overflowX: "auto", border: "1px solid var(--border)" }}>
           {TABS.map(tab => (
             <button
               key={tab.id}
@@ -57,14 +69,15 @@ export function SettingsPage() {
               style={{
                 flexShrink: 0,
                 padding: "7px 16px",
-                borderRadius: 9,
+                borderRadius: 10,
                 border: "none",
                 cursor: "pointer",
                 fontSize: 13,
-                fontWeight: 500,
-                transition: "all 0.15s",
-                background: activeTab === tab.id ? "#1B3A6B" : "transparent",
-                color: activeTab === tab.id ? "#ffffff" : "#64748b",
+                fontFamily: "var(--font-heading)",
+                fontWeight: activeTab === tab.id ? 600 : 500,
+                transition: "background var(--transition-fast), color var(--transition-fast)",
+                background: activeTab === tab.id ? "var(--brand-navy-700)" : "transparent",
+                color: activeTab === tab.id ? "#ffffff" : "var(--text-secondary)",
               }}
             >
               {tab.label}
@@ -115,7 +128,7 @@ function ProfileTab({ user, onUpdate }: { user: User; onUpdate: (u: User) => voi
         </Field>
         <Field label="Email address">
           <input className="input" value={user.email || ""} disabled style={{ opacity: 0.55, cursor: "not-allowed" }} />
-          <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 3 }}>Email cannot be changed here</p>
+          <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 3 }}>Email cannot be changed here</p>
         </Field>
         <Field label="Profession">
           <select className="input" value={profession} onChange={e => setProfession(e.target.value)}>
@@ -140,17 +153,10 @@ function ProfileTab({ user, onUpdate }: { user: User; onUpdate: (u: User) => voi
         <button
           type="submit"
           disabled={saving}
+          className="btn-primary"
           style={{
-            padding: "10px",
-            borderRadius: 10,
-            border: "none",
-            cursor: saving ? "not-allowed" : "pointer",
-            fontWeight: 600,
-            fontSize: 14,
-            color: "#ffffff",
-            background: saved ? "#2ECC71" : "#1B3A6B",
-            opacity: saving ? 0.7 : 1,
-            transition: "background 0.2s",
+            background: saved ? "var(--brand-green)" : "var(--brand-navy)",
+            transition: "background var(--transition-base)",
           }}
         >
           {saving ? "Saving…" : saved ? "✓ Saved!" : "Save Changes"}
@@ -245,17 +251,7 @@ function SecurityTab({ user }: { user: User }) {
           <button
             type="submit"
             disabled={loading || !meets8 || !passwordsMatch}
-            style={{
-              padding: "10px",
-              borderRadius: 10,
-              border: "none",
-              cursor: loading || !meets8 || !passwordsMatch ? "not-allowed" : "pointer",
-              fontWeight: 600,
-              fontSize: 14,
-              color: "#ffffff",
-              background: "#1B3A6B",
-              opacity: loading || !meets8 || !passwordsMatch ? 0.55 : 1,
-            }}
+            className="btn-primary"
           >
             {loading ? "Updating…" : "Update Password"}
           </button>
@@ -263,8 +259,8 @@ function SecurityTab({ user }: { user: User }) {
       </Card>
 
       <Card title="Two-Factor Authentication" subtitle="Add an extra layer of security">
-        <div style={{ background: "#f8fafc", borderRadius: 10, padding: "12px 14px", fontSize: 13, color: "#64748b", display: "flex", alignItems: "center", gap: 8 }}>
-          <span>🔐</span>
+        <div style={{ background: "var(--bg)", borderRadius: "var(--radius-md)", padding: "12px 14px", fontSize: 13, color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: 10, border: "1px solid var(--border)" }}>
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="var(--text-muted)" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
           <span>Two-factor authentication is coming soon.</span>
         </div>
       </Card>
@@ -273,15 +269,19 @@ function SecurityTab({ user }: { user: User }) {
         <button
           onClick={() => supabase.auth.signOut({ scope: "global" })}
           style={{
-            padding: "8px 16px",
-            borderRadius: 9,
-            border: "1px solid #e2e8f0",
-            background: "#ffffff",
+            padding: "9px 18px",
+            borderRadius: "var(--radius-md)",
+            border: "1px solid var(--border)",
+            background: "var(--surface)",
             cursor: "pointer",
             fontSize: 13,
+            fontFamily: "var(--font-heading)",
             fontWeight: 600,
-            color: "#334155",
+            color: "var(--text-primary)",
+            transition: "border-color var(--transition-fast), box-shadow var(--transition-fast)",
           }}
+          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--brand-navy-400)"; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border)"; }}
         >
           Sign out all devices
         </button>
@@ -295,9 +295,13 @@ function SecurityTab({ user }: { user: User }) {
 function NotificationsTab() {
   return (
     <Card title="Notification Settings" subtitle="">
-      <div style={{ textAlign: "center", padding: "24px 0" }}>
-        <div style={{ fontSize: 36, marginBottom: 12 }}>🔔</div>
-        <p style={{ color: "#64748b", fontSize: 14 }}>Notification preferences are coming soon.</p>
+      <div style={{ textAlign: "center", padding: "28px 0" }}>
+        <div style={{ width: 52, height: 52, borderRadius: "50%", background: "var(--brand-navy-100)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px" }}>
+          <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="var(--brand-navy-700)" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+          </svg>
+        </div>
+        <p style={{ color: "var(--text-secondary)", fontSize: 14, margin: 0 }}>Notification preferences are coming soon.</p>
       </div>
     </Card>
   );
@@ -330,8 +334,8 @@ function SubscriptionTab({ user }: { user: User }) {
           Active
         </span>
       </div>
-      <div style={{ background: "#f8fafc", borderRadius: 10, padding: "12px 14px", fontSize: 13, color: "#64748b", display: "flex", alignItems: "center", gap: 8 }}>
-        <span>⭐</span>
+      <div style={{ background: "var(--bg)", borderRadius: "var(--radius-md)", padding: "12px 14px", fontSize: 13, color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: 10, border: "1px solid var(--border)" }}>
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="var(--text-muted)" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
         <span>Premium features and payment options are coming soon.</span>
       </div>
     </Card>
@@ -362,22 +366,22 @@ function DangerTab({ user }: { user: User }) {
 
   return (
     <Card title="Danger Zone" subtitle="Irreversible actions — proceed with caution" danger>
-      <div style={{ border: "1px solid #fecaca", borderRadius: 12, padding: "16px 18px" }}>
-        <h3 style={{ margin: "0 0 6px", fontSize: 14, fontWeight: 600, color: "#1e293b" }}>Delete Account</h3>
-        <p style={{ margin: "0 0 14px", fontSize: 13, color: "#64748b", lineHeight: 1.5 }}>
+      <div style={{ border: "1px solid #fecaca", borderRadius: "var(--radius-lg)", padding: "16px 18px" }}>
+        <h3 style={{ fontFamily: "var(--font-heading)", margin: "0 0 6px", fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>Delete Account</h3>
+        <p style={{ margin: "0 0 14px", fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.5 }}>
           Permanently delete all your conversations and sign you out. Your account credentials will remain in the system — contact support for full deletion.
         </p>
         {!showConfirm ? (
           <button
             onClick={() => setShowConfirm(true)}
-            style={{ padding: "8px 16px", borderRadius: 9, border: "none", cursor: "pointer", background: "#dc2626", color: "#ffffff", fontWeight: 600, fontSize: 13 }}
+            style={{ padding: "9px 18px", borderRadius: "var(--radius-md)", border: "none", cursor: "pointer", background: "var(--destructive)", color: "#ffffff", fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 13 }}
           >
             Delete My Account
           </button>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <p style={{ margin: 0, fontSize: 13, fontWeight: 500, color: "#334155" }}>
-              Type <span style={{ fontFamily: "monospace", fontWeight: 700, color: "#dc2626" }}>DELETE</span> to confirm:
+            <p style={{ margin: 0, fontSize: 13, fontWeight: 500, color: "var(--text-primary)" }}>
+              Type <span style={{ fontFamily: "monospace", fontWeight: 700, color: "var(--destructive)" }}>DELETE</span> to confirm:
             </p>
             <input
               className="input"
@@ -392,12 +396,13 @@ function DangerTab({ user }: { user: User }) {
                 onClick={handleDelete}
                 disabled={confirmText !== "DELETE" || deleting}
                 style={{
-                  padding: "8px 16px",
-                  borderRadius: 9,
+                  padding: "9px 18px",
+                  borderRadius: "var(--radius-md)",
                   border: "none",
                   cursor: confirmText !== "DELETE" || deleting ? "not-allowed" : "pointer",
-                  background: "#dc2626",
+                  background: "var(--destructive)",
                   color: "#ffffff",
+                  fontFamily: "var(--font-heading)",
                   fontWeight: 600,
                   fontSize: 13,
                   opacity: confirmText !== "DELETE" || deleting ? 0.5 : 1,
@@ -407,7 +412,7 @@ function DangerTab({ user }: { user: User }) {
               </button>
               <button
                 onClick={() => { setShowConfirm(false); setConfirmText(""); setError(""); }}
-                style={{ padding: "8px 16px", borderRadius: 9, border: "none", cursor: "pointer", background: "#f1f5f9", color: "#334155", fontWeight: 600, fontSize: 13 }}
+                style={{ padding: "9px 18px", borderRadius: "var(--radius-md)", border: "1px solid var(--border)", cursor: "pointer", background: "var(--surface)", color: "var(--text-primary)", fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 13 }}
               >
                 Cancel
               </button>
@@ -423,9 +428,9 @@ function DangerTab({ user }: { user: User }) {
 
 function Card({ title, subtitle, danger, children }: { title: string; subtitle: string; danger?: boolean; children: React.ReactNode }) {
   return (
-    <div style={{ background: "#ffffff", borderRadius: 16, padding: "22px 24px", boxShadow: "0 1px 3px rgba(0,0,0,0.07)" }}>
-      <h2 style={{ margin: "0 0 2px", fontSize: 17, fontWeight: 700, color: danger ? "#dc2626" : "#1B3A6B" }}>{title}</h2>
-      {subtitle && <p style={{ margin: "0 0 18px", fontSize: 13, color: "#64748b" }}>{subtitle}</p>}
+    <div style={{ background: "var(--surface)", borderRadius: "var(--radius-2xl)", padding: "22px 24px", boxShadow: "var(--shadow-sm)", border: "1px solid var(--border)" }}>
+      <h2 style={{ fontFamily: "var(--font-heading)", margin: "0 0 2px", fontSize: 17, fontWeight: 700, color: danger ? "var(--destructive)" : "var(--brand-navy-700)" }}>{title}</h2>
+      {subtitle && <p style={{ margin: "0 0 18px", fontSize: 13, color: "var(--text-secondary)" }}>{subtitle}</p>}
       {children}
     </div>
   );
@@ -433,8 +438,8 @@ function Card({ title, subtitle, danger, children }: { title: string; subtitle: 
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-      <label style={{ fontSize: 13, fontWeight: 500, color: "#475569" }}>{label}</label>
+    <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+      <label style={{ fontSize: 13, fontFamily: "var(--font-heading)", fontWeight: 500, color: "var(--text-secondary)" }}>{label}</label>
       {children}
     </div>
   );
@@ -490,15 +495,17 @@ function PasswordInput({
 function Req({ met, text }: { met: boolean; text: string }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}>
-      <span>{met ? "✅" : "⚪"}</span>
-      <span style={{ color: met ? "#059669" : "#94a3b8" }}>{text}</span>
+      <div style={{ width: 14, height: 14, borderRadius: "50%", background: met ? "var(--success)" : "var(--border)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+        {met && <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={3.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
+      </div>
+      <span style={{ color: met ? "var(--success)" : "var(--text-muted)" }}>{text}</span>
     </div>
   );
 }
 
 function ErrorBanner({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ fontSize: 13, color: "#dc2626", background: "#fef2f2", borderRadius: 8, padding: "8px 12px" }}>
+    <div style={{ fontSize: 13, color: "var(--destructive)", background: "var(--destructive-bg)", border: "1px solid #fecaca", borderRadius: "var(--radius-md)", padding: "10px 14px" }}>
       {children}
     </div>
   );
@@ -506,7 +513,7 @@ function ErrorBanner({ children }: { children: React.ReactNode }) {
 
 function SuccessBanner({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ fontSize: 13, color: "#059669", background: "#f0fdf4", borderRadius: 8, padding: "8px 12px" }}>
+    <div style={{ fontSize: 13, color: "var(--success)", background: "var(--success-bg)", border: "1px solid #bbf7d0", borderRadius: "var(--radius-md)", padding: "10px 14px" }}>
       {children}
     </div>
   );

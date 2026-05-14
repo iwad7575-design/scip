@@ -128,20 +128,26 @@ export function AuthCallbackPage() {
   return (
     <div style={{
       minHeight: "100dvh",
-      background: "#0B2545",
+      background: "var(--brand-navy)",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      padding: "2rem",
+      padding: "24px",
     }}>
       <div style={{ textAlign: "center", maxWidth: 360 }}>
         {status === "loading" && (
           <>
-            <div style={{ fontSize: "2.5rem", marginBottom: "1rem" }}>⏳</div>
-            <h2 style={{ color: "#fff", fontSize: "1.1rem", fontWeight: 700, marginBottom: "0.5rem" }}>
+            <div style={{ width: 56, height: 56, borderRadius: "50%", background: "rgba(255,255,255,0.08)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 18px" }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth={2} style={{ animation: "spin 1s linear infinite" }}>
+                <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+                <path strokeLinecap="round" d="M12 2a10 10 0 010 20" opacity={0.3} />
+                <path strokeLinecap="round" d="M12 2a10 10 0 0110 10" />
+              </svg>
+            </div>
+            <h2 style={{ fontFamily: "var(--font-heading)", color: "#fff", fontSize: 18, fontWeight: 700, marginBottom: 8 }}>
               Verifying your email…
             </h2>
-            <p style={{ color: "rgba(255,255,255,0.55)", fontSize: "0.875rem" }}>
+            <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 14, margin: 0 }}>
               This will only take a moment.
             </p>
           </>
@@ -149,11 +155,15 @@ export function AuthCallbackPage() {
 
         {status === "success" && (
           <>
-            <div style={{ fontSize: "2.5rem", marginBottom: "1rem" }}>✅</div>
-            <h2 style={{ color: "#2ECC71", fontSize: "1.25rem", fontWeight: 700, marginBottom: "0.5rem" }}>
+            <div style={{ width: 56, height: 56, borderRadius: "50%", background: "rgba(46,204,113,0.15)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 18px" }}>
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#2ECC71" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h2 style={{ fontFamily: "var(--font-heading)", color: "#2ECC71", fontSize: 20, fontWeight: 700, marginBottom: 8 }}>
               Email confirmed!
             </h2>
-            <p style={{ color: "rgba(255,255,255,0.75)", fontSize: "0.9rem" }}>
+            <p style={{ color: "rgba(255,255,255,0.65)", fontSize: 14, margin: 0 }}>
               Welcome to SCIP. Redirecting you now…
             </p>
           </>
@@ -161,23 +171,30 @@ export function AuthCallbackPage() {
 
         {status === "error" && (
           <>
-            <div style={{ fontSize: "2.5rem", marginBottom: "1rem" }}>❌</div>
-            <h2 style={{ color: "#fff", fontSize: "1.1rem", fontWeight: 700, marginBottom: "0.75rem" }}>
+            <div style={{ width: 56, height: 56, borderRadius: "50%", background: "rgba(220,38,38,0.15)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 18px" }}>
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+              </svg>
+            </div>
+            <h2 style={{ fontFamily: "var(--font-heading)", color: "#fff", fontSize: 18, fontWeight: 700, marginBottom: 10 }}>
               Confirmation failed
             </h2>
-            <p style={{ color: "rgba(255,255,255,0.65)", fontSize: "0.875rem", lineHeight: 1.6, marginBottom: "1.5rem" }}>
+            <p style={{ color: "rgba(255,255,255,0.55)", fontSize: 14, lineHeight: 1.6, marginBottom: 24 }}>
               {errorMessage}
             </p>
             <Link
               to="/signup"
               style={{
-                display: "inline-block",
-                background: "#2ECC71",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                background: "var(--brand-green)",
                 color: "#fff",
-                padding: "0.75rem 1.5rem",
-                borderRadius: 8,
+                padding: "10px 24px",
+                borderRadius: "var(--radius-lg)",
+                fontFamily: "var(--font-heading)",
                 fontWeight: 700,
-                fontSize: "0.9rem",
+                fontSize: 14,
                 textDecoration: "none",
               }}
             >

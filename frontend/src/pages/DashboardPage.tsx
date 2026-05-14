@@ -77,9 +77,9 @@ export function DashboardPage() {
   const welcomeName = formatWelcomeName(fullName, profession);
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div style={{ minHeight: "100dvh", background: "var(--bg)" }}>
       {/* Header */}
-      <header style={{ backgroundColor: "#1B3A6B" }} className="px-4 sm:px-6 py-4">
+      <header style={{ background: "var(--brand-navy)", fontFamily: "var(--font-heading)" }} className="px-4 sm:px-6 py-4">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img src="/logo.png" alt="SCIP logo" className="h-8 w-8 object-contain rounded-lg" />
@@ -139,7 +139,7 @@ export function DashboardPage() {
         <button
           onClick={() => navigate("/")}
           className="w-full mb-8 rounded-2xl px-6 py-5 flex items-center justify-between text-white group hover:opacity-90 transition-opacity"
-          style={{ backgroundColor: "#1B3A6B" }}
+          style={{ background: "var(--brand-navy-700)" }}
         >
           <div className="flex items-center gap-4">
             <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center flex-shrink-0">
@@ -242,7 +242,7 @@ function KnowledgeBaseCard() {
         </div>
         <span
           className="flex-shrink-0 text-xs font-bold px-2.5 py-1 rounded-full text-white"
-          style={{ backgroundColor: "#1B3A6B" }}
+          style={{ background: "var(--brand-navy-700)" }}
         >
           106 docs
         </span>
@@ -271,8 +271,8 @@ function StatCard({
 }) {
   return (
     <div className="bg-white rounded-2xl shadow-sm px-4 py-4 flex flex-col gap-2">
-      <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#EEF2FF" }}>
-        <span style={{ color: "#1B3A6B" }}>{icon}</span>
+      <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "var(--brand-navy-100)" }}>
+        <span style={{ color: "var(--brand-navy-700)" }}>{icon}</span>
       </div>
       <div className={`font-bold text-slate-900 leading-none ${small ? "text-base sm:text-lg" : "text-2xl"}`}>
         {value}
@@ -304,7 +304,7 @@ function HistoryItem({
         <button
           onClick={onToggle}
           className="mt-1.5 text-xs font-medium hover:underline"
-          style={{ color: "#1B3A6B" }}
+          style={{ color: "var(--brand-navy-700)" }}
         >
           {isExpanded ? "Hide" : "Show full answer"}
         </button>
@@ -325,7 +325,7 @@ function EmptyHistory({ onAsk }: { onAsk: () => void }) {
       <button
         onClick={onAsk}
         className="text-sm font-medium hover:underline"
-        style={{ color: "#1B3A6B" }}
+        style={{ color: "var(--brand-navy-700)" }}
       >
         Ask your first clinical question →
       </button>
@@ -376,7 +376,7 @@ function ProfileCard({
           <div className="flex items-center gap-3 mb-4">
             <div
               className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0"
-              style={{ backgroundColor: "#1B3A6B" }}
+              style={{ background: "var(--brand-navy-700)" }}
             >
               {initials || "?"}
             </div>
@@ -429,7 +429,7 @@ function ProfileCard({
               onClick={save}
               disabled={saving}
               className="flex-1 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-60"
-              style={{ backgroundColor: "#1B3A6B" }}
+              style={{ background: "var(--brand-navy-700)" }}
             >
               {saving ? "Saving…" : "Save"}
             </button>
@@ -457,10 +457,10 @@ function ProfileRow({ label, value }: { label: string; value: string }) {
 
 function LoadingScreen() {
   return (
-    <div className="min-h-screen bg-slate-100 flex items-center justify-center">
+    <div style={{ minHeight: "100dvh", background: "var(--bg)", display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div className="flex flex-col items-center gap-3">
         <img src="/logo.png" alt="SCIP logo" className="w-10 h-10 object-contain rounded-xl" />
-        <p className="text-sm text-slate-500">Loading your dashboard…</p>
+        <p style={{ fontSize: 13, color: "var(--text-muted)", fontFamily: "var(--font-heading)" }}>Loading your dashboard…</p>
       </div>
     </div>
   );
