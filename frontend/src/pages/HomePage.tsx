@@ -373,32 +373,27 @@ export function HomePage() {
             {loading ? (
               <button
                 onClick={handleStop}
-                className="stop-pulse"
                 style={{
                   flexShrink: 0,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  gap: 6,
-                  padding: "0 18px",
+                  width: 44,
+                  height: 44,
                   borderRadius: 10,
-                  fontFamily: "var(--font-heading)",
-                  fontWeight: 600,
-                  fontSize: 13,
-                  color: "#ffffff",
-                  background: "#ef4444",
+                  background: "var(--brand-navy)",
                   border: "none",
                   cursor: "pointer",
-                  whiteSpace: "nowrap",
-                  minHeight: 44,
-                  minWidth: 44,
+                  transition: "background var(--transition-fast)",
                 }}
+                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "#c0392b"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--brand-navy)"; }}
                 title="Stop generating (Esc)"
+                aria-label="Stop generating"
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                  <rect x="4" y="4" width="16" height="16" rx="2.5" />
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="white">
+                  <rect x="3" y="3" width="10" height="10" rx="2" />
                 </svg>
-                Stop
               </button>
             ) : (
               <button
