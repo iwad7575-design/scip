@@ -67,15 +67,31 @@ export function Sidebar({
 
   useEffect(() => {
     async function loadSessions() {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("chat_sessions")
         .select("id, title, created_at, updated_at")
         .eq("user_id", user.id)
         .order("updated_at", { ascending: false })
         .limit(100);
+      if (error) {
+        console.error("[SCIP] Sidebar fetchSessions error:", error.message, error);
+      }
       setSessions(data ?? []);
     }
+
     loadSessions();
+
+    // Real-time: re-fetch whenever any chat_session row for this user changes
+    const channel = supabase
+      .channel(`sidebar_sessions:${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "chat_sessions", filter: `user_id=eq.${user.id}` },
+        () => { loadSessions(); }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, [user.id, refreshKey]);
 
   useEffect(() => {

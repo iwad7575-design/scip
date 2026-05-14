@@ -134,11 +134,14 @@ export function HomePage() {
     // Create a new session on the first message for logged-in users
     let sessionId = currentSessionId;
     if (user && !sessionId) {
-      const { data } = await supabase
+      const { data, error: insertError } = await supabase
         .from("chat_sessions")
         .insert({ user_id: user.id, title: text.trim().slice(0, 60), messages: [] })
         .select("id")
         .single();
+      if (insertError) {
+        console.error("[SCIP] chat_sessions INSERT failed:", insertError.message, insertError);
+      }
       if (data?.id) {
         sessionId = data.id;
         setCurrentSessionId(data.id);
