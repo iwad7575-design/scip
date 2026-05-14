@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import type { Session } from "@supabase/supabase-js";
-import { supabase } from "./lib/supabase";
+import { supabase, initialAuthType } from "./lib/supabase";
 import { CHATKIT_API_URL } from "./lib/config";
 import { LoginPage } from "./pages/LoginPage";
 import { SignUpPage } from "./pages/SignUpPage";
@@ -28,6 +28,19 @@ window.fetch = async (input, init = {}) => {
   return _fetch(input, init);
 };
 
+// Safety net for recovery links that land on any page other than /reset-password.
+// Uses initialAuthType (captured before Supabase cleared the hash) because
+// the PASSWORD_RECOVERY event fires once during init and is never replayed.
+function AuthRedirectHandler() {
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (initialAuthType === "recovery" && window.location.pathname !== "/reset-password") {
+      navigate("/reset-password", { replace: true });
+    }
+  }, [navigate]);
+  return null;
+}
+
 export default function App() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
 
@@ -42,6 +55,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      <AuthRedirectHandler />
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={session ? <Navigate to="/" replace /> : <LoginPage />} />

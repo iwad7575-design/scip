@@ -18,7 +18,7 @@ export function ForgotPasswordPage() {
       // Always show the confirmation screen regardless of whether the email
       // exists — this is a security best practice (prevents email enumeration).
       await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: `${window.location.origin}/auth/callback`,
       });
       setSubmitted(true);
     } finally {

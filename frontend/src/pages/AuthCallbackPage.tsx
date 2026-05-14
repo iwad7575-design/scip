@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { supabase } from "../lib/supabase";
+import { supabase, initialAuthType } from "../lib/supabase";
 
 type Status = "loading" | "success" | "error";
 
@@ -10,48 +10,97 @@ export function AuthCallbackPage() {
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
-    let redirected = false;
+    let done = false;
 
+    function goTo(path: string) {
+      if (done) return;
+      done = true;
+      navigate(path, { replace: true });
+    }
     function markSuccess() {
-      if (redirected) return;
-      redirected = true;
+      if (done) return;
+      done = true;
       setStatus("success");
       setTimeout(() => navigate("/", { replace: true }), 2000);
     }
-
     function markError(msg: string) {
-      if (redirected) return;
-      redirected = true;
+      if (done) return;
+      done = true;
       setStatus("error");
       setErrorMessage(msg);
     }
 
-    const params = new URLSearchParams(window.location.search);
+    const searchParams = new URLSearchParams(window.location.search);
 
-    // Check for error from Supabase redirect
-    const oauthError = params.get("error");
+    // Supabase error (e.g. expired OTP link)
+    const oauthError = searchParams.get("error");
     if (oauthError) {
-      markError(params.get("error_description") || oauthError);
+      markError(searchParams.get("error_description") || oauthError);
       return;
     }
 
-    // PKCE code flow (newer Supabase default)
-    const code = params.get("code");
+    // ── Hash flow ──────────────────────────────────────────────────────────────
+    // initialAuthType was captured before Supabase cleared the hash from the URL.
+    // This is the only reliable way to detect hash-based recovery tokens.
+    if (initialAuthType === "recovery") {
+      // Supabase has already established the recovery session from the hash.
+      goTo("/reset-password");
+      return;
+    }
+
+    // ── PKCE code flow ─────────────────────────────────────────────────────────
+    // After exchangeCodeForSession, Supabase fires PASSWORD_RECOVERY (recovery
+    // codes) or SIGNED_IN (email confirmation, OAuth). Set up the listener
+    // BEFORE calling exchange so the event is never missed.
+    const code = searchParams.get("code");
     if (code) {
+      let sub: { unsubscribe(): void } | null = null;
+      let timeout: ReturnType<typeof setTimeout> | null = null;
+
+      sub = supabase.auth.onAuthStateChange((event) => {
+        if (event === "PASSWORD_RECOVERY") {
+          sub?.unsubscribe();
+          if (timeout) clearTimeout(timeout);
+          goTo("/reset-password");
+        } else if (event === "SIGNED_IN") {
+          sub?.unsubscribe();
+          if (timeout) clearTimeout(timeout);
+          markSuccess();
+        }
+      }).data.subscription;
+
       supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
-        if (error) markError(error.message);
-        else markSuccess();
+        if (error) {
+          sub?.unsubscribe();
+          if (timeout) clearTimeout(timeout);
+          markError(error.message);
+        }
+        // Navigation is handled by the onAuthStateChange listener above.
       });
-      return;
+
+      // Fallback: if the event never fires within 10s, check session directly.
+      timeout = setTimeout(() => {
+        sub?.unsubscribe();
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (session) markSuccess();
+          else markError("Authentication failed or the link has expired. Please request a new link.");
+        });
+      }, 10000);
+
+      return () => {
+        sub?.unsubscribe();
+        if (timeout) clearTimeout(timeout);
+      };
     }
 
-    // Hash/implicit flow — Supabase auto-detects tokens in the URL hash.
-    // Listen for the SIGNED_IN event, with a 5-second fallback.
+    // ── No code, no hash recovery — hash-based email confirmation or OAuth ─────
+    // Supabase has auto-processed the tokens; wait for the SIGNED_IN event.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_IN" && session) markSuccess();
     });
 
     const fallback = setTimeout(async () => {
+      subscription.unsubscribe();
       const { data: { session } } = await supabase.auth.getSession();
       if (session) markSuccess();
       else markError("Email confirmation failed or the link has expired. Please request a new confirmation email.");

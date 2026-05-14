@@ -18,6 +18,10 @@ export function ResetPasswordPage() {
 
   useEffect(() => {
     let resolved = false;
+    const cleanupRef: {
+      subscription?: { unsubscribe(): void };
+      fallback?: ReturnType<typeof setTimeout>;
+    } = {};
 
     function ready() {
       if (resolved) return;
@@ -40,19 +44,32 @@ export function ResetPasswordPage() {
       return;
     }
 
-    // Hash / implicit flow — Supabase auto-detects tokens and fires
-    // PASSWORD_RECOVERY (or SIGNED_IN for some configs).
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") ready();
+    // When AuthRedirectHandler navigates here, the recovery session is already
+    // established — check immediately before falling back to event listeners.
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (resolved) return;
+      if (session) { ready(); return; }
+
+      // Hash / implicit flow — listen for PASSWORD_RECOVERY or SIGNED_IN.
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+        if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") ready();
+      });
+
+      // Last-resort: if no event fires within 5s, give up.
+      const fallback = setTimeout(() => {
+        subscription.unsubscribe();
+        expired();
+      }, 5000);
+
+      // Store cleanup refs on the closure so the effect cleanup can reach them.
+      cleanupRef.subscription = subscription;
+      cleanupRef.fallback = fallback;
     });
 
-    // Fallback: if no event fires within 5s, check for an existing session.
-    const fallback = setTimeout(async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) ready(); else expired();
-    }, 5000);
-
-    return () => { subscription.unsubscribe(); clearTimeout(fallback); };
+    return () => {
+      cleanupRef.subscription?.unsubscribe();
+      if (cleanupRef.fallback !== undefined) clearTimeout(cleanupRef.fallback);
+    };
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -80,6 +97,8 @@ export function ResetPasswordPage() {
         }
       } else {
         setPageState("success");
+        // Sign out the recovery session so /login doesn't redirect back to /.
+        await supabase.auth.signOut();
         setTimeout(() => {
           navigate("/login", {
             state: { successMessage: "Password updated. Please log in with your new password." },
