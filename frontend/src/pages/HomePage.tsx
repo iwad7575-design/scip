@@ -131,21 +131,33 @@ export function HomePage() {
     if (textareaRef.current) textareaRef.current.style.height = "auto";
     setLoading(true);
 
-    // Create a new session on the first message for logged-in users
+    // Create a new session on the first message for logged-in users.
+    // Call getUser() directly rather than relying on React state so we
+    // never miss a session due to stale closure / async state timing.
     let sessionId = currentSessionId;
-    if (user && !sessionId) {
-      const { data, error: insertError } = await supabase
-        .from("chat_sessions")
-        .insert({ user_id: user.id, title: text.trim().slice(0, 60), messages: [] })
-        .select("id")
-        .single();
-      if (insertError) {
-        console.error("[SCIP] chat_sessions INSERT failed:", insertError.message, insertError);
-      }
-      if (data?.id) {
-        sessionId = data.id;
-        setCurrentSessionId(data.id);
-        setSidebarRefreshKey(k => k + 1);
+    if (!sessionId) {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (currentUser) {
+        console.log("[SCIP] Creating session for:", currentUser.email);
+        const { data, error: insertError } = await supabase
+          .from("chat_sessions")
+          .insert({
+            user_id: currentUser.id,
+            title: text.trim().slice(0, 60),
+            messages: [],
+          })
+          .select("id")
+          .single();
+        if (insertError) {
+          console.error("[SCIP] chat_sessions INSERT failed:", insertError.message, insertError.code, insertError.details);
+        } else {
+          console.log("[SCIP] Session created:", data?.id);
+        }
+        if (data?.id) {
+          sessionId = data.id;
+          setCurrentSessionId(data.id);
+          setSidebarRefreshKey(k => k + 1);
+        }
       }
     }
 
@@ -244,15 +256,20 @@ export function HomePage() {
       setLoading(false);
 
       // Persist the conversation to the session
-      if (user && sessionId && assistantContent) {
+      if (sessionId && assistantContent) {
         const finalMessages: Message[] = [
           ...newMessages,
           { role: "assistant", content: assistantContent, ...(aborted ? { stopped: true } : {}) },
         ];
-        await supabase
+        const { error: updateError } = await supabase
           .from("chat_sessions")
           .update({ messages: finalMessages, updated_at: new Date().toISOString() })
           .eq("id", sessionId);
+        if (updateError) {
+          console.error("[SCIP] chat_sessions UPDATE failed:", updateError.message);
+        } else {
+          console.log("[SCIP] Session messages saved:", sessionId);
+        }
         setSidebarRefreshKey(k => k + 1);
       }
     }

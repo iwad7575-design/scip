@@ -172,7 +172,7 @@ export function DashboardPage() {
               <p className="text-xs text-slate-400 mb-4">Last 10 questions you asked SCIP</p>
 
               {history.length === 0 ? (
-                <EmptyHistory onAsk={() => navigate("/agent")} />
+                <EmptyHistory onAsk={() => navigate("/")} />
               ) : (
                 <div className="divide-y divide-slate-100">
                   {history.map(item => (

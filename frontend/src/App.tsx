@@ -67,7 +67,7 @@ export default function App() {
         <Route path="/login" element={session ? <Navigate to="/" replace /> : <LoginPage />} />
         <Route path="/signup" element={session ? <Navigate to="/" replace /> : <SignUpPage />} />
         <Route path="/dashboard" element={session ? <DashboardPage /> : <Navigate to="/login" replace />} />
-        <Route path="/agent" element={session ? <AgentPage /> : <Navigate to="/login" replace />} />
+        <Route path="/agent" element={<Navigate to="/" replace />} />
         <Route path="/install" element={<InstallPage />} />
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
         <Route path="/forgot-password" element={session ? <Navigate to="/" replace /> : <ForgotPasswordPage />} />
