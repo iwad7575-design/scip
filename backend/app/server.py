@@ -364,7 +364,7 @@ class StarterChatServer(ChatKitServer[dict[str, Any]]):
 
         t_openai = time.perf_counter()
         n = _num_results(messages)
-        print(f"[TIMING] /chatkit → OpenAI call starting (file_search max_num_results={n}, score_threshold=0.5)", flush=True)
+        print(f"[TIMING] /chatkit → OpenAI call starting (file_search max_num_results={n}, score_threshold=0.35)", flush=True)
         try:
             response = await client.responses.create(
                 model=MODEL,
@@ -374,7 +374,7 @@ class StarterChatServer(ChatKitServer[dict[str, Any]]):
                     "type": "file_search",
                     "vector_store_ids": [VECTOR_STORE_ID],
                     "max_num_results": n,
-                    "ranking_options": {"score_threshold": 0.5},
+                    "ranking_options": {"score_threshold": 0.35},
                 }],
             )
         except Exception as e:

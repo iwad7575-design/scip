@@ -248,7 +248,7 @@ async def ask_endpoint(request: Request, _user=Depends(get_optional_user)):
             t_openai_start = time.perf_counter()
             print(
                 f"[TIMING] → OpenAI stream starting "
-                f"(file_search max_num_results={num_results}, score_threshold=0.5)",
+                f"(file_search max_num_results={num_results}, score_threshold=0.35)",
                 flush=True,
             )
             try:
@@ -260,7 +260,7 @@ async def ask_endpoint(request: Request, _user=Depends(get_optional_user)):
                         "type": "file_search",
                         "vector_store_ids": [VECTOR_STORE_ID],
                         "max_num_results": num_results,
-                        "ranking_options": {"score_threshold": 0.5},
+                        "ranking_options": {"score_threshold": 0.35},
                     }],
                 ) as stream:
                     async for event in stream:
