@@ -87,10 +87,27 @@ export function ResetPasswordPage() {
 
     setLoading(true);
     try {
+      // Refresh the session before updating — the recovery access_token can be
+      // short-lived; refreshSession exchanges it for a full, valid token so
+      // updateUser doesn't fail with "Token has expired or is invalid".
+      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError || !refreshData.session) {
+        setPageState("expired");
+        return;
+      }
+
       const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) {
         const msg = error.message.toLowerCase();
-        if (msg.includes("expired") || msg.includes("invalid") || msg.includes("same password")) {
+        // Only treat session-level failures as "expired"; password validation
+        // errors (e.g. same password, too short) show as inline field errors.
+        const isSessionError =
+          msg.includes("expired") ||
+          msg.includes("auth session missing") ||
+          msg.includes("refresh token not found") ||
+          msg.includes("user not found") ||
+          (msg.includes("invalid") && (msg.includes("token") || msg.includes("jwt") || msg.includes("session")));
+        if (isSessionError) {
           setPageState("expired");
         } else {
           setError(error.message);

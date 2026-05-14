@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { supabase, initialAuthType } from "../lib/supabase";
+import { supabase, initialAuthType, initialAccessToken, initialRefreshToken } from "../lib/supabase";
 
 type Status = "loading" | "success" | "error";
 
@@ -40,11 +40,24 @@ export function AuthCallbackPage() {
     }
 
     // ── Hash flow ──────────────────────────────────────────────────────────────
-    // initialAuthType was captured before Supabase cleared the hash from the URL.
-    // This is the only reliable way to detect hash-based recovery tokens.
+    // initialAuthType/Token values were captured before Supabase cleared the hash.
+    // Explicitly call setSession so the recovery session is fully established
+    // before we navigate — relying on Supabase's auto-processing alone can leave
+    // the token in a state where updateUser fails with "invalid/expired".
     if (initialAuthType === "recovery") {
-      // Supabase has already established the recovery session from the hash.
-      goTo("/reset-password");
+      (async () => {
+        if (initialAccessToken && initialRefreshToken) {
+          const { error } = await supabase.auth.setSession({
+            access_token: initialAccessToken,
+            refresh_token: initialRefreshToken,
+          });
+          if (error) {
+            markError("Your reset link has expired or is invalid. Please request a new one.");
+            return;
+          }
+        }
+        goTo("/reset-password");
+      })();
       return;
     }
 

@@ -4,8 +4,10 @@ import { createClient } from "@supabase/supabase-js";
 // Supabase's initialization is async and clears the hash before any React
 // effect fires, so this is the only reliable time to capture it.
 const _raw = typeof window !== "undefined" ? window.location.hash : "";
-export const initialAuthType = new URLSearchParams(_raw.replace(/^#/, "")).get("type");
-// e.g. 'recovery' | 'signup' | 'oauth' | null
+const _hp = new URLSearchParams(_raw.replace(/^#/, ""));
+export const initialAuthType = _hp.get("type");        // 'recovery' | 'signup' | null
+export const initialAccessToken = _hp.get("access_token");
+export const initialRefreshToken = _hp.get("refresh_token");
 
 export const supabase = createClient(
   "https://xpgqpsxttwztdfhuwpmj.supabase.co",
