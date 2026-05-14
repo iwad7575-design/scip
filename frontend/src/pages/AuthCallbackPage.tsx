@@ -10,17 +10,6 @@ export function AuthCallbackPage() {
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
-    console.log("=== AUTH CALLBACK LOADED ===");
-    console.log("Full URL:", window.location.href);
-    console.log("Hash:", window.location.hash || "(empty)");
-    console.log("Search:", window.location.search || "(empty)");
-    console.log("initialAuthType:", initialAuthType);
-    console.log("hasInitialAccessToken:", !!initialAccessToken);
-    console.log("hasInitialRefreshToken:", !!initialRefreshToken);
-    const _dbgSearchParams = new URLSearchParams(window.location.search);
-    console.log("code param:", _dbgSearchParams.get("code") ? `present (len ${_dbgSearchParams.get("code")!.length})` : "absent");
-    console.log("error param:", _dbgSearchParams.get("error") ?? "absent");
-
     let done = false;
 
     function goTo(path: string) {
@@ -56,26 +45,16 @@ export function AuthCallbackPage() {
     // before we navigate — relying on Supabase's auto-processing alone can leave
     // the token in a state where updateUser fails with "invalid/expired".
     if (initialAuthType === "recovery") {
-      console.log("BRANCH: hash-based recovery detected");
       (async () => {
         if (initialAccessToken && initialRefreshToken) {
-          console.log("Calling setSession with hash tokens...");
-          const { data: ssData, error: ssError } = await supabase.auth.setSession({
+          const { error: ssError } = await supabase.auth.setSession({
             access_token: initialAccessToken,
             refresh_token: initialRefreshToken,
-          });
-          console.log("setSession result:", {
-            hasSession: !!ssData?.session,
-            userEmail: ssData?.session?.user?.email,
-            expiresAt: ssData?.session?.expires_at,
-            error: ssError?.message,
           });
           if (ssError) {
             markError("Your reset link has expired or is invalid. Please request a new one.");
             return;
           }
-        } else {
-          console.log("WARN: hash recovery but no tokens captured — relying on Supabase auto-processing");
         }
         goTo("/reset-password");
       })();
@@ -88,33 +67,22 @@ export function AuthCallbackPage() {
     // BEFORE calling exchange so the event is never missed.
     const code = searchParams.get("code");
     if (code) {
-      console.log("BRANCH: PKCE code flow");
       let sub: { unsubscribe(): void } | null = null;
       let timeout: ReturnType<typeof setTimeout> | null = null;
 
-      sub = supabase.auth.onAuthStateChange((event, session) => {
-        console.log("onAuthStateChange event:", event, "| hasSession:", !!session, "| userEmail:", session?.user?.email);
+      sub = supabase.auth.onAuthStateChange((event) => {
         if (event === "PASSWORD_RECOVERY") {
-          console.log("→ PASSWORD_RECOVERY: navigating to /reset-password");
           sub?.unsubscribe();
           if (timeout) clearTimeout(timeout);
           goTo("/reset-password");
         } else if (event === "SIGNED_IN") {
-          console.log("→ SIGNED_IN: navigating to /");
           sub?.unsubscribe();
           if (timeout) clearTimeout(timeout);
           markSuccess();
         }
       }).data.subscription;
 
-      console.log("Calling exchangeCodeForSession...");
-      supabase.auth.exchangeCodeForSession(code).then(({ data: exchData, error }) => {
-        console.log("exchangeCodeForSession result:", {
-          hasSession: !!exchData?.session,
-          userEmail: exchData?.session?.user?.email,
-          expiresAt: exchData?.session?.expires_at,
-          error: error?.message,
-        });
+      supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
         if (error) {
           sub?.unsubscribe();
           if (timeout) clearTimeout(timeout);

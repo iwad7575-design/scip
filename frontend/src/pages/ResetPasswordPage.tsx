@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { ScipLogo } from "../components/ScipLogo";
@@ -8,6 +8,9 @@ type PageState = "loading" | "form" | "expired" | "success";
 export function ResetPasswordPage() {
   const navigate = useNavigate();
   const [pageState, setPageState] = useState<PageState>("loading");
+  // Tracks a completed password update so that any stale SIGNED_OUT / session
+  // change after signOut() can never overwrite the success screen with "expired".
+  const passwordUpdated = useRef(false);
 
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -87,52 +90,14 @@ export function ResetPasswordPage() {
 
     setLoading(true);
     try {
-      console.log("=== UPDATE PASSWORD STARTED ===");
-
-      // Step 1: check current session
-      const { data: { session: s1 }, error: s1err } = await supabase.auth.getSession();
-      console.log("Step 1 - getSession:", {
-        hasSession: !!s1,
-        userEmail: s1?.user?.email,
-        expiresAt: s1?.expires_at,
-        tokenType: s1?.token_type,
-        sessionError: s1err?.message ?? null,
-      });
-      if (!s1) {
-        console.log("FAIL: no session at step 1 → expired");
-        setPageState("expired");
-        return;
-      }
-
-      // Step 2: refresh session
-      console.log("Step 2 - calling refreshSession...");
+      // Refresh the session first — recovery access tokens can be short-lived.
       const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-      console.log("Step 2 - refreshSession result:", {
-        hasSession: !!refreshData?.session,
-        userEmail: refreshData?.session?.user?.email,
-        expiresAt: refreshData?.session?.expires_at,
-        error: refreshError?.message ?? null,
-        errorStatus: (refreshError as { status?: number } | null)?.status ?? null,
-        fullError: refreshError ? JSON.stringify(refreshError) : null,
-      });
       if (refreshError || !refreshData.session) {
-        console.log("FAIL: refreshSession failed → expired");
         setPageState("expired");
         return;
       }
 
-      // Step 3: updateUser
-      console.log("Step 3 - calling updateUser...");
-      const { data: updateData, error: updateError } = await supabase.auth.updateUser({ password: newPassword });
-      console.log("Step 3 - updateUser result:", {
-        success: !updateError,
-        userEmail: updateData?.user?.email,
-        error: updateError?.message ?? null,
-        errorStatus: (updateError as { status?: number } | null)?.status ?? null,
-        errorName: updateError?.name ?? null,
-        fullError: updateError ? JSON.stringify(updateError) : null,
-      });
-
+      const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
       if (updateError) {
         const msg = updateError.message.toLowerCase();
         const isSessionError =
@@ -141,21 +106,27 @@ export function ResetPasswordPage() {
           msg.includes("refresh token not found") ||
           msg.includes("user not found") ||
           (msg.includes("invalid") && (msg.includes("token") || msg.includes("jwt") || msg.includes("session")));
-        console.log("updateError isSessionError:", isSessionError, "| msg:", msg);
         if (isSessionError) {
           setPageState("expired");
         } else {
           setError(updateError.message);
         }
       } else {
-        console.log("SUCCESS: password updated");
+        // Mark success BEFORE any async calls so the ref is set if the
+        // component re-renders due to SIGNED_OUT from the signOut below.
+        passwordUpdated.current = true;
         setPageState("success");
-        await supabase.auth.signOut();
+
+        // Navigate to /login first, THEN sign out.
+        // Calling signOut() before navigate() fires SIGNED_OUT which can
+        // cause the component to re-mount and show "Reset link expired"
+        // before the navigation completes.
         setTimeout(() => {
           navigate("/login", {
             state: { successMessage: "Password updated. Please log in with your new password." },
             replace: true,
           });
+          setTimeout(() => { supabase.auth.signOut(); }, 100);
         }, 2000);
       }
     } finally {
@@ -166,7 +137,7 @@ export function ResetPasswordPage() {
   const meets8 = newPassword.length >= 8;
 
   // ── Loading ────────────────────────────────────────────────────────────────
-  if (pageState === "loading") {
+  if (pageState === "loading" && !passwordUpdated.current) {
     return (
       <div className="min-h-screen bg-slate-100 flex items-center justify-center px-4">
         <div className="text-center">
@@ -178,7 +149,9 @@ export function ResetPasswordPage() {
   }
 
   // ── Expired / invalid link ─────────────────────────────────────────────────
-  if (pageState === "expired") {
+  // Never show "expired" if the password was already updated successfully —
+  // a stale SIGNED_OUT event can trigger this after signOut() is called.
+  if (pageState === "expired" && !passwordUpdated.current) {
     return (
       <div className="min-h-screen bg-slate-100 flex items-center justify-center px-4 py-10">
         <div className="w-full max-w-md">
@@ -212,7 +185,7 @@ export function ResetPasswordPage() {
   }
 
   // ── Success ────────────────────────────────────────────────────────────────
-  if (pageState === "success") {
+  if (pageState === "success" || passwordUpdated.current) {
     return (
       <div className="min-h-screen bg-slate-100 flex items-center justify-center px-4">
         <div className="text-center">

@@ -9,14 +9,6 @@ export const initialAuthType = _hp.get("type");
 export const initialAccessToken = _hp.get("access_token");
 export const initialRefreshToken = _hp.get("refresh_token");
 
-console.log("=== SUPABASE CLIENT INIT ===");
-console.log("Full URL:", typeof window !== "undefined" ? window.location.href : "SSR");
-console.log("Hash:", _raw || "(empty)");
-console.log("Search:", typeof window !== "undefined" ? window.location.search : "(none)");
-console.log("initialAuthType:", initialAuthType);
-console.log("hasInitialAccessToken:", !!initialAccessToken, "| length:", initialAccessToken?.length ?? 0);
-console.log("hasInitialRefreshToken:", !!initialRefreshToken);
-
 export const supabase = createClient(
   "https://xpgqpsxttwztdfhuwpmj.supabase.co",
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhwZ3Fwc3h0dHd6dGRmaHV3cG1qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4MTUxMzQsImV4cCI6MjA5MzM5MTEzNH0.zmcR106YyQMaDEiUxmWZZCzb4A94ahwNGzwMr9maLCU"
