@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
+import { Sidebar } from "../components/Sidebar";
 import { ASK_API_URL, BACKEND_HEALTH_URL, BACKEND_PING_URL } from "../lib/config";
 
 const EXAMPLE_QUESTIONS = [
@@ -24,28 +25,30 @@ function loadingPhaseMessage(elapsed: number): string {
 }
 
 export function HomePage() {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [elapsed, setElapsed] = useState(0);
-  const [user, setUser] = useState<User | null | undefined>(undefined);
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [inputFocused, setInputFocused] = useState(false);
+  const [messages, setMessages]               = useState<Message[]>([]);
+  const [input, setInput]                     = useState("");
+  const [loading, setLoading]                 = useState(false);
+  const [elapsed, setElapsed]                 = useState(0);
+  const [user, setUser]                       = useState<User | null | undefined>(undefined);
+  const [inputFocused, setInputFocused]       = useState(false);
   const [showBounceArrow, setShowBounceArrow] = useState(true);
-  const [mounted, setMounted] = useState(false);
+  const [mounted, setMounted]                 = useState(false);
   const [hoveredQuestion, setHoveredQuestion] = useState<string | null>(null);
-  const [sendHovered, setSendHovered] = useState(false);
+  const [sendHovered, setSendHovered]         = useState(false);
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  // Sidebar / session state
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [sidebarRefreshKey, setSidebarRefreshKey] = useState(0);
+  const [isSidebarOpen, setIsSidebarOpen]       = useState(false);
+
+  const messagesEndRef    = useRef<HTMLDivElement>(null);
+  const textareaRef       = useRef<HTMLTextAreaElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
-  const navigate = useNavigate();
 
   // Wake Render on page load
   useEffect(() => { fetch(BACKEND_HEALTH_URL).catch(() => {}); }, []);
 
-  // Keep Render warm — ping every 10 minutes silently
+  // Keep Render warm — ping every 10 minutes
   useEffect(() => {
     const id = setInterval(() => fetch(BACKEND_PING_URL).catch(() => {}), 10 * 60 * 1000);
     return () => clearInterval(id);
@@ -75,24 +78,11 @@ export function HomePage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setShowDropdown(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const isGuest = user === null;
-
   function handleStop() {
     abortControllerRef.current?.abort();
-    setLoading(false); // immediate button swap; finally block will also call this (harmless)
+    setLoading(false);
   }
 
-  // Escape key cancels generation (desktop only — no-op on mobile)
   useEffect(() => {
     if (!loading) return;
     function onKey(e: KeyboardEvent) {
@@ -102,10 +92,36 @@ export function HomePage() {
     return () => document.removeEventListener("keydown", onKey);
   }, [loading]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── Session helpers ────────────────────────────────────────────────────────
+
+  function handleNewChat() {
+    setMessages([]);
+    setCurrentSessionId(null);
+  }
+
+  async function handleSelectSession(sessionId: string) {
+    const { data } = await supabase
+      .from("chat_sessions")
+      .select("messages")
+      .eq("id", sessionId)
+      .single();
+    if (data) {
+      setMessages((data.messages as Message[]) ?? []);
+      setCurrentSessionId(sessionId);
+    }
+  }
+
+  async function handleDeleteSession(sessionId: string) {
+    await supabase.from("chat_sessions").delete().eq("id", sessionId);
+    if (currentSessionId === sessionId) handleNewChat();
+    setSidebarRefreshKey(k => k + 1);
+  }
+
+  // ── Send message ───────────────────────────────────────────────────────────
+
   const sendMessage = useCallback(async (text: string) => {
     if (!text.trim() || loading) return;
 
-    // Abort any in-flight request before starting a new one
     abortControllerRef.current?.abort();
     const controller = new AbortController();
     abortControllerRef.current = controller;
@@ -116,6 +132,24 @@ export function HomePage() {
     setInput("");
     if (textareaRef.current) textareaRef.current.style.height = "auto";
     setLoading(true);
+
+    // Create a new session on the first message for logged-in users
+    let sessionId = currentSessionId;
+    if (user && !sessionId) {
+      const { data } = await supabase
+        .from("chat_sessions")
+        .insert({ user_id: user.id, title: text.trim().slice(0, 60), messages: [] })
+        .select("id")
+        .single();
+      if (data?.id) {
+        sessionId = data.id;
+        setCurrentSessionId(data.id);
+        setSidebarRefreshKey(k => k + 1);
+      }
+    }
+
+    let assistantContent = "";
+    let aborted = false;
 
     try {
       const { data } = await supabase.auth.getSession();
@@ -154,6 +188,8 @@ export function HomePage() {
             const evt = JSON.parse(raw);
 
             if (evt.delta) {
+              const cleaned = cleanCitations(evt.delta);
+              assistantContent += cleaned;
               if (!started) {
                 started = true;
                 setLoading(false);
@@ -163,7 +199,7 @@ export function HomePage() {
                 const updated = [...prev];
                 const last = updated[updated.length - 1];
                 if (last?.role === "assistant") {
-                  updated[updated.length - 1] = { ...last, content: last.content + cleanCitations(evt.delta) };
+                  updated[updated.length - 1] = { ...last, content: last.content + cleaned };
                 }
                 return updated;
               });
@@ -176,11 +212,10 @@ export function HomePage() {
                 content: "I'm sorry, something went wrong. Please try again.",
               }]);
             }
-          } catch { /* malformed SSE line — ignore */ }
+          } catch { /* malformed SSE line */ }
         }
       }
 
-      // Only show fallback if no tokens AND no error message was already shown
       if (!started && !errorOccurred) {
         setMessages(prev => [...prev, {
           role: "assistant",
@@ -189,7 +224,7 @@ export function HomePage() {
       }
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") {
-        // Keep whatever was streamed; mark it as stopped if there's content
+        aborted = true;
         setMessages(prev => {
           if (!prev.length) return prev;
           const last = prev[prev.length - 1];
@@ -206,8 +241,21 @@ export function HomePage() {
       }]);
     } finally {
       setLoading(false);
+
+      // Persist the conversation to the session
+      if (user && sessionId && assistantContent) {
+        const finalMessages: Message[] = [
+          ...newMessages,
+          { role: "assistant", content: assistantContent, ...(aborted ? { stopped: true } : {}) },
+        ];
+        await supabase
+          .from("chat_sessions")
+          .update({ messages: finalMessages, updated_at: new Date().toISOString() })
+          .eq("id", sessionId);
+        setSidebarRefreshKey(k => k + 1);
+      }
     }
-  }, [messages, loading]);
+  }, [messages, loading, user, currentSessionId]);
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -224,17 +272,10 @@ export function HomePage() {
 
   const hasMessages = messages.length > 0;
   const heroMode = !hasMessages;
-  const meta = (user?.user_metadata ?? {}) as Record<string, string>;
-  const fullName = meta.full_name || user?.email?.split("@")[0] || "";
-  const initials = fullName
-    .replace(/^Dr\.?\s*/i, "")
-    .split(" ")
-    .map((w: string) => w[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase() || "?";
+  const loggedIn = !!user; // undefined treated as falsy (session still loading)
 
-  // ── Shared pinned input ──────────────────────────────────────────────────
+  // ── Input box (shared) ─────────────────────────────────────────────────────
+
   const inputBox = (
     <div
       className="flex-shrink-0"
@@ -294,7 +335,6 @@ export function HomePage() {
               }}
             />
 
-            {/* Stop button while loading, Send button otherwise */}
             {loading ? (
               <button
                 onClick={handleStop}
@@ -309,7 +349,6 @@ export function HomePage() {
                 }}
                 title="Stop generating (Esc)"
               >
-                {/* Filled square stop icon */}
                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                   <rect x="4" y="4" width="16" height="16" rx="2.5" />
                 </svg>
@@ -344,6 +383,177 @@ export function HomePage() {
       </div>
     </div>
   );
+
+  // ── Hero content ───────────────────────────────────────────────────────────
+
+  const heroContent = (
+    <div className="flex-1 overflow-y-auto hero-dot-grid scip-scrollbar" style={{ minHeight: 0 }}>
+      <div className="flex flex-col items-center px-4 py-8" style={{ minHeight: "100%" }}>
+
+        <div className={`flex flex-col items-center text-center ${mounted ? "anim-fade-in" : "opacity-0"}`}>
+          <img src="/logo.png" alt="SCIP" className="w-16 h-16 object-contain mb-5" />
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white mb-3 leading-tight max-w-2xl">
+            Ethiopia's First AI-Powered
+            <br className="hidden sm:block" />
+            <span style={{ color: "#2ECC71" }}> Clinical Decision Support</span>
+          </h1>
+          <p className="text-xs sm:text-sm font-semibold tracking-widest uppercase mb-2" style={{ color: "rgba(255,255,255,0.55)" }}>
+            Built by Ethiopian Health Professionals, for Ethiopian Frontline Care
+          </p>
+          <p className="text-xs sm:text-sm" style={{ color: "rgba(255,255,255,0.38)" }}>
+            Serving frontline doctors, nurses, and health officers across Ethiopia and the Horn of Africa
+          </p>
+        </div>
+
+        <p className={`mt-6 text-sm sm:text-base leading-relaxed text-center max-w-xl ${mounted ? "anim-fade-in-d1" : "opacity-0"}`}
+          style={{ color: "rgba(255,255,255,0.65)" }}>
+          SCIP draws on a library of{" "}
+          <span className="font-semibold text-white">106 validated national guidelines</span>,
+          clinical manuals, and medical protocols. Every answer comes from{" "}
+          <span className="font-semibold text-white">Ethiopian Ministry of Health and WHO-validated sources</span>
+          {" "}— not from the internet.
+        </p>
+
+        <div className={`mt-7 flex flex-wrap justify-center gap-3 ${mounted ? "anim-fade-in-d2" : "opacity-0"}`}>
+          {[
+            { icon: "📚", label: "106 Guidelines",          sub: "MoH & WHO validated"     },
+            { icon: "🌍", label: "15+ Specialties",          sub: "Full clinical breadth"   },
+            { icon: "⚕️",  label: "Ethiopian Frontline Care", sub: "Designed for the field" },
+          ].map(stat => (
+            <div
+              key={stat.label}
+              className="flex items-center gap-3 px-4 py-2.5 rounded-xl"
+              style={{
+                background: "rgba(255,255,255,0.08)",
+                border: "1px solid rgba(255,255,255,0.14)",
+              }}
+            >
+              <span className="text-xl">{stat.icon}</span>
+              <div>
+                <div className="text-white text-xs font-bold leading-tight">{stat.label}</div>
+                <div className="text-xs leading-tight" style={{ color: "rgba(255,255,255,0.45)" }}>{stat.sub}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className={`mt-4 flex flex-wrap justify-center gap-2 ${mounted ? "anim-fade-in-d3" : "opacity-0"}`}>
+          {["🇪🇹 Ethiopian MoH", "🌐 WHO", "🔒 Secure", "📱 Mobile Optimized"].map(badge => (
+            <span
+              key={badge}
+              className="px-3 py-1 rounded-full text-xs font-medium"
+              style={{
+                color: "rgba(255,255,255,0.65)",
+                background: "rgba(255,255,255,0.06)",
+                border: "1px solid rgba(255,255,255,0.11)",
+              }}
+            >
+              {badge}
+            </span>
+          ))}
+        </div>
+
+        <div className={`mt-8 flex flex-col gap-2.5 w-full max-w-xl ${mounted ? "anim-fade-in-d4" : "opacity-0"}`}>
+          {EXAMPLE_QUESTIONS.map(q => (
+            <button
+              key={q}
+              onClick={() => sendMessage(q)}
+              onMouseEnter={() => setHoveredQuestion(q)}
+              onMouseLeave={() => setHoveredQuestion(null)}
+              className="text-left px-4 py-3 rounded-xl text-sm text-white flex items-center justify-between gap-3 transition-all"
+              style={{
+                background: hoveredQuestion === q ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.07)",
+                border: hoveredQuestion === q ? "1px solid #2ECC71" : "1px solid rgba(255,255,255,0.14)",
+                borderLeft: hoveredQuestion === q ? "3px solid #2ECC71" : undefined,
+              }}
+            >
+              <span className="leading-snug">{q}</span>
+              <span className="flex-shrink-0 font-bold" style={{ color: "#2ECC71" }}>→</span>
+            </button>
+          ))}
+        </div>
+
+        {showBounceArrow && (
+          <div className={`bounce-arrow mt-6 text-2xl ${mounted ? "anim-fade-in-d5" : "opacity-0"}`} style={{ color: "#2ECC71" }}>
+            ↓
+          </div>
+        )}
+
+        <p
+          className={`mt-8 pb-1 text-xs text-center max-w-xl ${mounted ? "anim-fade-in-d5" : "opacity-0"}`}
+          style={{ color: "rgba(255,255,255,0.28)" }}
+        >
+          ⚕️ SCIP supports clinical decisions — it does not replace clinical judgment or specialist consultation.{" "}
+          Developed by SHIFA | scip-et.com
+        </p>
+        <p className={`pb-4 text-xs text-center ${mounted ? "anim-fade-in-d5" : "opacity-0"}`}>
+          <Link
+            to="/install"
+            style={{ color: "rgba(255,255,255,0.4)", textDecoration: "none" }}
+          >
+            📱 Install the App
+          </Link>
+        </p>
+      </div>
+    </div>
+  );
+
+  // ── Chat messages ──────────────────────────────────────────────────────────
+
+  const chatContent = (
+    <div className="flex-1 overflow-y-auto px-4 py-6 bg-white" style={{ minHeight: 0 }}>
+      <div className="max-w-2xl mx-auto flex flex-col gap-6">
+        {messages.map((msg, i) => (
+          <div key={i} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+            {msg.role === "assistant" && (
+              <img src="/logo.png" alt="SCIP" className="w-7 h-7 object-contain rounded-full flex-shrink-0 mt-1" />
+            )}
+            <div className="flex flex-col gap-1 max-w-[85%]">
+              <div
+                className={`px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
+                  msg.role === "user"
+                    ? "text-white rounded-br-sm"
+                    : "bg-slate-100 text-slate-800 rounded-bl-sm"
+                }`}
+                style={msg.role === "user" ? { backgroundColor: "#1B3A6B" } : {}}
+              >
+                {msg.content}
+              </div>
+              {msg.stopped && (
+                <p className="text-xs text-slate-400 italic px-1">
+                  Response stopped by user
+                </p>
+              )}
+            </div>
+          </div>
+        ))}
+
+        {loading && (
+          <div className="flex gap-3 justify-start">
+            <img src="/logo.png" alt="SCIP" className="w-7 h-7 object-contain rounded-full flex-shrink-0 mt-1" />
+            <div className="bg-slate-100 px-4 py-3 rounded-2xl rounded-bl-sm">
+              <div className="flex gap-1 items-center">
+                {[0, 150, 300].map(delay => (
+                  <span
+                    key={delay}
+                    className="w-2 h-2 rounded-full bg-slate-400 animate-bounce"
+                    style={{ animationDelay: `${delay}ms` }}
+                  />
+                ))}
+              </div>
+              <p className="text-xs text-slate-400 mt-1.5">
+                {loadingPhaseMessage(elapsed)}
+              </p>
+            </div>
+          </div>
+        )}
+
+        <div ref={messagesEndRef} />
+      </div>
+    </div>
+  );
+
+  // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
     <>
@@ -382,274 +592,128 @@ export function HomePage() {
         .stop-pulse { animation: stopPulse 1.4s ease-in-out infinite; }
       `}</style>
 
-      <div
-        className="flex flex-col overflow-hidden"
-        style={{
-          height: "100dvh",
-          background: heroMode
-            ? "linear-gradient(135deg, #0B2545 0%, #1B3A6B 100%)"
-            : "#ffffff",
-        }}
-      >
+      <div style={{ display: "flex", height: "100dvh" }}>
 
-        {/* ── Header ── flex-shrink-0 ───────────────────────────────────── */}
-        <header
-          className="flex-shrink-0 px-4 sm:px-6 py-3 flex items-center justify-between z-20"
-          style={{
-            background: heroMode ? "transparent" : "#ffffff",
-            borderBottom: heroMode ? "none" : "1px solid #e2e8f0",
-          }}
-        >
-          <div className="flex items-center gap-2">
-            <img src="/logo.png" alt="SCIP" className="h-8 w-8 object-contain" />
-            <span className="font-bold text-base" style={{ color: heroMode ? "#ffffff" : "#0f172a" }}>
-              SCIP
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            {user === undefined ? null : user ? (
-              <div className="relative" ref={dropdownRef}>
-                <button
-                  onClick={() => setShowDropdown(d => !d)}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors"
-                  style={{ color: heroMode ? "#ffffff" : "#334155" }}
-                >
-                  <div
-                    className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-                    style={{ backgroundColor: heroMode ? "rgba(255,255,255,0.2)" : "#1B3A6B" }}
-                  >
-                    {initials}
-                  </div>
-                  <span className="text-sm font-medium hidden sm:inline max-w-[140px] truncate">
-                    {fullName || user.email}
-                  </span>
-                  <svg className="w-3.5 h-3.5 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-
-                {showDropdown && (
-                  <div className="absolute right-0 top-full mt-1.5 w-48 bg-white rounded-xl shadow-lg border border-slate-200 py-1 z-50">
-                    <button
-                      onClick={() => { setShowDropdown(false); navigate("/dashboard"); }}
-                      className="w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
-                    >
-                      <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-                      </svg>
-                      Dashboard
-                    </button>
-                    <div className="border-t border-slate-100 my-1" />
-                    <button
-                      onClick={() => supabase.auth.signOut()}
-                      className="w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
-                    >
-                      <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                      </svg>
-                      Sign out
-                    </button>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <>
-                <Link
-                  to="/login"
-                  className="px-4 py-1.5 text-sm font-medium rounded-lg border transition-all"
-                  style={heroMode ? {
-                    color: "#ffffff",
-                    borderColor: "rgba(255,255,255,0.45)",
-                    background: "transparent",
-                  } : {
-                    color: "#334155",
-                    borderColor: "#e2e8f0",
-                    background: "transparent",
-                  }}
-                >
-                  Login
-                </Link>
-                <Link
-                  to="/signup"
-                  className="px-4 py-1.5 text-sm font-semibold text-white rounded-lg transition-all hover:opacity-90"
-                  style={{ backgroundColor: "#2ECC71" }}
-                >
-                  Sign Up
-                </Link>
-              </>
+        {/* ── Sidebar (logged-in only) ───────────────────────────────────── */}
+        {loggedIn && user && (
+          <>
+            {/* Mobile overlay backdrop */}
+            {isSidebarOpen && (
+              <div
+                className="lg:hidden"
+                onClick={() => setIsSidebarOpen(false)}
+                style={{
+                  position: "fixed",
+                  inset: 0,
+                  background: "rgba(0,0,0,0.5)",
+                  zIndex: 40,
+                }}
+              />
             )}
-          </div>
-        </header>
-
-        {/* ── Scrollable content ── flex-1, overflow-y-auto ──────────────── */}
-        {heroMode ? (
-          <div className="flex-1 overflow-y-auto hero-dot-grid scip-scrollbar" style={{ minHeight: 0 }}>
-            <div className="flex flex-col items-center px-4 py-8" style={{ minHeight: "100%" }}>
-
-              <div className={`flex flex-col items-center text-center ${mounted ? "anim-fade-in" : "opacity-0"}`}>
-                <img src="/logo.png" alt="SCIP" className="w-16 h-16 object-contain mb-5" />
-                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white mb-3 leading-tight max-w-2xl">
-                  Ethiopia's First AI-Powered
-                  <br className="hidden sm:block" />
-                  <span style={{ color: "#2ECC71" }}> Clinical Decision Support</span>
-                </h1>
-                <p className="text-xs sm:text-sm font-semibold tracking-widest uppercase mb-2" style={{ color: "rgba(255,255,255,0.55)" }}>
-                  Built by Ethiopian Health Professionals, for Ethiopian Frontline Care
-                </p>
-                <p className="text-xs sm:text-sm" style={{ color: "rgba(255,255,255,0.38)" }}>
-                  Serving frontline doctors, nurses, and health officers across Ethiopia and the Horn of Africa
-                </p>
-              </div>
-
-              <p className={`mt-6 text-sm sm:text-base leading-relaxed text-center max-w-xl ${mounted ? "anim-fade-in-d1" : "opacity-0"}`}
-                style={{ color: "rgba(255,255,255,0.65)" }}>
-                SCIP draws on a library of{" "}
-                <span className="font-semibold text-white">106 validated national guidelines</span>,
-                clinical manuals, and medical protocols. Every answer comes from{" "}
-                <span className="font-semibold text-white">Ethiopian Ministry of Health and WHO-validated sources</span>
-                {" "}— not from the internet.
-              </p>
-
-              <div className={`mt-7 flex flex-wrap justify-center gap-3 ${mounted ? "anim-fade-in-d2" : "opacity-0"}`}>
-                {[
-                  { icon: "📚", label: "106 Guidelines",          sub: "MoH & WHO validated"     },
-                  { icon: "🌍", label: "15+ Specialties",          sub: "Full clinical breadth"   },
-                  { icon: "⚕️",  label: "Ethiopian Frontline Care", sub: "Designed for the field" },
-                ].map(stat => (
-                  <div
-                    key={stat.label}
-                    className="flex items-center gap-3 px-4 py-2.5 rounded-xl"
-                    style={{
-                      background: "rgba(255,255,255,0.08)",
-                      border: "1px solid rgba(255,255,255,0.14)",
-                    }}
-                  >
-                    <span className="text-xl">{stat.icon}</span>
-                    <div>
-                      <div className="text-white text-xs font-bold leading-tight">{stat.label}</div>
-                      <div className="text-xs leading-tight" style={{ color: "rgba(255,255,255,0.45)" }}>{stat.sub}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className={`mt-4 flex flex-wrap justify-center gap-2 ${mounted ? "anim-fade-in-d3" : "opacity-0"}`}>
-                {["🇪🇹 Ethiopian MoH", "🌐 WHO", "🔒 Secure", "📱 Mobile Optimized"].map(badge => (
-                  <span
-                    key={badge}
-                    className="px-3 py-1 rounded-full text-xs font-medium"
-                    style={{
-                      color: "rgba(255,255,255,0.65)",
-                      background: "rgba(255,255,255,0.06)",
-                      border: "1px solid rgba(255,255,255,0.11)",
-                    }}
-                  >
-                    {badge}
-                  </span>
-                ))}
-              </div>
-
-              <div className={`mt-8 flex flex-col gap-2.5 w-full max-w-xl ${mounted ? "anim-fade-in-d4" : "opacity-0"}`}>
-                {EXAMPLE_QUESTIONS.map(q => (
-                  <button
-                    key={q}
-                    onClick={() => sendMessage(q)}
-                    onMouseEnter={() => setHoveredQuestion(q)}
-                    onMouseLeave={() => setHoveredQuestion(null)}
-                    className="text-left px-4 py-3 rounded-xl text-sm text-white flex items-center justify-between gap-3 transition-all"
-                    style={{
-                      background: hoveredQuestion === q ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.07)",
-                      border: hoveredQuestion === q ? "1px solid #2ECC71" : "1px solid rgba(255,255,255,0.14)",
-                      borderLeft: hoveredQuestion === q ? "3px solid #2ECC71" : undefined,
-                    }}
-                  >
-                    <span className="leading-snug">{q}</span>
-                    <span className="flex-shrink-0 font-bold" style={{ color: "#2ECC71" }}>→</span>
-                  </button>
-                ))}
-              </div>
-
-              {showBounceArrow && (
-                <div className={`bounce-arrow mt-6 text-2xl ${mounted ? "anim-fade-in-d5" : "opacity-0"}`} style={{ color: "#2ECC71" }}>
-                  ↓
-                </div>
-              )}
-
-              <p
-                className={`mt-8 pb-1 text-xs text-center max-w-xl ${mounted ? "anim-fade-in-d5" : "opacity-0"}`}
-                style={{ color: "rgba(255,255,255,0.28)" }}
-              >
-                ⚕️ SCIP supports clinical decisions — it does not replace clinical judgment or specialist consultation.{" "}
-                Developed by SHIFA | scip-et.com
-              </p>
-              <p className={`pb-4 text-xs text-center ${mounted ? "anim-fade-in-d5" : "opacity-0"}`}>
-                <Link
-                  to="/install"
-                  style={{ color: "rgba(255,255,255,0.4)", textDecoration: "none" }}
-                >
-                  📱 Install the App
-                </Link>
-              </p>
-            </div>
-          </div>
-        ) : (
-          /* Chat messages */
-          <div className="flex-1 overflow-y-auto px-4 py-6 bg-white" style={{ minHeight: 0 }}>
-            <div className="max-w-2xl mx-auto flex flex-col gap-6">
-              {messages.map((msg, i) => (
-                <div key={i} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                  {msg.role === "assistant" && (
-                    <img src="/logo.png" alt="SCIP" className="w-7 h-7 object-contain rounded-full flex-shrink-0 mt-1" />
-                  )}
-                  <div className="flex flex-col gap-1 max-w-[85%]">
-                    <div
-                      className={`px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
-                        msg.role === "user"
-                          ? "text-white rounded-br-sm"
-                          : "bg-slate-100 text-slate-800 rounded-bl-sm"
-                      }`}
-                      style={msg.role === "user" ? { backgroundColor: "#1B3A6B" } : {}}
-                    >
-                      {msg.content}
-                    </div>
-                    {msg.stopped && (
-                      <p className="text-xs text-slate-400 italic px-1">
-                        Response stopped by user
-                      </p>
-                    )}
-                  </div>
-                </div>
-              ))}
-
-              {loading && (
-                <div className="flex gap-3 justify-start">
-                  <img src="/logo.png" alt="SCIP" className="w-7 h-7 object-contain rounded-full flex-shrink-0 mt-1" />
-                  <div className="bg-slate-100 px-4 py-3 rounded-2xl rounded-bl-sm">
-                    <div className="flex gap-1 items-center">
-                      {[0, 150, 300].map(delay => (
-                        <span
-                          key={delay}
-                          className="w-2 h-2 rounded-full bg-slate-400 animate-bounce"
-                          style={{ animationDelay: `${delay}ms` }}
-                        />
-                      ))}
-                    </div>
-                    <p className="text-xs text-slate-400 mt-1.5">
-                      {loadingPhaseMessage(elapsed)}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              <div ref={messagesEndRef} />
-            </div>
-          </div>
+            <Sidebar
+              user={user}
+              currentSessionId={currentSessionId}
+              onNewChat={handleNewChat}
+              onSelectSession={handleSelectSession}
+              onDeleteSession={handleDeleteSession}
+              refreshKey={sidebarRefreshKey}
+              isMobileOpen={isSidebarOpen}
+              onMobileClose={() => setIsSidebarOpen(false)}
+            />
+          </>
         )}
 
-        {/* ── Pinned input ── flex-shrink-0, always at bottom ────────────── */}
-        {inputBox}
+        {/* ── Main area ─────────────────────────────────────────────────── */}
+        <div
+          className="flex flex-col overflow-hidden"
+          style={{
+            flex: 1,
+            background: heroMode
+              ? "linear-gradient(135deg, #0B2545 0%, #1B3A6B 100%)"
+              : "#ffffff",
+          }}
+        >
+          {/* Header — guest: full header with Login/Signup; logged-in: mobile-only hamburger */}
+          {!loggedIn ? (
+            <header
+              className="flex-shrink-0 px-4 sm:px-6 py-3 flex items-center justify-between z-20"
+              style={{
+                background: heroMode ? "transparent" : "#ffffff",
+                borderBottom: heroMode ? "none" : "1px solid #e2e8f0",
+              }}
+            >
+              <div className="flex items-center gap-2">
+                <img src="/logo.png" alt="SCIP" className="h-8 w-8 object-contain" />
+                <span className="font-bold text-base" style={{ color: heroMode ? "#ffffff" : "#0f172a" }}>
+                  SCIP
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                {user === undefined ? null : (
+                  <>
+                    <Link
+                      to="/login"
+                      className="px-4 py-1.5 text-sm font-medium rounded-lg border transition-all"
+                      style={heroMode ? {
+                        color: "#ffffff",
+                        borderColor: "rgba(255,255,255,0.45)",
+                        background: "transparent",
+                      } : {
+                        color: "#334155",
+                        borderColor: "#e2e8f0",
+                        background: "transparent",
+                      }}
+                    >
+                      Login
+                    </Link>
+                    <Link
+                      to="/signup"
+                      className="px-4 py-1.5 text-sm font-semibold text-white rounded-lg transition-all hover:opacity-90"
+                      style={{ backgroundColor: "#2ECC71" }}
+                    >
+                      Sign Up
+                    </Link>
+                  </>
+                )}
+              </div>
+            </header>
+          ) : (
+            /* Mobile hamburger header — hidden on lg+ (sidebar is the nav) */
+            <header
+              className="lg:hidden flex-shrink-0 px-4 py-3 flex items-center gap-3 z-20"
+              style={{
+                background: heroMode ? "rgba(0,0,0,0.1)" : "#ffffff",
+                borderBottom: heroMode ? "1px solid rgba(255,255,255,0.08)" : "1px solid #e2e8f0",
+              }}
+            >
+              <button
+                onClick={() => setIsSidebarOpen(true)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: 4,
+                  color: heroMode ? "#ffffff" : "#334155",
+                  display: "flex",
+                  alignItems: "center",
+                }}
+                aria-label="Open menu"
+              >
+                <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+              <img src="/logo.png" alt="SCIP" style={{ height: 24, width: 24, objectFit: "contain" }} />
+              <span style={{ fontWeight: 700, fontSize: 15, color: heroMode ? "#ffffff" : "#0f172a" }}>SCIP</span>
+            </header>
+          )}
 
+          {/* Scrollable content */}
+          {heroMode ? heroContent : chatContent}
+
+          {/* Pinned input */}
+          {inputBox}
+        </div>
       </div>
     </>
   );
