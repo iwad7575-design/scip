@@ -87,34 +87,69 @@ export function ResetPasswordPage() {
 
     setLoading(true);
     try {
-      // Refresh the session before updating — the recovery access_token can be
-      // short-lived; refreshSession exchanges it for a full, valid token so
-      // updateUser doesn't fail with "Token has expired or is invalid".
-      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-      if (refreshError || !refreshData.session) {
+      console.log("=== UPDATE PASSWORD STARTED ===");
+
+      // Step 1: check current session
+      const { data: { session: s1 }, error: s1err } = await supabase.auth.getSession();
+      console.log("Step 1 - getSession:", {
+        hasSession: !!s1,
+        userEmail: s1?.user?.email,
+        expiresAt: s1?.expires_at,
+        tokenType: s1?.token_type,
+        sessionError: s1err?.message ?? null,
+      });
+      if (!s1) {
+        console.log("FAIL: no session at step 1 → expired");
         setPageState("expired");
         return;
       }
 
-      const { error } = await supabase.auth.updateUser({ password: newPassword });
-      if (error) {
-        const msg = error.message.toLowerCase();
-        // Only treat session-level failures as "expired"; password validation
-        // errors (e.g. same password, too short) show as inline field errors.
+      // Step 2: refresh session
+      console.log("Step 2 - calling refreshSession...");
+      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+      console.log("Step 2 - refreshSession result:", {
+        hasSession: !!refreshData?.session,
+        userEmail: refreshData?.session?.user?.email,
+        expiresAt: refreshData?.session?.expires_at,
+        error: refreshError?.message ?? null,
+        errorStatus: (refreshError as { status?: number } | null)?.status ?? null,
+        fullError: refreshError ? JSON.stringify(refreshError) : null,
+      });
+      if (refreshError || !refreshData.session) {
+        console.log("FAIL: refreshSession failed → expired");
+        setPageState("expired");
+        return;
+      }
+
+      // Step 3: updateUser
+      console.log("Step 3 - calling updateUser...");
+      const { data: updateData, error: updateError } = await supabase.auth.updateUser({ password: newPassword });
+      console.log("Step 3 - updateUser result:", {
+        success: !updateError,
+        userEmail: updateData?.user?.email,
+        error: updateError?.message ?? null,
+        errorStatus: (updateError as { status?: number } | null)?.status ?? null,
+        errorName: updateError?.name ?? null,
+        fullError: updateError ? JSON.stringify(updateError) : null,
+      });
+
+      if (updateError) {
+        const msg = updateError.message.toLowerCase();
         const isSessionError =
           msg.includes("expired") ||
           msg.includes("auth session missing") ||
           msg.includes("refresh token not found") ||
           msg.includes("user not found") ||
           (msg.includes("invalid") && (msg.includes("token") || msg.includes("jwt") || msg.includes("session")));
+        console.log("updateError isSessionError:", isSessionError, "| msg:", msg);
         if (isSessionError) {
           setPageState("expired");
         } else {
-          setError(error.message);
+          setError(updateError.message);
         }
       } else {
+        console.log("SUCCESS: password updated");
         setPageState("success");
-        // Sign out the recovery session so /login doesn't redirect back to /.
         await supabase.auth.signOut();
         setTimeout(() => {
           navigate("/login", {

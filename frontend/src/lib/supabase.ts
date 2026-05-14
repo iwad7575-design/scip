@@ -5,9 +5,17 @@ import { createClient } from "@supabase/supabase-js";
 // effect fires, so this is the only reliable time to capture it.
 const _raw = typeof window !== "undefined" ? window.location.hash : "";
 const _hp = new URLSearchParams(_raw.replace(/^#/, ""));
-export const initialAuthType = _hp.get("type");        // 'recovery' | 'signup' | null
+export const initialAuthType = _hp.get("type");
 export const initialAccessToken = _hp.get("access_token");
 export const initialRefreshToken = _hp.get("refresh_token");
+
+console.log("=== SUPABASE CLIENT INIT ===");
+console.log("Full URL:", typeof window !== "undefined" ? window.location.href : "SSR");
+console.log("Hash:", _raw || "(empty)");
+console.log("Search:", typeof window !== "undefined" ? window.location.search : "(none)");
+console.log("initialAuthType:", initialAuthType);
+console.log("hasInitialAccessToken:", !!initialAccessToken, "| length:", initialAccessToken?.length ?? 0);
+console.log("hasInitialRefreshToken:", !!initialRefreshToken);
 
 export const supabase = createClient(
   "https://xpgqpsxttwztdfhuwpmj.supabase.co",
