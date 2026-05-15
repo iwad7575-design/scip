@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
 import { Sidebar } from "../components/Sidebar";
@@ -29,6 +29,8 @@ function loadingPhaseMessage(elapsed: number): string {
 }
 
 export function ChatPage() {
+  const navigate = useNavigate();
+
   const [messages, setMessages]               = useState<Message[]>([]);
   const [input, setInput]                     = useState("");
   const [loading, setLoading]                 = useState(false);
@@ -70,11 +72,16 @@ export function ChatPage() {
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data.user));
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
+      if (event === "SIGNED_OUT") {
+        setMessages([]);
+        setCurrentSessionId(null);
+        navigate("/");
+      }
     });
     return () => subscription.unsubscribe();
-  }, []);
+  }, [navigate]);
 
   useEffect(() => {
     if (!loading) { setElapsed(0); return; }
