@@ -323,10 +323,8 @@ async def ask_endpoint(request: Request, _user=Depends(get_optional_user)):
             _cache.set(user_question, full_text)
             print(f"[CACHE] stored | chars={len(full_text)} | question={user_question[:60]}", flush=True)
 
-        if _user and access_token and full_text:
-            if user_question:
-                loop = asyncio.get_event_loop()
-                loop.run_in_executor(None, _save_history, access_token, str(_user.id), user_question, full_text)
+        # chat_history is now saved by the frontend (with session_id linkage).
+        # The backend no longer writes here to avoid duplicate rows.
 
         yield f"data: {json.dumps({'done': True})}\n\n"
 
