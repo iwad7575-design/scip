@@ -16,6 +16,10 @@ export const BACKEND_PING_URL = import.meta.env.DEV
   ? "/ping"
   : "https://scip-noyz.onrender.com/ping";
 
+export const SHARE_API_URL = import.meta.env.DEV
+  ? "/share"
+  : "https://scip-noyz.onrender.com/share";
+
 export const CHATKIT_API_DOMAIN_KEY = import.meta.env.DEV
   ? "domain_pk_localhost_dev"
   : "domain_pk_69f8bb0636408195afca74ace8a68f83078aac657c9cc0e7";

@@ -11,6 +11,7 @@ import { AuthCallbackPage } from "./pages/AuthCallbackPage";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 import { SettingsPage } from "./pages/SettingsPage";
+import { SharePage } from "./pages/SharePage";
 import { InstallBanner } from "./components/InstallBanner";
 
 // Safety net for recovery links that land on any page other than /reset-password.
@@ -58,6 +59,7 @@ export default function App() {
         <Route path="/forgot-password" element={session ? <Navigate to="/chat" replace /> : <ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/settings" element={session ? <SettingsPage /> : <Navigate to="/login" replace />} />
+        <Route path="/share/:id" element={<SharePage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <InstallBanner />

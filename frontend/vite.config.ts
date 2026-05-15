@@ -19,6 +19,14 @@ export default defineConfig({
       "/ask":    { target: backendTarget, changeOrigin: true },
       "/health": { target: backendTarget, changeOrigin: true },
       "/ping":   { target: backendTarget, changeOrigin: true },
+      // Bypass HTML navigations so /share/:id serves the React app in dev
+      "/share": {
+        target: backendTarget,
+        changeOrigin: true,
+        bypass(req) {
+          if (req.headers["accept"]?.includes("text/html")) return "/index.html";
+        },
+      },
     },
   },
 });

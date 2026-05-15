@@ -11,8 +11,11 @@ load_dotenv()
 import asyncio
 import json
 import re
+import secrets
+import string
 import time
 from collections import OrderedDict
+from datetime import datetime, timezone
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -337,6 +340,81 @@ async def ask_endpoint(request: Request, _user=Depends(get_optional_user)):
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
+
+
+def _generate_share_id(length: int = 10) -> str:
+    alphabet = string.ascii_lowercase + string.digits
+    return "".join(secrets.choice(alphabet) for _ in range(length))
+
+
+@app.post("/share")
+async def create_share(request: Request, _user=Depends(get_optional_user)):
+    """Create a shareable link for a conversation."""
+    body = await request.json()
+    messages = body.get("messages", [])
+    user_id = body.get("user_id")
+
+    if not messages:
+        return JSONResponse(status_code=400, content={"error": "messages required"})
+
+    share_id = _generate_share_id()
+    loop = asyncio.get_running_loop()
+    try:
+        await loop.run_in_executor(None, lambda: supabase.from_("shared_responses").insert({
+            "share_id": share_id,
+            "messages": messages,
+            "created_by": user_id,
+        }).execute())
+        return {"share_id": share_id}
+    except Exception as e:
+        print(f"[SHARE] Error creating share: {e}", flush=True)
+        return JSONResponse(status_code=500, content={"error": "Failed to create share"})
+
+
+@app.get("/share/{share_id}")
+async def get_share(share_id: str):
+    """Return a shared conversation by share_id."""
+    loop = asyncio.get_running_loop()
+    try:
+        result = await loop.run_in_executor(
+            None,
+            lambda: supabase.from_("shared_responses")
+                .select("*")
+                .eq("share_id", share_id)
+                .eq("is_active", True)
+                .single()
+                .execute(),
+        )
+    except Exception as e:
+        print(f"[SHARE] DB error for {share_id}: {e}", flush=True)
+        return JSONResponse(status_code=404, content={"error": "Share not found"})
+
+    row = result.data
+    if not row:
+        return JSONResponse(status_code=404, content={"error": "Share not found"})
+
+    expires_at = row.get("expires_at")
+    if expires_at:
+        exp = datetime.fromisoformat(expires_at.replace("Z", "+00:00"))
+        if datetime.now(timezone.utc) > exp:
+            return JSONResponse(status_code=404, content={"error": "Share has expired"})
+
+    # Increment view_count fire-and-forget
+    new_count = row.get("view_count", 0) + 1
+    asyncio.create_task(loop.run_in_executor(
+        None,
+        lambda: supabase.from_("shared_responses")
+            .update({"view_count": new_count})
+            .eq("share_id", share_id)
+            .execute(),
+    ))
+
+    return {
+        "share_id": share_id,
+        "messages": row["messages"],
+        "created_at": row.get("created_at"),
+        "expires_at": row.get("expires_at"),
+    }
 
 
 @app.post("/chatkit")
