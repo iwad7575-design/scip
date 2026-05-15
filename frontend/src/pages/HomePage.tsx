@@ -42,9 +42,11 @@ export function HomePage() {
   const [isSidebarOpen, setIsSidebarOpen]          = useState(false);
   const [isSidebarDesktopOpen, setIsSidebarDesktopOpen] = useState(true);
 
-  const messagesEndRef    = useRef<HTMLDivElement>(null);
-  const textareaRef       = useRef<HTMLTextAreaElement>(null);
-  const abortControllerRef = useRef<AbortController | null>(null);
+  const messagesEndRef       = useRef<HTMLDivElement>(null);
+  const textareaRef          = useRef<HTMLTextAreaElement>(null);
+  const abortControllerRef   = useRef<AbortController | null>(null);
+  const isSendingRef         = useRef(false);   // prevents concurrent sendMessage calls
+  const isCreatingSessionRef = useRef(false);   // prevents duplicate session inserts
 
   // Wake Render on page load
   useEffect(() => { fetch(BACKEND_HEALTH_URL).catch(() => {}); }, []);
@@ -109,19 +111,27 @@ export function HomePage() {
   }
 
   async function handleSelectSession(sessionId: string) {
-    const { data } = await supabase
+    console.log("[SCIP] Loading session:", sessionId);
+    const { data, error } = await supabase
       .from("chat_history")
       .select("question, answer, created_at")
       .eq("session_id", sessionId)
       .order("created_at", { ascending: true });
-    if (data) {
-      const msgs: Message[] = data.flatMap(row => [
-        { role: "user" as const, content: row.question },
-        { role: "assistant" as const, content: row.answer },
-      ]);
-      setMessages(msgs);
-      setCurrentSessionId(sessionId);
+    if (error) {
+      console.error("[SCIP] Load session error:", error.message, error.code);
+      return;
     }
+    if (!data || data.length === 0) {
+      console.log("[SCIP] No messages found for session:", sessionId);
+      return;
+    }
+    console.log("[SCIP] Messages loaded:", data.length);
+    const msgs: Message[] = data.flatMap(row => [
+      { role: "user" as const, content: row.question },
+      { role: "assistant" as const, content: row.answer },
+    ]);
+    setMessages(msgs);
+    setCurrentSessionId(sessionId);
   }
 
   async function handleDeleteSession(sessionId: string) {
@@ -133,7 +143,8 @@ export function HomePage() {
   // ── Send message ───────────────────────────────────────────────────────────
 
   const sendMessage = useCallback(async (text: string) => {
-    if (!text.trim() || loading) return;
+    if (!text.trim() || loading || isSendingRef.current) return;
+    isSendingRef.current = true;
 
     abortControllerRef.current?.abort();
     const controller = new AbortController();
@@ -151,29 +162,36 @@ export function HomePage() {
     const userId = currentUser?.id ?? "";
 
     // Create a new session on the first message for logged-in users.
+    // isCreatingSessionRef prevents a duplicate insert if sendMessage is
+    // somehow invoked a second time before the first await resolves.
     let sessionId = currentSessionId;
-    if (!sessionId && userId) {
-      console.log("[SCIP] Creating session for:", currentUser!.email);
-      const { data, error: insertError } = await supabase
-        .from("chat_sessions")
-        .insert({
-          user_id: userId,
-          title: text.trim().slice(0, 60),
-          message_count: 0,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .select("id")
-        .single();
-      if (insertError) {
-        console.error("[SCIP] chat_sessions INSERT failed:", insertError.message, insertError.code, insertError.details);
-      } else {
-        console.log("[SCIP] Session created:", data?.id);
-      }
-      if (data?.id) {
-        sessionId = data.id;
-        setCurrentSessionId(data.id);
-        setSidebarRefreshKey(k => k + 1);
+    if (!sessionId && userId && !isCreatingSessionRef.current) {
+      isCreatingSessionRef.current = true;
+      try {
+        console.log("[SCIP] Creating session for:", currentUser!.email);
+        const { data, error: insertError } = await supabase
+          .from("chat_sessions")
+          .insert({
+            user_id: userId,
+            title: text.trim().slice(0, 60),
+            message_count: 0,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .select("id")
+          .single();
+        if (insertError) {
+          console.error("[SCIP] chat_sessions INSERT failed:", insertError.message, insertError.code, insertError.details);
+        } else {
+          console.log("[SCIP] Session created:", data?.id);
+        }
+        if (data?.id) {
+          sessionId = data.id;
+          setCurrentSessionId(data.id);
+          setSidebarRefreshKey(k => k + 1);
+        }
+      } finally {
+        isCreatingSessionRef.current = false;
       }
     }
 
@@ -280,10 +298,11 @@ export function HomePage() {
             session_id: sessionId,
             question: text,
             answer: assistantContent,
+            sources: "",
             created_at: new Date().toISOString(),
           });
         if (histErr) {
-          console.error("[SCIP] chat_history INSERT failed:", histErr.message, histErr.code);
+          console.error("[SCIP] chat_history INSERT failed:", histErr.message, histErr.code, histErr.details);
         } else {
           console.log("[SCIP] Message saved to chat_history ✅");
         }
@@ -302,6 +321,8 @@ export function HomePage() {
           .update({ updated_at: new Date().toISOString() })
           .eq("id", sessionId);
       }
+
+      isSendingRef.current = false;
     }
   }, [messages, loading, currentSessionId]);
 
