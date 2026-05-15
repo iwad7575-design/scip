@@ -67,7 +67,7 @@ export function InstallBanner() {
       padding: "0.75rem 1rem",
       display: "flex", alignItems: "center", gap: "0.75rem",
     }}>
-      <img src="/logo.png" alt="SCIP" style={{ width: 40, height: 40, borderRadius: 8, flexShrink: 0 }} />
+      <img src="/logo.jpg" alt="SCIP" style={{ width: 40, height: 40, borderRadius: 8, flexShrink: 0 }} />
       <p style={{ flex: 1, margin: 0, color: "#fff", fontSize: "0.85rem", lineHeight: 1.4 }}>
         Install SCIP for quick access during patient care
       </p>

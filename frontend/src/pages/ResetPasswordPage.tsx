@@ -142,7 +142,7 @@ export function ResetPasswordPage() {
   return (
     <AuthShell>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 28 }}>
-        <img src="/logo.png" alt="SCIP" style={{ width: 32, height: 32 }} />
+        <img src="/logo.jpg" alt="SCIP" style={{ width: 32, height: 32, borderRadius: 6 }} />
         <span style={{ fontFamily: "var(--font-heading)", fontSize: 18, fontWeight: 700, color: "var(--brand-navy)" }}>SCIP</span>
       </div>
 

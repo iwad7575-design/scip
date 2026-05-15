@@ -59,7 +59,7 @@ export function SettingsPage() {
           onClick={() => navigate("/")}
           style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}
         >
-          <img src="/logo.png" alt="SCIP" style={{ height: 22, width: 22, objectFit: "contain" }} />
+          <img src="/logo.jpg" alt="SCIP" style={{ height: 22, width: 22, objectFit: "contain", borderRadius: 5 }} />
           <span style={{ color: "#ffffff", fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 15 }}>SCIP</span>
         </div>
       </div>

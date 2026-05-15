@@ -139,7 +139,7 @@ export function SignUpPage() {
         <div className="dot-grid" style={{ position: "absolute", inset: 0, opacity: 0.7 }} />
         <div style={{ position: "relative", zIndex: 1 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 48 }}>
-            <img src="/logo.png" alt="SCIP" style={{ width: 36, height: 36 }} />
+            <img src="/logo.jpg" alt="SCIP" style={{ width: 36, height: 36, borderRadius: 8 }} />
             <span style={{ fontFamily: "var(--font-heading)", fontSize: 20, fontWeight: 700, color: "#fff" }}>SCIP</span>
           </div>
           <h1 style={{ fontFamily: "var(--font-heading)", fontSize: 28, fontWeight: 700, color: "#fff", lineHeight: 1.25, marginBottom: 14 }}>
@@ -174,7 +174,7 @@ export function SignUpPage() {
         <div style={{ width: "100%", maxWidth: 420 }}>
 
           <div className="md:hidden" style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 28 }}>
-            <img src="/logo.png" alt="SCIP" style={{ width: 32, height: 32 }} />
+            <img src="/logo.jpg" alt="SCIP" style={{ width: 32, height: 32, borderRadius: 6 }} />
             <span style={{ fontFamily: "var(--font-heading)", fontSize: 18, fontWeight: 700, color: "var(--brand-navy)" }}>SCIP</span>
           </div>
 

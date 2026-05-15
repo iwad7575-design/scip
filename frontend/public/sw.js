@@ -1,5 +1,5 @@
 const CACHE = 'scip-shell-v1';
-const SHELL = ['/', '/logo.png', '/manifest.json', '/favicon.ico'];
+const SHELL = ['/', '/logo.jpg', '/manifest.json', '/favicon.ico'];
 
 const OFFLINE_HTML = `<!DOCTYPE html>
 <html lang="en"><head>

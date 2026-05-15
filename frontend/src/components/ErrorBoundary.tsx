@@ -22,7 +22,7 @@ export class ErrorBoundary extends Component<Props, State> {
           padding: "24px",
         }}>
           <div style={{ textAlign: "center", maxWidth: 360 }}>
-            <img src="/logo.png" alt="SCIP" style={{ width: 48, height: 48, objectFit: "contain", marginBottom: 20 }} />
+            <img src="/logo.jpg" alt="SCIP" style={{ width: 48, height: 48, objectFit: "contain", marginBottom: 20, borderRadius: 10 }} />
             <h2 style={{ fontFamily: "var(--font-heading)", fontSize: 20, fontWeight: 700, color: "var(--text-primary)", marginBottom: 10 }}>
               Something went wrong
             </h2>

@@ -575,7 +575,7 @@ export function ChatPage() {
             display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center",
           }}
         >
-          <img src="/logo.png" alt="SCIP" style={{ width: 60, height: 60, objectFit: "contain", marginBottom: 20 }} />
+          <img src="/logo.jpg" alt="SCIP" style={{ width: 60, height: 60, objectFit: "contain", marginBottom: 20, borderRadius: 12 }} />
           <h1 style={{
             fontFamily: "var(--font-heading)", fontSize: "clamp(24px, 5vw, 40px)",
             fontWeight: 800, color: "#ffffff", lineHeight: 1.2, marginBottom: 8, maxWidth: 580,
@@ -752,7 +752,7 @@ export function ChatPage() {
                 width: 32, height: 32, borderRadius: "50%", background: "var(--brand-navy)",
                 display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2,
               }}>
-                <img src="/logo.png" alt="SCIP" style={{ width: 18, height: 18, objectFit: "contain" }} />
+                <img src="/logo.jpg" alt="SCIP" style={{ width: 18, height: 18, objectFit: "contain", borderRadius: 4 }} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{
@@ -779,7 +779,7 @@ export function ChatPage() {
               width: 32, height: 32, borderRadius: "50%", background: "var(--brand-navy)",
               display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2,
             }}>
-              <img src="/logo.png" alt="SCIP" style={{ width: 18, height: 18, objectFit: "contain" }} />
+              <img src="/logo.jpg" alt="SCIP" style={{ width: 18, height: 18, objectFit: "contain", borderRadius: 4 }} />
             </div>
             <div style={{
               background: "var(--surface)", border: "1px solid var(--border)",
@@ -1123,7 +1123,7 @@ export function ChatPage() {
               borderBottom: heroMode ? "none" : "1px solid var(--border)",
             }}>
               <a href="/" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}>
-                <img src="/logo.png" alt="SCIP" style={{ width: 30, height: 30, objectFit: "contain" }} />
+                <img src="/logo.jpg" alt="SCIP" style={{ width: 30, height: 30, objectFit: "contain", borderRadius: 6 }} />
                 <span style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 15, color: heroMode ? "#ffffff" : "var(--text-primary)" }}>
                   SCIP
                 </span>
@@ -1179,7 +1179,7 @@ export function ChatPage() {
                   </svg>
                 </button>
                 <a href="/" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}>
-                  <img src="/logo.png" alt="SCIP" style={{ height: 24, width: 24, objectFit: "contain" }} />
+                  <img src="/logo.jpg" alt="SCIP" style={{ height: 24, width: 24, objectFit: "contain", borderRadius: 5 }} />
                   <span style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 15, color: heroMode ? "#ffffff" : "var(--text-primary)" }}>
                     SCIP
                   </span>

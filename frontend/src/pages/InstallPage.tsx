@@ -37,7 +37,7 @@ export function InstallPage() {
         display: "flex", alignItems: "center", gap: "0.75rem",
         flexShrink: 0,
       }}>
-        <img src="/logo.png" alt="SCIP" style={{ width: 34, height: 34, borderRadius: 8 }} />
+        <img src="/logo.jpg" alt="SCIP" style={{ width: 34, height: 34, borderRadius: 8 }} />
         <span style={{ fontWeight: 700, fontSize: "1rem" }}>SCIP</span>
         <Link to="/" style={{ marginLeft: "auto", color: "rgba(255,255,255,0.55)", fontSize: "0.875rem", textDecoration: "none" }}>
           ← Back

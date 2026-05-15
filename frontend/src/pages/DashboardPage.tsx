@@ -83,7 +83,7 @@ export function DashboardPage() {
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link to="/" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: "12px" }}>
-              <img src="/logo.png" alt="SCIP logo" className="h-8 w-8 object-contain rounded-lg" />
+              <img src="/logo.jpg" alt="SCIP logo" className="h-8 w-8 object-contain rounded-lg" />
               <span className="text-white font-semibold">SCIP</span>
             </Link>
             <span className="hidden sm:inline text-xs px-2 py-0.5 rounded-full bg-white/20 text-white/80">
@@ -461,7 +461,7 @@ function LoadingScreen() {
   return (
     <div style={{ minHeight: "100dvh", background: "var(--bg)", display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div className="flex flex-col items-center gap-3">
-        <img src="/logo.png" alt="SCIP logo" className="w-10 h-10 object-contain rounded-xl" />
+        <img src="/logo.jpg" alt="SCIP logo" className="w-10 h-10 object-contain rounded-xl" />
         <p style={{ fontSize: 13, color: "var(--text-muted)", fontFamily: "var(--font-heading)" }}>Loading your dashboard…</p>
       </div>
     </div>
