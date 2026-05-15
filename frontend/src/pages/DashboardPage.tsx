@@ -81,10 +81,11 @@ export function DashboardPage() {
       {/* Header */}
       <header style={{ background: "var(--brand-navy)", fontFamily: "var(--font-heading)" }} className="px-4 sm:px-6 py-4">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-3" style={{ textDecoration: "none" }}>
-            <img src="/logo.png" alt="SCIP logo" className="h-8 w-8 object-contain rounded-lg" />
-            <span className="text-white font-semibold">SCIP</span>
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link to="/" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: "12px" }}>
+              <img src="/logo.png" alt="SCIP logo" className="h-8 w-8 object-contain rounded-lg" />
+              <span className="text-white font-semibold">SCIP</span>
+            </Link>
             <span className="hidden sm:inline text-xs px-2 py-0.5 rounded-full bg-white/20 text-white/80">
               SHIFA Clinical Intelligence Platform
             </span>
