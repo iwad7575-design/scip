@@ -49,7 +49,7 @@ export function LoginPage() {
           setError(friendlyError(error.message));
         }
       } else {
-        navigate("/");
+        navigate("/chat");
       }
     } finally {
       setLoading(false);

@@ -139,7 +139,7 @@ export function DashboardPage() {
 
         {/* Ask SCIP CTA */}
         <button
-          onClick={() => navigate("/")}
+          onClick={() => navigate("/chat")}
           className="w-full mb-8 rounded-2xl px-6 py-5 flex items-center justify-between text-white group hover:opacity-90 transition-opacity"
           style={{ background: "var(--brand-navy-700)" }}
         >
@@ -174,7 +174,7 @@ export function DashboardPage() {
               <p className="text-xs text-slate-400 mb-4">Last 10 questions you asked SCIP</p>
 
               {history.length === 0 ? (
-                <EmptyHistory onAsk={() => navigate("/")} />
+                <EmptyHistory onAsk={() => navigate("/chat")} />
               ) : (
                 <div className="divide-y divide-slate-100">
                   {history.map(item => (

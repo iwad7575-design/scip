@@ -6,8 +6,8 @@ import { CHATKIT_API_URL } from "./lib/config";
 import { LoginPage } from "./pages/LoginPage";
 import { SignUpPage } from "./pages/SignUpPage";
 import { DashboardPage } from "./pages/DashboardPage";
-import { AgentPage } from "./pages/AgentPage";
-import { HomePage } from "./pages/HomePage";
+import { LandingPage } from "./pages/LandingPage";
+import { ChatPage } from "./pages/ChatPage";
 import { InstallPage } from "./pages/InstallPage";
 import { AuthCallbackPage } from "./pages/AuthCallbackPage";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
@@ -63,14 +63,15 @@ export default function App() {
     <BrowserRouter>
       <AuthRedirectHandler />
       <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/login" element={session ? <Navigate to="/" replace /> : <LoginPage />} />
-        <Route path="/signup" element={session ? <Navigate to="/" replace /> : <SignUpPage />} />
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/chat" element={<ChatPage />} />
+        <Route path="/login" element={session ? <Navigate to="/chat" replace /> : <LoginPage />} />
+        <Route path="/signup" element={session ? <Navigate to="/chat" replace /> : <SignUpPage />} />
         <Route path="/dashboard" element={session ? <DashboardPage /> : <Navigate to="/login" replace />} />
-        <Route path="/agent" element={<Navigate to="/" replace />} />
+        <Route path="/agent" element={<Navigate to="/chat" replace />} />
         <Route path="/install" element={<InstallPage />} />
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
-        <Route path="/forgot-password" element={session ? <Navigate to="/" replace /> : <ForgotPasswordPage />} />
+        <Route path="/forgot-password" element={session ? <Navigate to="/chat" replace /> : <ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/settings" element={session ? <SettingsPage /> : <Navigate to="/login" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />

@@ -21,7 +21,7 @@ export function AuthCallbackPage() {
       if (done) return;
       done = true;
       setStatus("success");
-      setTimeout(() => navigate("/", { replace: true }), 2000);
+      setTimeout(() => navigate("/chat", { replace: true }), 2000);
     }
     function markError(msg: string) {
       if (done) return;
