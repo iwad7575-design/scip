@@ -293,6 +293,26 @@ export function ChatPage() {
     } finally {
       setLoading(false);
 
+      // Detect refusal responses — these are not real clinical answers and must not be saved.
+      // Strings match the exact refusal formats in the system prompt SECURITY RULES and
+      // NON-MEDICAL QUESTION RULE sections.
+      const isRefusal = assistantContent.includes("I am SCIP — a clinical decision support assistant") ||
+        assistantContent.includes("I cannot provide that information.") ||
+        assistantContent.includes("I can only help with medical and clinical questions");
+
+      if (isRefusal) {
+        console.log("[SCIP] Refusal response — skipping history save");
+        // If this was the very first message (session was just created this call),
+        // delete the empty session so it doesn't appear in the sidebar.
+        if (sessionId && newMessages.length === 1) {
+          await supabase.from("chat_sessions").delete().eq("id", sessionId);
+          setCurrentSessionId(null);
+          setSidebarRefreshKey(k => k + 1);
+        }
+        isSendingRef.current = false;
+        return;
+      }
+
       if (sessionId && assistantContent && userId && !aborted) {
         const { error: histErr } = await supabase.from("chat_history").insert({
           user_id: userId,
