@@ -55,8 +55,13 @@ export function SettingsPage() {
           Back
         </button>
         <div style={{ width: 1, height: 16, background: "rgba(255,255,255,0.15)" }} />
-        <img src="/logo.png" alt="SCIP" style={{ height: 22, width: 22, objectFit: "contain" }} />
-        <span style={{ color: "#ffffff", fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 15 }}>Settings</span>
+        <div
+          onClick={() => navigate("/")}
+          style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}
+        >
+          <img src="/logo.png" alt="SCIP" style={{ height: 22, width: 22, objectFit: "contain" }} />
+          <span style={{ color: "#ffffff", fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 15 }}>SCIP</span>
+        </div>
       </div>
 
       <div style={{ maxWidth: 720, margin: "0 auto", padding: "28px 16px" }}>
