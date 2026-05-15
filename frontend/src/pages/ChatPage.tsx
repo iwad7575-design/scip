@@ -368,6 +368,7 @@ export function ChatPage() {
               placeholder={loading ? "SCIP is generating a response…" : "Type your clinical question here…"}
               disabled={loading}
               rows={1}
+              className="chat-textarea"
               style={{
                 flex: 1, width: "100%", background: "transparent", resize: "none",
                 outline: "none", border: "none", lineHeight: 1.55, minHeight: 44,
@@ -400,6 +401,7 @@ export function ChatPage() {
               <button
                 onClick={() => sendMessage(input)}
                 disabled={!input.trim()}
+                className="send-btn"
                 style={{
                   flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
                   gap: 6, padding: "0 20px", borderRadius: 10,
@@ -412,7 +414,7 @@ export function ChatPage() {
                 onMouseEnter={e => { if (input.trim()) (e.currentTarget as HTMLButtonElement).style.background = "var(--brand-green-700)"; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--brand-green)"; }}
               >
-                Ask SCIP
+                <span className="send-btn-text">Ask SCIP</span>
                 <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M12 5l7 7-7 7" />
                 </svg>
@@ -713,24 +715,24 @@ export function ChatPage() {
           0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
           30%            { transform: translateY(-4px); opacity: 1; }
         }
-        /* Mobile: hide verbose hero sections, horizontal card scroll */
+        /* Mobile layout overrides */
         @media (max-width: 640px) {
           .hero-desc  { display: none !important; }
           .hero-stats { display: none !important; }
           .hero-example-list {
-            flex-direction: row !important;
-            overflow-x: auto;
-            padding-bottom: 6px;
-            -webkit-overflow-scrolling: touch;
-            scrollbar-width: none;
+            flex-direction: column !important;
+            overflow-x: unset !important;
             gap: 8px !important;
           }
-          .hero-example-list::-webkit-scrollbar { display: none; }
           .hero-example-card {
-            min-width: 220px !important;
-            flex-shrink: 0;
-            width: auto !important;
+            min-width: unset !important;
+            flex-shrink: 1 !important;
+            width: 100% !important;
+            padding: 10px 12px !important;
           }
+          .chat-textarea { min-height: 56px !important; }
+          .send-btn-text { display: none !important; }
+          .send-btn { padding: 0 12px !important; min-width: 44px !important; }
         }
       `}</style>
 
