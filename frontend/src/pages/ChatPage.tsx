@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
 import { Sidebar } from "../components/Sidebar";
@@ -49,6 +49,9 @@ export function ChatPage() {
   const [shareUrl, setShareUrl]               = useState("");
   const [shareLinkCopied, setShareLinkCopied] = useState(false);
   const [shareTextCopied, setShareTextCopied] = useState(false);
+
+  const location    = useLocation();
+  const isOnChatPage = location.pathname === "/chat";
 
   const messagesEndRef       = useRef<HTMLDivElement>(null);
   const textareaRef          = useRef<HTMLTextAreaElement>(null);
@@ -375,7 +378,7 @@ export function ChatPage() {
   const shareIconColor = heroMode ? "rgba(255,255,255,0.85)" : "#0B2545";
   const shareBorderColor = heroMode ? "rgba(255,255,255,0.3)" : "#0B2545";
 
-  const shareBtn = (
+  const shareBtn = isOnChatPage ? (
     <button
       onClick={openShareModal}
       disabled={!hasMessages}
@@ -399,7 +402,7 @@ export function ChatPage() {
       </svg>
       <span className="share-btn-label">Share</span>
     </button>
-  );
+  ) : null;
 
   // ── Input box ────────────────────────────────────────────────────────────
 

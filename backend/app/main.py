@@ -354,42 +354,53 @@ async def create_share(request: Request, _user=Depends(get_optional_user)):
     messages = body.get("messages", [])
     user_id = body.get("user_id")
 
+    print(f"[SHARE] POST /share | messages={len(messages)} | user_id={user_id}", flush=True)
+
     if not messages:
         return JSONResponse(status_code=400, content={"error": "messages required"})
 
     share_id = _generate_share_id()
     loop = asyncio.get_running_loop()
     try:
-        await loop.run_in_executor(None, lambda: supabase.from_("shared_responses").insert({
+        result = await loop.run_in_executor(None, lambda: supabase.from_("shared_responses").insert({
             "share_id": share_id,
             "messages": messages,
             "created_by": user_id,
         }).execute())
+        # supabase-py v2 can return empty data on silent failure — verify insert succeeded
+        if not result.data:
+            print(f"[SHARE] Insert returned no data — table may not exist. Result: {result}", flush=True)
+            return JSONResponse(status_code=500, content={"error": "Share could not be saved. The shared_responses table may not exist in Supabase."})
+        print(f"[SHARE] Created share_id={share_id}", flush=True)
         return {"share_id": share_id}
     except Exception as e:
-        print(f"[SHARE] Error creating share: {e}", flush=True)
-        return JSONResponse(status_code=500, content={"error": "Failed to create share"})
+        print(f"[SHARE] Exception creating share: {type(e).__name__}: {e}", flush=True)
+        return JSONResponse(status_code=500, content={"error": f"Failed to create share: {type(e).__name__}"})
 
 
 @app.get("/share/{share_id}")
 async def get_share(share_id: str):
     """Return a shared conversation by share_id."""
+    print(f"[SHARE] GET /share/{share_id}", flush=True)
     loop = asyncio.get_running_loop()
     try:
+        # maybe_single() returns None data instead of raising when no rows found
         result = await loop.run_in_executor(
             None,
             lambda: supabase.from_("shared_responses")
                 .select("*")
                 .eq("share_id", share_id)
                 .eq("is_active", True)
-                .single()
+                .maybe_single()
                 .execute(),
         )
     except Exception as e:
-        print(f"[SHARE] DB error for {share_id}: {e}", flush=True)
-        return JSONResponse(status_code=404, content={"error": "Share not found"})
+        print(f"[SHARE] DB error for {share_id}: {type(e).__name__}: {e}", flush=True)
+        return JSONResponse(status_code=500, content={"error": "Database error"})
 
-    row = result.data
+    row = result.data if result else None
+    print(f"[SHARE] Query result for {share_id}: {'found' if row else 'not found'}", flush=True)
+
     if not row:
         return JSONResponse(status_code=404, content={"error": "Share not found"})
 
@@ -399,9 +410,9 @@ async def get_share(share_id: str):
         if datetime.now(timezone.utc) > exp:
             return JSONResponse(status_code=404, content={"error": "Share has expired"})
 
-    # Increment view_count fire-and-forget
+    # Increment view_count fire-and-forget (ensure_future accepts futures from run_in_executor)
     new_count = row.get("view_count", 0) + 1
-    asyncio.create_task(loop.run_in_executor(
+    asyncio.ensure_future(loop.run_in_executor(
         None,
         lambda: supabase.from_("shared_responses")
             .update({"view_count": new_count})
