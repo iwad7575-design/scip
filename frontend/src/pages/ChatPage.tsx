@@ -758,12 +758,12 @@ export function ChatPage() {
               background: heroMode ? "transparent" : "var(--surface)",
               borderBottom: heroMode ? "none" : "1px solid var(--border)",
             }}>
-              <Link to="/" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}>
+              <a href="/" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}>
                 <img src="/logo.png" alt="SCIP" style={{ width: 30, height: 30, objectFit: "contain" }} />
                 <span style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 15, color: heroMode ? "#ffffff" : "var(--text-primary)" }}>
                   SCIP
                 </span>
-              </Link>
+              </a>
               {user !== undefined && (
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <Link
@@ -812,12 +812,12 @@ export function ChatPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
               </button>
-              <Link to="/" className="lg:hidden" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}>
+              <a href="/" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}>
                 <img src="/logo.png" alt="SCIP" style={{ height: 24, width: 24, objectFit: "contain" }} />
                 <span style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 15, color: heroMode ? "#ffffff" : "var(--text-primary)" }}>
                   SCIP
                 </span>
-              </Link>
+              </a>
             </header>
           )}
 
