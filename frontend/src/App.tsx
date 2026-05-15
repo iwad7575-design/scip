@@ -6,7 +6,6 @@ import { CHATKIT_API_URL } from "./lib/config";
 import { LoginPage } from "./pages/LoginPage";
 import { SignUpPage } from "./pages/SignUpPage";
 import { DashboardPage } from "./pages/DashboardPage";
-import { LandingPage } from "./pages/LandingPage";
 import { ChatPage } from "./pages/ChatPage";
 import { InstallPage } from "./pages/InstallPage";
 import { AuthCallbackPage } from "./pages/AuthCallbackPage";
@@ -63,7 +62,7 @@ export default function App() {
     <BrowserRouter>
       <AuthRedirectHandler />
       <Routes>
-        <Route path="/" element={<LandingPage />} />
+        <Route path="/" element={<ChatPage />} />
         <Route path="/chat" element={<ChatPage />} />
         <Route path="/login" element={session ? <Navigate to="/chat" replace /> : <LoginPage />} />
         <Route path="/signup" element={session ? <Navigate to="/chat" replace /> : <SignUpPage />} />
