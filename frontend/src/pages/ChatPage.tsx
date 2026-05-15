@@ -755,6 +755,7 @@ export function ChatPage() {
               refreshKey={sidebarRefreshKey}
               isMobileOpen={isSidebarOpen}
               onMobileClose={() => setIsSidebarOpen(false)}
+              onClose={() => { setIsSidebarOpen(false); setIsSidebarDesktopOpen(false); }}
               isDesktopOpen={isSidebarDesktopOpen}
             />
           </>

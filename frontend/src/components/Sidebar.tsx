@@ -19,6 +19,7 @@ interface Props {
   refreshKey: number;
   isMobileOpen: boolean;
   onMobileClose: () => void;
+  onClose: () => void;
   isDesktopOpen?: boolean;
 }
 
@@ -49,6 +50,7 @@ export function Sidebar({
   refreshKey,
   isMobileOpen,
   onMobileClose,
+  onClose,
   isDesktopOpen = true,
 }: Props) {
   const navigate = useNavigate();
@@ -139,8 +141,7 @@ export function Sidebar({
             <span style={{ color: "#ffffff", fontWeight: 700, fontSize: 15, letterSpacing: "-0.01em" }}>SCIP</span>
           </a>
           <button
-            className="lg:hidden"
-            onClick={onMobileClose}
+            onClick={onClose}
             style={{
               color: "rgba(255,255,255,0.5)",
               background: "none",
@@ -151,7 +152,7 @@ export function Sidebar({
               alignItems: "center",
               borderRadius: 6,
             }}
-            aria-label="Close menu"
+            aria-label="Close sidebar"
           >
             <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
