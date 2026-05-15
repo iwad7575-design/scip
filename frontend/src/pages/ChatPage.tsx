@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
 import { Sidebar } from "../components/Sidebar";
+import { MarkdownMessage } from "../components/MarkdownMessage";
 import { ASK_API_URL, BACKEND_HEALTH_URL, BACKEND_PING_URL } from "../lib/config";
 
 const EXAMPLE_QUESTIONS = [
@@ -625,10 +626,10 @@ export function ChatPage() {
                 <div style={{
                   background: "var(--surface)", border: "1px solid var(--border)",
                   borderRadius: "4px 18px 18px 18px", padding: "12px 16px",
-                  fontSize: 15, fontFamily: "var(--font-body)", lineHeight: 1.7,
-                  color: "var(--text-primary)", whiteSpace: "pre-wrap", boxShadow: "var(--shadow-xs)",
+                  fontFamily: "var(--font-body)", color: "var(--text-primary)",
+                  boxShadow: "var(--shadow-xs)",
                 }}>
-                  {msg.content}
+                  <MarkdownMessage content={msg.content} />
                 </div>
                 {msg.stopped && (
                   <p style={{ fontSize: 12, color: "var(--text-muted)", fontStyle: "italic", marginTop: 4, paddingLeft: 4 }}>
