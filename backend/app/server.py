@@ -645,7 +645,7 @@ class StarterChatServer(ChatKitServer[dict[str, Any]]):
         user = context.get("user")
         user_id = str(user.id) if user else ""
         if access_token and user_id and user_question:
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
             loop.run_in_executor(
                 None, _save_history, access_token, user_id, user_question, output_text
             )

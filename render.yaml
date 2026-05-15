@@ -11,6 +11,10 @@ services:
         sync: false
       - key: FRONTEND_URL
         sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
       - key: VECTOR_STORE_ID
         value: vs_69d7ea3f2f5c8191abfee9317ddcb1b8
       - key: PYTHON_VERSION

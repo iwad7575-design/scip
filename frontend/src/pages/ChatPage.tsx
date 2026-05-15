@@ -19,10 +19,13 @@ function cleanCitations(text: string): string {
   return text.replace(CITATION_RE, "").replace(/ {2,}/g, " ").replace(/ ([,\.;:!?])/g, "$1");
 }
 
+const RESPONSE_TIMEOUT_S = 65;
+
 function loadingPhaseMessage(elapsed: number): string {
   if (elapsed < 3)  return "Searching 106 medical guidelines…";
   if (elapsed < 7)  return "Retrieving relevant protocols…";
-  return               `Generating cited response… ${elapsed}s`;
+  if (elapsed < 20) return `Generating cited response… ${elapsed}s`;
+  return                   `Still working — this question requires deeper analysis… ${elapsed}s`;
 }
 
 export function ChatPage() {
@@ -67,6 +70,17 @@ export function ChatPage() {
     const id = setInterval(() => setElapsed(s => s + 1), 1000);
     return () => clearInterval(id);
   }, [loading]);
+
+  useEffect(() => {
+    if (!loading || elapsed < RESPONSE_TIMEOUT_S) return;
+    abortControllerRef.current?.abort();
+    setLoading(false);
+    setMessages(prev => {
+      const last = prev[prev.length - 1];
+      if (last?.role === "assistant") return prev;
+      return [...prev, { role: "assistant", content: "SCIP took too long to respond. Please try your question again." }];
+    });
+  }, [elapsed, loading]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -272,8 +286,12 @@ export function ChatPage() {
         });
         if (histErr) console.error("[SCIP] chat_history INSERT failed:", histErr.message);
 
+        // newMessages has the user turn; +1 for the assistant turn just completed.
         await supabase.from("chat_sessions")
-          .update({ updated_at: new Date().toISOString() })
+          .update({
+            updated_at: new Date().toISOString(),
+            message_count: newMessages.length + 1,
+          })
           .eq("id", sessionId);
 
         setSidebarRefreshKey(k => k + 1);

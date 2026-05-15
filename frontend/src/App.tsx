@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { BrowserRouter, Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import type { Session } from "@supabase/supabase-js";
 import { supabase, initialAuthType } from "./lib/supabase";
-import { CHATKIT_API_URL } from "./lib/config";
 import { LoginPage } from "./pages/LoginPage";
 import { SignUpPage } from "./pages/SignUpPage";
 import { DashboardPage } from "./pages/DashboardPage";
@@ -13,20 +12,6 @@ import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { InstallBanner } from "./components/InstallBanner";
-
-// Attach the Supabase JWT to every backend request.
-const _fetch = window.fetch.bind(window);
-window.fetch = async (input, init = {}) => {
-  const url = typeof input === "string" ? input : input instanceof URL ? input.href : (input as Request).url;
-  if (url.startsWith(CHATKIT_API_URL)) {
-    const { data } = await supabase.auth.getSession();
-    const token = data.session?.access_token;
-    if (token) {
-      init = { ...init, headers: { ...(init.headers as Record<string, string>), Authorization: `Bearer ${token}` } };
-    }
-  }
-  return _fetch(input, init);
-};
 
 // Safety net for recovery links that land on any page other than /reset-password.
 // Uses initialAuthType (captured before Supabase cleared the hash) because

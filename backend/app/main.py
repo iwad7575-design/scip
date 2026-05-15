@@ -19,7 +19,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from app.server import StarterChatServer, MODEL, SYSTEM_PROMPT, VECTOR_STORE_ID, client, _save_history  # IMPORTANT: absolute import
+from app.server import StarterChatServer, MODEL, SYSTEM_PROMPT, VECTOR_STORE_ID, client  # IMPORTANT: absolute import
 from app.supabase_client import supabase
 
 bearer = HTTPBearer()
@@ -116,7 +116,7 @@ def _num_results(messages: list[dict]) -> int:
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(bearer)):
     t = time.perf_counter()
     try:
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         result = await loop.run_in_executor(None, lambda: supabase.auth.get_user(credentials.credentials))
         ms = (time.perf_counter() - t) * 1000
         print(f"[TIMING] auth(required): {ms:.0f}ms", flush=True)
@@ -137,7 +137,7 @@ async def get_optional_user(request: Request):
         return None
     token = auth.removeprefix("Bearer ").strip()
     try:
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         result = await loop.run_in_executor(None, lambda: supabase.auth.get_user(token))
         request.state.auth_ms = (time.perf_counter() - t) * 1000
         return result.user if result.user else None
@@ -238,6 +238,10 @@ async def ask_endpoint(request: Request, _user=Depends(get_optional_user)):
     num_results = _num_results(messages)
     print(f"[TIMING] num_results={num_results} (question words: {len(user_question.split())})", flush=True)
 
+    # Keep the last 20 messages (10 exchanges) to bound context size and cost.
+    MAX_CONTEXT = 20
+    messages_to_send = messages[-MAX_CONTEXT:] if len(messages) > MAX_CONTEXT else messages
+
     async def generate():
         nonlocal user_question
         full_text = ""
@@ -255,7 +259,7 @@ async def ask_endpoint(request: Request, _user=Depends(get_optional_user)):
             try:
                 async with client.responses.stream(
                     model=MODEL,
-                    input=[{"role": "system", "content": SYSTEM_PROMPT}] + messages,
+                    input=[{"role": "system", "content": SYSTEM_PROMPT}] + messages_to_send,
                     reasoning={"effort": "low"},
                     tools=[{
                         "type": "file_search",
