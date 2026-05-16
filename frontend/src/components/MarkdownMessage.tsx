@@ -5,7 +5,7 @@ import remarkGfm from "remark-gfm";
 // ── Content processing ───────────────────────────────────────────────────────
 
 const STD_DISCLAIMER =
-  "⚠️ This information is intended to support clinical decision-making and should not replace the judgment of a qualified clinician.\n\nDeveloped by SHIFA — Sustainable Health Initiatives for All | scip-et.com";
+  "⚠️ This information is intended to support clinical decision-making and should not replace the judgment of a qualified clinician.";
 
 // Matches the start of a disclaimer paragraph (many variants the AI may send)
 const DISCLAIMER_START_RE =
