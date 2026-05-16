@@ -4,7 +4,6 @@ import type { Session } from "@supabase/supabase-js";
 import { supabase, initialAuthType } from "./lib/supabase";
 import { LoginPage } from "./pages/LoginPage";
 import { SignUpPage } from "./pages/SignUpPage";
-import { DashboardPage } from "./pages/DashboardPage";
 import { ChatPage } from "./pages/ChatPage";
 import { InstallPage } from "./pages/InstallPage";
 import { AuthCallbackPage } from "./pages/AuthCallbackPage";
@@ -52,8 +51,7 @@ export default function App() {
         <Route path="/chat" element={<ChatPage />} />
         <Route path="/login" element={session ? <Navigate to="/chat" replace /> : <LoginPage />} />
         <Route path="/signup" element={session ? <Navigate to="/chat" replace /> : <SignUpPage />} />
-        <Route path="/dashboard" element={session ? <DashboardPage /> : <Navigate to="/login" replace />} />
-        <Route path="/agent" element={<Navigate to="/chat" replace />} />
+<Route path="/agent" element={<Navigate to="/chat" replace />} />
         <Route path="/install" element={<InstallPage />} />
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
         <Route path="/forgot-password" element={session ? <Navigate to="/chat" replace /> : <ForgotPasswordPage />} />
