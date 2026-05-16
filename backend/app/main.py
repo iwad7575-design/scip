@@ -269,7 +269,7 @@ async def ask_endpoint(request: Request, _user=Depends(get_optional_user)):
             t_openai_start = time.perf_counter()
             print(
                 f"[TIMING] → OpenAI stream starting "
-                f"(file_search max_num_results={num_results}, score_threshold=0.35)",
+                f"(file_search max_num_results={num_results}, score_threshold=0.2)",
                 flush=True,
             )
             try:

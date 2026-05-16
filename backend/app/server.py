@@ -209,7 +209,7 @@ class StarterChatServer(ChatKitServer[dict[str, Any]]):
 
         t_openai = time.perf_counter()
         n = _num_results(messages)
-        print(f"[TIMING] /chatkit → OpenAI call starting (file_search max_num_results={n}, score_threshold=0.35)", flush=True)
+        print(f"[TIMING] /chatkit → OpenAI call starting (file_search max_num_results={n}, score_threshold=0.2)", flush=True)
         try:
             response = await client.responses.create(
                 model=MODEL,
@@ -219,7 +219,7 @@ class StarterChatServer(ChatKitServer[dict[str, Any]]):
                     "type": "file_search",
                     "vector_store_ids": [VECTOR_STORE_ID],
                     "max_num_results": n,
-                    "ranking_options": {"score_threshold": 0.35},
+                    "ranking_options": {"score_threshold": 0.2},
                 }],
             )
         except Exception as e:
@@ -227,6 +227,12 @@ class StarterChatServer(ChatKitServer[dict[str, Any]]):
             raise
 
         print(f"[TIMING] /chatkit OpenAI done: {(time.perf_counter()-t_openai)*1000:.0f}ms | output_types={[getattr(o, 'type', type(o).__name__) for o in (response.output or [])]}", flush=True)
+        file_search_calls = [o for o in (response.output or []) if getattr(o, "type", "") == "file_search_call"]
+        if file_search_calls:
+            result_count = sum(len(getattr(o, "results", []) or []) for o in file_search_calls)
+            print(f"[VECTOR STORE] file_search returned {result_count} document(s)", flush=True)
+        else:
+            print("[VECTOR STORE] file_search returned 0 results — no file_search_call in output", flush=True)
 
         output_text = ""
         for out in (response.output or []):
