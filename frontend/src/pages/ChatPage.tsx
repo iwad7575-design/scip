@@ -47,7 +47,7 @@ function cleanCitations(text: string): string {
 const RESPONSE_TIMEOUT_S = 65;
 
 function loadingPhaseMessage(elapsed: number): string {
-  if (elapsed < 3)  return "Searching 106 medical guidelines…";
+  if (elapsed < 3)  return "Searching 109 medical guidelines…";
   if (elapsed < 7)  return "Retrieving relevant protocols…";
   if (elapsed < 20) return `Generating cited response… ${elapsed}s`;
   return                   `Still working — this question requires deeper analysis… ${elapsed}s`;
@@ -627,7 +627,7 @@ export function ChatPage() {
           }}
         >
           SCIP draws on{" "}
-          <span style={{ fontWeight: 700, color: "#ffffff" }}>106 validated national guidelines</span>
+          <span style={{ fontWeight: 700, color: "#ffffff" }}>109 validated national guidelines</span>
           , clinical manuals, and protocols. Every answer comes from{" "}
           <span style={{ fontWeight: 700, color: "#ffffff" }}>Ethiopian Ministry of Health and WHO-validated sources</span>
           {" "}— not from the internet.
@@ -642,7 +642,7 @@ export function ChatPage() {
           }}
         >
           {[
-            { icon: "📚", label: "106 Guidelines",          sub: "MoH & WHO validated" },
+            { icon: "📚", label: "109 Guidelines",          sub: "MoH & WHO validated" },
             { icon: "🌍", label: "15+ Specialties",         sub: "Full clinical breadth" },
             { icon: "⚕️", label: "Ethiopian Frontline Care", sub: "Designed for the field" },
           ].map(stat => (

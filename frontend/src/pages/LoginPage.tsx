@@ -105,13 +105,13 @@ export function LoginPage() {
             Clinical intelligence<br />at your fingertips
           </h1>
           <p style={{ fontSize: 15, color: "rgba(255,255,255,0.65)", lineHeight: 1.6, marginBottom: 40 }}>
-            Instant answers from 106 validated Ethiopian and international medical guidelines.
+            Instant answers from 109 validated Ethiopian and international medical guidelines.
           </p>
 
           {/* Trust stats */}
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             {[
-              { icon: "📚", label: "106 Guidelines", sub: "MoH & WHO validated" },
+              { icon: "📚", label: "109 Guidelines", sub: "MoH & WHO validated" },
               { icon: "⚕️", label: "16+ Specialties", sub: "Full clinical breadth" },
               { icon: "🇪🇹", label: "Ethiopian First", sub: "Built for frontline care" },
             ].map(s => (

@@ -146,7 +146,7 @@ export function SignUpPage() {
             Join 500+ clinicians<br />across Ethiopia
           </h1>
           <p style={{ fontSize: 14, color: "rgba(255,255,255,0.6)", lineHeight: 1.6, marginBottom: 36 }}>
-            Create your free account and get instant access to 106 validated medical guidelines.
+            Create your free account and get instant access to 109 validated medical guidelines.
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {["Free to join — no credit card required", "Covers 16+ clinical specialties", "Works offline after first load", "Used by doctors, nurses & health officers"].map(f => (

@@ -54,7 +54,7 @@ export function InstallPage() {
           📱 Install SCIP on Android
         </h1>
         <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "0.9rem", lineHeight: 1.6, marginBottom: "2rem" }}>
-          No app store needed. Install in 30 seconds and access 106 clinical guidelines
+          No app store needed. Install in 30 seconds and access 109 clinical guidelines
           directly from your home screen.
         </p>
 

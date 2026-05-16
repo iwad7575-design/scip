@@ -1,7 +1,7 @@
 {
   "name": "SCIP - Clinical Decision Support",
   "short_name": "SCIP",
-  "description": "AI clinical decision support for Ethiopian healthcare workers. Access 106 validated medical guidelines instantly.",
+  "description": "AI clinical decision support for Ethiopian healthcare workers. Access 109 validated medical guidelines instantly.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
