@@ -32,7 +32,9 @@ _CITATION_RE = re.compile(
     r"filecite\s*turn\d+\s*file\d+"   # fileciteturn0file1  (full pattern)
     r"|turn\d+file\d+"                 # turn0file0
     r"|【[^】]*】"                     # 【4:0†source】
-    r"|filecite\w*",                   # orphaned filecite prefix split across streaming chunks
+    r"|filecite\w*"                    # orphaned filecite prefix split across streaming chunks
+    r"|□"                              # Unicode box separator between citation tokens
+    r"|\[\d+\]",                       # [1], [2] footnote-style citation markers
     re.IGNORECASE,
 )
 

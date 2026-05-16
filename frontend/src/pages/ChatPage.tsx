@@ -39,7 +39,7 @@ async function copyToClipboard(text: string): Promise<boolean> {
   return ok;
 }
 
-const CITATION_RE = /filecite\s*turn\d+\s*file\d+|turn\d+file\d+|【[^】]*】/gi;
+const CITATION_RE = /filecite\s*turn\d+\s*file\d+|turn\d+file\d+|【[^】]*】|□|\[\d+\]/gi;
 function cleanCitations(text: string): string {
   return text.replace(CITATION_RE, "").replace(/ {2,}/g, " ").replace(/ ([,\.;:!?])/g, "$1");
 }
