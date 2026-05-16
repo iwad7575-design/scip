@@ -7,6 +7,11 @@ import remarkGfm from "remark-gfm";
 const STD_DISCLAIMER =
   "⚠️ This information is intended to support clinical decision-making and should not replace the judgment of a qualified clinician.";
 
+// Strip file extensions from reference names (e.g. "Guidelines (2021).pdf" → "Guidelines (2021)")
+function cleanExtensions(text: string): string {
+  return text.replace(/\.(pdf|docx|doc)\b/gi, "").replace(/ {2,}/g, " ");
+}
+
 // Matches the start of a disclaimer paragraph (many variants the AI may send)
 const DISCLAIMER_START_RE =
   /^(?:⚠️\s*)?(?:disclaimer\b|this information is (?:general guidance|intended to support|for general guidance)|do not use without consulting)/i;
@@ -138,6 +143,34 @@ function injectStyles() {
   document.head.appendChild(el);
 }
 
+// ── Section emoji injection ───────────────────────────────────────────────────
+
+const SECTION_EMOJIS: Array<[RegExp, string]> = [
+  [/\bdiagnosis\b|\bclassification\b/i, "🔍"],
+  [/\btreatment\b|\bmanagement\b/i, "💊"],
+  [/\bmedications\b|\bdosing\b/i, "💉"],
+  [/red flags|danger signs/i, "⚠️"],
+  [/\binvestigations\b/i, "🧪"],
+  [/\breferral\b|\bescalation\b/i, "🏥"],
+  [/follow[\s-]?up|\bmonitoring\b/i, "📋"],
+  [/\bemergency\b/i, "🚨"],
+  [/\breferences?\b/i, "📚"],
+  [/\bpediatric\b/i, "👶"],
+  [/\bmaternal\b/i, "🤰"],
+  [/special populations/i, "🌡️"],
+];
+
+const KNOWN_EMOJIS = ["🔍","💊","💉","⚠️","🧪","🏥","📋","🚨","📚","👶","🤰","🌡️"];
+
+function withSectionEmoji(children: React.ReactNode): React.ReactNode {
+  const text = getNodeText(children).trim();
+  if (KNOWN_EMOJIS.some(e => text.startsWith(e))) return children;
+  for (const [re, emoji] of SECTION_EMOJIS) {
+    if (re.test(text)) return <>{emoji} {children}</>;
+  }
+  return children;
+}
+
 // ── Shared component map ─────────────────────────────────────────────────────
 
 type NodeProps = { children?: React.ReactNode };
@@ -166,9 +199,9 @@ const mdComponents = {
       <li>{children}</li>
     );
   },
-  h1:         ({ children }: NodeProps) => <h1>{children}</h1>,
-  h2:         ({ children }: NodeProps) => <h2>{children}</h2>,
-  h3:         ({ children }: NodeProps) => <h3>{children}</h3>,
+  h1: ({ children }: NodeProps) => <h1>{withSectionEmoji(children)}</h1>,
+  h2: ({ children }: NodeProps) => <h2>{withSectionEmoji(children)}</h2>,
+  h3: ({ children }: NodeProps) => <h3>{withSectionEmoji(children)}</h3>,
   code:       ({ children }: NodeProps) => <code>{children}</code>,
   pre:        ({ children }: NodeProps) => <pre>{children}</pre>,
   blockquote: ({ children }: NodeProps) => <blockquote>{children}</blockquote>,
@@ -182,7 +215,10 @@ const mdComponents = {
 
 export function MarkdownMessage({ content }: { content: string }) {
   injectStyles();
-  const { body, refs, disclaimer } = useMemo(() => splitResponse(content), [content]);
+  const { body, refs, disclaimer } = useMemo(
+    () => splitResponse(cleanExtensions(content)),
+    [content]
+  );
 
   return (
     <div className="md-body">
