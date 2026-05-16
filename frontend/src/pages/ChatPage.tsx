@@ -302,6 +302,19 @@ export function ChatPage() {
       if (!started && !errorOccurred) {
         setMessages(prev => [...prev, { id: mkId(), role: "assistant", content: "I'm sorry, I couldn't generate a response. Please try again." }]);
       }
+
+      // Final clean pass on fully assembled content — catches tokens split across chunks
+      if (started && assistantContent) {
+        assistantContent = cleanCitations(assistantContent);
+        setMessages(prev => {
+          const updated = [...prev];
+          const last = updated[updated.length - 1];
+          if (last?.role === "assistant") {
+            updated[updated.length - 1] = { ...last, content: assistantContent };
+          }
+          return updated;
+        });
+      }
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") {
         aborted = true;
