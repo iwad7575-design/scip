@@ -1,5 +1,62 @@
+import React, { useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+
+// ── Content processing ───────────────────────────────────────────────────────
+
+const STD_DISCLAIMER =
+  "⚠️ This information is intended to support clinical decision-making and should not replace the judgment of a qualified clinician.\n\nDeveloped by SHIFA — Sustainable Health Initiatives for All | scip-et.com";
+
+// Matches the start of a disclaimer paragraph (many variants the AI may send)
+const DISCLAIMER_START_RE =
+  /^(?:⚠️\s*)?(?:disclaimer\b|this information is (?:general guidance|intended to support|for general guidance)|do not use without consulting)/i;
+
+// Matches the start of a references section header line
+const REFS_HEADER_RE =
+  /^(?:📚\s*)?(?:\*{0,2}\s*)?references?(?:\s*\*{0,2})?[:\s]/im;
+
+function splitResponse(text: string): {
+  body: string;
+  refs: string | null;
+  disclaimer: string | null;
+} {
+  if (!text.trim()) return { body: text, refs: null, disclaimer: null };
+
+  const parts = text.trim().split(/\n\n+/);
+  let disclaimer: string | null = null;
+  let refs: string | null = null;
+
+  // Extract disclaimer — check last 2 paragraphs
+  for (let i = parts.length - 1; i >= Math.max(0, parts.length - 2); i--) {
+    if (DISCLAIMER_START_RE.test(parts[i].trim())) {
+      disclaimer = STD_DISCLAIMER;
+      parts.splice(i, 1);
+      break;
+    }
+  }
+
+  // Extract references — everything from the first refs-header paragraph onward
+  const refIdx = parts.findIndex(p => REFS_HEADER_RE.test(p.trim()));
+  if (refIdx !== -1) {
+    refs = parts.slice(refIdx).join("\n\n").trim();
+    parts.splice(refIdx);
+  }
+
+  return { body: parts.join("\n\n").trim(), refs, disclaimer };
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+function getNodeText(node: React.ReactNode): string {
+  if (typeof node === "string") return node;
+  if (typeof node === "number") return String(node);
+  if (Array.isArray(node)) return node.map(getNodeText).join("");
+  if (React.isValidElement(node))
+    return getNodeText((node.props as { children?: React.ReactNode }).children);
+  return "";
+}
+
+// ── Styles ───────────────────────────────────────────────────────────────────
 
 const LIST_CSS = `
 .md-body { font-size: 15px; line-height: 1.7; }
@@ -45,6 +102,31 @@ const LIST_CSS = `
 .md-body hr { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
 .md-body blockquote { border-left: 3px solid var(--brand-green); padding: 4px 12px; margin: 0 0 8px; color: #555; }
 .md-body a { color: var(--brand-green); text-decoration: underline; }
+
+/* References section */
+.md-refs {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #eee;
+  font-size: 13px;
+  color: #444;
+  line-height: 1.6;
+}
+.md-refs strong { color: var(--brand-navy) !important; font-size: 14px; }
+.md-refs ul, .md-refs ol { padding-left: 16px; margin: 4px 0 0; }
+.md-refs ul > li, .md-refs ol > li { font-size: 13px; font-weight: 400; margin-bottom: 2px; color: #444; list-style-type: disc; }
+
+/* Disclaimer section */
+.md-disclaimer {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #eee;
+  font-size: 12px;
+  color: #888;
+  font-style: italic;
+  line-height: 1.55;
+  white-space: pre-line;
+}
 `;
 
 let styleInjected = false;
@@ -56,31 +138,69 @@ function injectStyles() {
   document.head.appendChild(el);
 }
 
+// ── Shared component map ─────────────────────────────────────────────────────
+
+type NodeProps = { children?: React.ReactNode };
+type AnchorProps = { href?: string; children?: React.ReactNode };
+
+const mdComponents = {
+  p:          ({ children }: NodeProps) => <p>{children}</p>,
+  strong:     ({ children }: NodeProps) => <strong>{children}</strong>,
+  em:         ({ children }: NodeProps) => <em>{children}</em>,
+  ul:         ({ children }: NodeProps) => <ul>{children}</ul>,
+  ol:         ({ children }: NodeProps) => <ol>{children}</ol>,
+  li: ({ children }: NodeProps) => {
+    // Detect ALL-CAPS sub-header list items (e.g. "**ADULTS:**", "**FIRST LINE:**")
+    const text = getNodeText(children).trim();
+    const isSubHeader =
+      text.length >= 5 &&
+      /^[A-Z][A-Z\d\s\/\-()&.,]+:\s*$/.test(text);
+    return isSubHeader ? (
+      <li style={{
+        fontWeight: 600, color: "var(--brand-navy)", marginTop: 8,
+        listStyleType: "none", marginLeft: -4,
+      }}>
+        {children}
+      </li>
+    ) : (
+      <li>{children}</li>
+    );
+  },
+  h1:         ({ children }: NodeProps) => <h1>{children}</h1>,
+  h2:         ({ children }: NodeProps) => <h2>{children}</h2>,
+  h3:         ({ children }: NodeProps) => <h3>{children}</h3>,
+  code:       ({ children }: NodeProps) => <code>{children}</code>,
+  pre:        ({ children }: NodeProps) => <pre>{children}</pre>,
+  blockquote: ({ children }: NodeProps) => <blockquote>{children}</blockquote>,
+  hr:         () => <hr />,
+  a: ({ href, children }: AnchorProps) => (
+    <a href={href} target="_blank" rel="noreferrer">{children}</a>
+  ),
+};
+
+// ── Component ────────────────────────────────────────────────────────────────
+
 export function MarkdownMessage({ content }: { content: string }) {
   injectStyles();
+  const { body, refs, disclaimer } = useMemo(() => splitResponse(content), [content]);
+
   return (
     <div className="md-body">
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
-        components={{
-          p: ({ children }) => <p>{children}</p>,
-          strong: ({ children }) => <strong>{children}</strong>,
-          em: ({ children }) => <em>{children}</em>,
-          ul: ({ children }) => <ul>{children}</ul>,
-          ol: ({ children }) => <ol>{children}</ol>,
-          li: ({ children }) => <li>{children}</li>,
-          h1: ({ children }) => <h1>{children}</h1>,
-          h2: ({ children }) => <h2>{children}</h2>,
-          h3: ({ children }) => <h3>{children}</h3>,
-          code: ({ children }) => <code>{children}</code>,
-          pre: ({ children }) => <pre>{children}</pre>,
-          blockquote: ({ children }) => <blockquote>{children}</blockquote>,
-          hr: () => <hr />,
-          a: ({ href, children }) => <a href={href} target="_blank" rel="noreferrer">{children}</a>,
-        }}
-      >
-        {content}
+      <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
+        {body}
       </ReactMarkdown>
+
+      {refs && (
+        <div className="md-refs">
+          <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
+            {refs}
+          </ReactMarkdown>
+        </div>
+      )}
+
+      {disclaimer && (
+        <div className="md-disclaimer">{disclaimer}</div>
+      )}
     </div>
   );
 }

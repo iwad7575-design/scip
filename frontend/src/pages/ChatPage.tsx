@@ -76,6 +76,7 @@ export function ChatPage() {
   const [shareUrl, setShareUrl]               = useState("");
   const [shareLinkCopied, setShareLinkCopied] = useState(false);
   const [shareTextCopied, setShareTextCopied] = useState(false);
+  const [copiedMsgId, setCopiedMsgId]         = useState<string | null>(null);
 
   const location    = useLocation();
   const isOnChatPage = location.pathname === "/chat";
@@ -756,7 +757,7 @@ export function ChatPage() {
       className="scip-scrollbar chat-messages-outer"
       style={{ flex: 1, overflowY: "auto", minHeight: 0, background: "var(--bg)", padding: "24px 16px" }}
     >
-      <div style={{ maxWidth: 700, margin: "0 auto", display: "flex", flexDirection: "column", gap: 20 }}>
+      <div style={{ maxWidth: 780, margin: "0 auto", display: "flex", flexDirection: "column", gap: 20 }}>
         {messages.map((msg) => (
           msg.role === "user" ? (
             <div key={msg.id} style={{ display: "flex", justifyContent: "flex-end" }}>
@@ -780,11 +781,37 @@ export function ChatPage() {
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{
-                  background: "var(--surface)", border: "1px solid var(--border)",
-                  borderRadius: "4px 18px 18px 18px", padding: "12px 16px",
+                  position: "relative",
+                  background: "#ffffff", border: "1px solid var(--border)",
+                  borderRadius: 12, padding: "20px",
                   fontFamily: "var(--font-body)", color: "var(--text-primary)",
-                  boxShadow: "var(--shadow-xs)",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
                 }}>
+                  <button
+                    className="msg-copy-btn"
+                    onClick={async () => {
+                      const ok = await copyToClipboard(msg.content);
+                      if (ok) { setCopiedMsgId(msg.id); setTimeout(() => setCopiedMsgId(null), 2000); }
+                    }}
+                    title="Copy response"
+                    aria-label="Copy response"
+                    style={{
+                      position: "absolute", top: 10, right: 10,
+                      background: "none", border: "1px solid var(--border)",
+                      borderRadius: 6, padding: "3px 8px",
+                      cursor: "pointer", fontSize: 11,
+                      color: "var(--text-muted)",
+                      fontFamily: "var(--font-heading)", fontWeight: 500,
+                      display: "flex", alignItems: "center", gap: 4,
+                    }}
+                  >
+                    {copiedMsgId === msg.id ? "Copied!" : (
+                      <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <rect x="9" y="9" width="13" height="13" rx="2" />
+                        <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+                      </svg>
+                    )}
+                  </button>
                   <MarkdownMessage content={msg.content} />
                 </div>
                 {msg.stopped && (
@@ -806,8 +833,9 @@ export function ChatPage() {
               <img src="/logo.jpg" alt="SCIP" style={{ width: 18, height: 18, objectFit: "contain", borderRadius: 4 }} />
             </div>
             <div style={{
-              background: "var(--surface)", border: "1px solid var(--border)",
-              borderRadius: "4px 18px 18px 18px", padding: "14px 18px", boxShadow: "var(--shadow-xs)",
+              background: "#ffffff", border: "1px solid var(--border)",
+              borderRadius: 12, padding: "14px 18px",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
             }}>
               <div style={{ display: "flex", gap: 5, alignItems: "center", marginBottom: 6 }}>
                 {[0, 120, 240].map(delay => (
@@ -851,6 +879,11 @@ export function ChatPage() {
           0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
           30%            { transform: translateY(-4px); opacity: 1; }
         }
+        /* Copy button — hidden until hover on desktop */
+        .msg-copy-btn { opacity: 0; transition: opacity 0.15s; }
+        .msg-row-assistant:hover .msg-copy-btn,
+        .msg-row-assistant:focus-within .msg-copy-btn { opacity: 1; }
+        .msg-copy-btn:hover { background: var(--bg) !important; }
         /* Mobile layout overrides */
         @media (max-width: 640px) {
           .hero-desc  { display: none !important; }
@@ -875,6 +908,7 @@ export function ChatPage() {
           .chat-messages-outer { padding-left: 10px !important; padding-right: 10px !important; }
           .msg-avatar { display: none !important; }
           .msg-row-assistant { gap: 0 !important; }
+          .msg-copy-btn { opacity: 1 !important; }
         }
       `}</style>
 
