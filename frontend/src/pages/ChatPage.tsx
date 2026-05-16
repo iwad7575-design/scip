@@ -753,7 +753,7 @@ export function ChatPage() {
 
   const chatContent = (
     <div
-      className="scip-scrollbar"
+      className="scip-scrollbar chat-messages-outer"
       style={{ flex: 1, overflowY: "auto", minHeight: 0, background: "var(--bg)", padding: "24px 16px" }}
     >
       <div style={{ maxWidth: 700, margin: "0 auto", display: "flex", flexDirection: "column", gap: 20 }}>
@@ -771,8 +771,8 @@ export function ChatPage() {
               </div>
             </div>
           ) : (
-            <div key={msg.id} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-              <div style={{
+            <div key={msg.id} className="msg-row-assistant" style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+              <div className="msg-avatar" style={{
                 width: 32, height: 32, borderRadius: "50%", background: "var(--brand-navy)",
                 display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2,
               }}>
@@ -798,8 +798,8 @@ export function ChatPage() {
         ))}
 
         {loading && (
-          <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-            <div style={{
+          <div className="msg-row-assistant" style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+            <div className="msg-avatar" style={{
               width: 32, height: 32, borderRadius: "50%", background: "var(--brand-navy)",
               display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2,
             }}>
@@ -871,6 +871,10 @@ export function ChatPage() {
           .send-btn { padding: 0 12px !important; min-width: 44px !important; }
           .share-btn-label { display: none !important; }
           .share-btn { padding: 6px 10px !important; }
+          /* Full-width assistant responses on mobile */
+          .chat-messages-outer { padding-left: 10px !important; padding-right: 10px !important; }
+          .msg-avatar { display: none !important; }
+          .msg-row-assistant { gap: 0 !important; }
         }
       `}</style>
 
