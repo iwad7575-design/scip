@@ -203,7 +203,6 @@ class StarterChatServer(ChatKitServer[dict[str, Any]]):
                     "max_num_results": n,
                     "ranking_options": {"score_threshold": 0.35},
                 }],
-                temperature=0.1,
             )
         except Exception as e:
             print(f"OpenAI API error after {(time.perf_counter()-t_openai)*1000:.0f}ms: {type(e).__name__}: {e}", flush=True)
