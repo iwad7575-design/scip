@@ -65,7 +65,11 @@ self.addEventListener('fetch', e => {
               root || new Response(OFFLINE_HTML, { headers: { 'Content-Type': 'text/html' } })
             );
           }
-          return new Response(OFFLINE_HTML, { headers: { 'Content-Type': 'text/html' } });
+          // Non-navigation requests (API calls, assets) get a proper error, not HTML
+          return new Response(JSON.stringify({ error: 'offline' }), {
+            status: 503,
+            headers: { 'Content-Type': 'application/json' },
+          });
         })
       )
   );

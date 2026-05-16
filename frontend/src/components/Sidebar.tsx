@@ -85,7 +85,9 @@ export function Sidebar({
 
     loadSessions();
 
-    // Real-time: re-fetch whenever any chat_session row for this user changes
+    // Fallback poll — cancelled automatically if real-time connects successfully
+    let pollId: ReturnType<typeof setInterval> | null = setInterval(loadSessions, 30_000);
+
     const channel = supabase
       .channel(`sidebar_sessions:${user.id}`)
       .on(
@@ -93,14 +95,16 @@ export function Sidebar({
         { event: "*", schema: "public", table: "chat_sessions", filter: `user_id=eq.${user.id}` },
         () => { loadSessions(); }
       )
-      .subscribe();
-
-    // Fallback poll every 30s in case real-time is not enabled on this table
-    const pollId = setInterval(loadSessions, 30_000);
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED" && pollId !== null) {
+          clearInterval(pollId);
+          pollId = null;
+        }
+      });
 
     return () => {
       supabase.removeChannel(channel);
-      clearInterval(pollId);
+      if (pollId !== null) clearInterval(pollId);
     };
   }, [user.id, refreshKey]);
 

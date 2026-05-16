@@ -4,3 +4,4 @@ openai>=1.66
 openai-chatkit>=1.4.0,<2
 python-dotenv>=1.0
 supabase>=2.0.0
+slowapi>=0.1.9

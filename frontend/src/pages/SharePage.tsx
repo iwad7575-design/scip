@@ -14,7 +14,9 @@ export function SharePage() {
 
   useEffect(() => {
     if (!id) { setError("Invalid share link."); setLoading(false); return; }
-    fetch(`${SHARE_API_URL}/${id}`)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 20_000);
+    fetch(`${SHARE_API_URL}/${id}`, { signal: controller.signal })
       .then(r => r.ok ? r.json() : r.json().then((e: { error?: string }) => Promise.reject(e.error ?? "Not found")))
       .then(data => {
         setMessages(data.messages ?? []);
@@ -22,9 +24,13 @@ export function SharePage() {
         setLoading(false);
       })
       .catch((err: unknown) => {
-        setError(typeof err === "string" ? err : "Share not found or has expired.");
+        const msg = err instanceof Error && err.name === "AbortError"
+          ? "Request timed out. The server may be starting up — please try again in a moment."
+          : typeof err === "string" ? err : "Share not found or has expired.";
+        setError(msg);
         setLoading(false);
-      });
+      })
+      .finally(() => clearTimeout(timeoutId));
   }, [id]);
 
   const firstUserMsg = messages.find(m => m.role === "user");

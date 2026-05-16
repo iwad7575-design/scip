@@ -12,7 +12,6 @@ import asyncio
 import json
 import re
 import secrets
-import string
 import time
 from collections import OrderedDict
 from datetime import datetime, timezone
@@ -21,11 +20,16 @@ from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 
 from app.server import StarterChatServer, MODEL, SYSTEM_PROMPT, VECTOR_STORE_ID, client  # IMPORTANT: absolute import
 from app.supabase_client import supabase
 
 bearer = HTTPBearer()
+
+limiter = Limiter(key_func=get_remote_address)
 
 # ── In-memory response cache ──────────────────────────────────────────────────
 # Stores up to 50 single-turn question→answer pairs for 24 hours.
@@ -149,6 +153,8 @@ async def get_optional_user(request: Request):
         return None
 
 app = FastAPI(title="SCIP RAG Agent API")
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 _extra = os.getenv("FRONTEND_URL", "")
 
@@ -199,6 +205,7 @@ async def health():
 
 
 @app.post("/ask")
+@limiter.limit("20/minute")
 async def ask_endpoint(request: Request, _user=Depends(get_optional_user)):
     """Public chat endpoint — streams SSE text deltas as they arrive."""
     t0 = time.perf_counter()
@@ -342,9 +349,8 @@ async def ask_endpoint(request: Request, _user=Depends(get_optional_user)):
     )
 
 
-def _generate_share_id(length: int = 10) -> str:
-    alphabet = string.ascii_lowercase + string.digits
-    return "".join(secrets.choice(alphabet) for _ in range(length))
+def _generate_share_id() -> str:
+    return secrets.token_urlsafe(16)
 
 
 @app.post("/share")

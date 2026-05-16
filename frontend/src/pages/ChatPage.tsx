@@ -12,7 +12,32 @@ const EXAMPLE_QUESTIONS = [
   { icon: "👶", category: "Neonatology",        text: "Signs and management of neonatal sepsis" },
 ];
 
-type Message = { role: "user" | "assistant"; content: string; stopped?: boolean };
+type Message = { id: string; role: "user" | "assistant"; content: string; stopped?: boolean };
+
+function mkId() { return crypto.randomUUID(); }
+
+// Strings that appear in SCIP's refusal responses (must match system prompt exactly).
+// Centralised here so a single prompt update only requires one code change.
+const REFUSAL_MARKERS = [
+  "I am SCIP — a clinical decision support assistant",
+  "cannot provide that information",
+  "I can only help with medical and clinical questions",
+];
+
+// Clipboard helper with execCommand fallback for older / non-HTTPS contexts
+async function copyToClipboard(text: string): Promise<boolean> {
+  if (navigator.clipboard?.writeText) {
+    try { await navigator.clipboard.writeText(text); return true; } catch { /* fall through */ }
+  }
+  const el = document.createElement("textarea");
+  el.value = text;
+  el.style.cssText = "position:fixed;opacity:0;pointer-events:none";
+  document.body.appendChild(el);
+  el.select();
+  const ok = document.execCommand("copy");
+  document.body.removeChild(el);
+  return ok;
+}
 
 const CITATION_RE = /filecite\s*turn\d+\s*file\d+|turn\d+file\d+|【[^】]*】/gi;
 function cleanCitations(text: string): string {
@@ -96,7 +121,7 @@ export function ChatPage() {
     setMessages(prev => {
       const last = prev[prev.length - 1];
       if (last?.role === "assistant") return prev;
-      return [...prev, { role: "assistant", content: "SCIP took too long to respond. Please try your question again." }];
+      return [...prev, { id: mkId(), role: "assistant", content: "SCIP took too long to respond. Please try your question again." }];
     });
   }, [elapsed, loading]);
 
@@ -140,8 +165,8 @@ export function ChatPage() {
     if (error) { console.error("[SCIP] Load session error:", error.message); return; }
     if (!data || data.length === 0) { console.log("[SCIP] No messages for session:", sessionId); return; }
     const msgs: Message[] = data.flatMap(row => [
-      { role: "user" as const, content: row.question },
-      { role: "assistant" as const, content: row.answer },
+      { id: mkId(), role: "user" as const, content: row.question },
+      { id: mkId(), role: "assistant" as const, content: row.answer },
     ]);
     setMessages(msgs);
     setCurrentSessionId(sessionId);
@@ -172,7 +197,7 @@ export function ChatPage() {
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
-    const userMsg: Message = { role: "user", content: text };
+    const userMsg: Message = { id: mkId(), role: "user", content: text };
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
     setInput("");
@@ -198,7 +223,7 @@ export function ChatPage() {
           .select("id")
           .single();
         if (insertError) {
-          console.error("[SCIP] chat_sessions INSERT failed:", insertError.message, insertError.code);
+          console.error("[SCIP] chat_sessions INSERT failed:", insertError.message);
         }
         if (data?.id) {
           sessionId = data.id;
@@ -254,7 +279,7 @@ export function ChatPage() {
               if (!started) {
                 started = true;
                 setLoading(false);
-                setMessages(prev => [...prev, { role: "assistant", content: "" }]);
+                setMessages(prev => [...prev, { id: mkId(), role: "assistant", content: "" }]);
               }
               setMessages(prev => {
                 const updated = [...prev];
@@ -267,14 +292,14 @@ export function ChatPage() {
             }
             if (evt.error && !started && !errorOccurred) {
               errorOccurred = true;
-              setMessages(prev => [...prev, { role: "assistant", content: "I'm sorry, something went wrong. Please try again." }]);
+              setMessages(prev => [...prev, { id: mkId(), role: "assistant", content: "I'm sorry, something went wrong. Please try again." }]);
             }
           } catch { /* malformed SSE line */ }
         }
       }
 
       if (!started && !errorOccurred) {
-        setMessages(prev => [...prev, { role: "assistant", content: "I'm sorry, I couldn't generate a response. Please try again." }]);
+        setMessages(prev => [...prev, { id: mkId(), role: "assistant", content: "I'm sorry, I couldn't generate a response. Please try again." }]);
       }
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") {
@@ -289,16 +314,11 @@ export function ChatPage() {
         });
         return;
       }
-      setMessages(prev => [...prev, { role: "assistant", content: "Failed to connect to the server. Please try again." }]);
+      setMessages(prev => [...prev, { id: mkId(), role: "assistant", content: "Failed to connect to the server. Please try again." }]);
     } finally {
       setLoading(false);
 
-      // Detect refusal responses — these are not real clinical answers and must not be saved.
-      // Strings match the exact refusal formats in the system prompt SECURITY RULES and
-      // NON-MEDICAL QUESTION RULE sections.
-      const isRefusal = assistantContent.includes("I am SCIP — a clinical decision support assistant") ||
-        assistantContent.includes("I cannot provide that information.") ||
-        assistantContent.includes("I can only help with medical and clinical questions");
+      const isRefusal = REFUSAL_MARKERS.some(m => assistantContent.includes(m));
 
       if (isRefusal) {
         console.log("[SCIP] Refusal response — skipping history save");
@@ -341,7 +361,7 @@ export function ChatPage() {
 
       isSendingRef.current = false;
     }
-  }, [messages, loading, currentSessionId]);
+  }, [messages, loading, currentSessionId, navigate]);
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(input); }
@@ -367,9 +387,11 @@ export function ChatPage() {
     const text = messages
       .map(m => (m.role === "user" ? `Q: ${m.content}` : `A: ${m.content}`))
       .join("\n\n");
-    await navigator.clipboard.writeText(text);
-    setShareTextCopied(true);
-    setTimeout(() => setShareTextCopied(false), 2000);
+    const ok = await copyToClipboard(text);
+    if (ok) {
+      setShareTextCopied(true);
+      setTimeout(() => setShareTextCopied(false), 2000);
+    }
   }
 
   async function handleCreateShareLink() {
@@ -393,9 +415,11 @@ export function ChatPage() {
   }
 
   async function handleCopyShareLink() {
-    await navigator.clipboard.writeText(shareUrl);
-    setShareLinkCopied(true);
-    setTimeout(() => setShareLinkCopied(false), 2000);
+    const ok = await copyToClipboard(shareUrl);
+    if (ok) {
+      setShareLinkCopied(true);
+      setTimeout(() => setShareLinkCopied(false), 2000);
+    }
   }
 
   const hasMessages = messages.length > 0;
@@ -733,9 +757,9 @@ export function ChatPage() {
       style={{ flex: 1, overflowY: "auto", minHeight: 0, background: "var(--bg)", padding: "24px 16px" }}
     >
       <div style={{ maxWidth: 700, margin: "0 auto", display: "flex", flexDirection: "column", gap: 20 }}>
-        {messages.map((msg, i) => (
+        {messages.map((msg) => (
           msg.role === "user" ? (
-            <div key={i} style={{ display: "flex", justifyContent: "flex-end" }}>
+            <div key={msg.id} style={{ display: "flex", justifyContent: "flex-end" }}>
               <div style={{ maxWidth: "82%" }}>
                 <div style={{
                   background: "var(--brand-navy)", color: "#ffffff",
@@ -747,7 +771,7 @@ export function ChatPage() {
               </div>
             </div>
           ) : (
-            <div key={i} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+            <div key={msg.id} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
               <div style={{
                 width: 32, height: 32, borderRadius: "50%", background: "var(--brand-navy)",
                 display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2,
