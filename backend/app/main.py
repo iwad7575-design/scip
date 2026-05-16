@@ -283,6 +283,7 @@ async def ask_endpoint(request: Request, _user=Depends(get_optional_user)):
                         "max_num_results": num_results,
                         "ranking_options": {"score_threshold": 0.35},
                     }],
+                    temperature=0.1,
                 ) as stream:
                     async for event in stream:
                         etype = getattr(event, "type", "")
