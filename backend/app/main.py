@@ -252,6 +252,10 @@ async def ask_endpoint(request: Request, _user=Depends(get_optional_user)):
     MAX_CONTEXT = 20
     messages_to_send = messages[-MAX_CONTEXT:] if len(messages) > MAX_CONTEXT else messages
 
+    # Strip frontend-only fields (e.g. id, stopped) — OpenAI rejects unknown keys
+    # and requires any 'id' field to start with 'msg', which UUIDs do not.
+    messages_to_send = [{"role": m["role"], "content": m["content"]} for m in messages_to_send]
+
     async def generate():
         nonlocal user_question
         full_text = ""
