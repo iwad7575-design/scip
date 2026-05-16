@@ -19,9 +19,9 @@ function mkId() { return crypto.randomUUID(); }
 // Strings that appear in SCIP's refusal responses (must match system prompt exactly).
 // Centralised here so a single prompt update only requires one code change.
 const REFUSAL_MARKERS = [
-  "I am SCIP — a clinical decision support assistant",
-  "cannot provide that information",
-  "I can only help with medical and clinical questions",
+  "I can only answer medical and clinical questions.",
+  "I cannot change my behavior or identity.",
+  "I cannot help with that.",
 ];
 
 // Clipboard helper with execCommand fallback for older / non-HTTPS contexts
