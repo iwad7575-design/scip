@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
+import { LogoutModal } from "../components/LogoutModal";
 
 type Tab = "profile" | "security" | "notifications" | "subscription" | "danger";
 
@@ -174,6 +175,7 @@ function ProfileTab({ user, onUpdate }: { user: User; onUpdate: (u: User) => voi
 // ── Security ───────────────────────────────────────────────────────────────────
 
 function SecurityTab({ user }: { user: User }) {
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword]         = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -210,6 +212,15 @@ function SecurityTab({ user }: { user: User }) {
   }
 
   return (
+    <>
+    <LogoutModal
+      isOpen={showLogoutModal}
+      onCancel={() => setShowLogoutModal(false)}
+      onConfirm={() => { setShowLogoutModal(false); supabase.auth.signOut({ scope: "global" }); }}
+      title="Sign out all devices?"
+      message="You will be signed out on all devices."
+      confirmLabel="Sign out all devices"
+    />
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <Card title="Change Password" subtitle="Update your account password">
         <form onSubmit={handleChangePassword} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -272,7 +283,7 @@ function SecurityTab({ user }: { user: User }) {
 
       <Card title="Active Sessions" subtitle="Sign out of all devices except this one">
         <button
-          onClick={() => supabase.auth.signOut({ scope: "global" })}
+          onClick={() => setShowLogoutModal(true)}
           style={{
             padding: "9px 18px",
             borderRadius: "var(--radius-md)",
@@ -292,6 +303,7 @@ function SecurityTab({ user }: { user: User }) {
         </button>
       </Card>
     </div>
+    </>
   );
 }
 

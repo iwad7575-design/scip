@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
+import { LogoutModal } from "./LogoutModal";
 
 export interface ChatSession {
   id: string;
@@ -56,6 +57,7 @@ export function Sidebar({
   const navigate = useNavigate();
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
@@ -382,7 +384,7 @@ export function Sidebar({
                   </svg>
                 }
                 label="Sign out"
-                onClick={() => { setShowUserMenu(false); supabase.auth.signOut(); }}
+                onClick={() => { setShowUserMenu(false); setShowLogoutModal(true); }}
                 danger
               />
             </div>
@@ -394,6 +396,11 @@ export function Sidebar({
 
   return (
     <>
+      <LogoutModal
+        isOpen={showLogoutModal}
+        onCancel={() => setShowLogoutModal(false)}
+        onConfirm={() => { setShowLogoutModal(false); supabase.auth.signOut(); }}
+      />
       {/* Desktop sidebar — in flow, collapsible via isDesktopOpen */}
       {isDesktopOpen && (
         <div className="hidden lg:flex" style={{ height: "100dvh", flexShrink: 0 }}>
