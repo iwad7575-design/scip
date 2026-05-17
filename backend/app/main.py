@@ -24,7 +24,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
-from app.server import StarterChatServer, MODEL, SYSTEM_PROMPT, VECTOR_STORE_ID, client  # IMPORTANT: absolute import
+from app.server import StarterChatServer, call_workflow  # IMPORTANT: absolute import
 from app.supabase_client import supabase
 
 bearer = HTTPBearer()
@@ -290,100 +290,32 @@ async def ask_endpoint(request: Request, _user=Depends(get_optional_user)):
                 headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
             )
 
-    num_results = _num_results(messages)
-    print(f"[TIMING] num_results={num_results} (question words: {len(user_question.split())})", flush=True)
-
-    # Send only the current question — no history — so the full context
-    # window is available for retrieved document chunks.
-    messages_to_send = [{"role": "user", "content": user_question}]
-
     async def generate():
-        nonlocal user_question
-        full_text = ""
-        first_delta_at: list[float] = []
-        queue: asyncio.Queue = asyncio.Queue()
-        got_first_token = False
+        t_call = time.perf_counter()
+        print(f"[TIMING] → workflow call starting", flush=True)
+        try:
+            full_text = await call_workflow(user_question)
+        except Exception as e:
+            print(f"[TIMING] workflow error: {type(e).__name__}: {e}", flush=True)
+            yield f"data: {json.dumps({'error': 'Failed to generate a response. Please try again.'})}\n\n"
+            return
 
-        async def run_stream():
-            t_openai_start = time.perf_counter()
-            print(
-                f"[TIMING] → OpenAI stream starting "
-                f"(file_search max_num_results={num_results}, score_threshold=0.15)",
-                flush=True,
-            )
-            try:
-                async with client.responses.stream(
-                    model=MODEL,
-                    input=[{"role": "system", "content": SYSTEM_PROMPT}] + messages_to_send,
-                    reasoning={"effort": "low"},
-                    tools=[{
-                        "type": "file_search",
-                        "vector_store_ids": [VECTOR_STORE_ID],
-                        "max_num_results": num_results,
-                        "ranking_options": {"score_threshold": 0.15},
-                    }],
-                ) as stream:
-                    async for event in stream:
-                        etype = getattr(event, "type", "")
-                        if etype == "response.output_item.added":
-                            item_type = getattr(getattr(event, "item", None), "type", "?")
-                            print(f"[TIMING] output_item.added type={item_type} at {(time.perf_counter()-t_openai_start)*1000:.0f}ms", flush=True)
-                        elif etype == "response.output_text.delta":
-                            delta = getattr(event, "delta", "")
-                            if delta:
-                                if not first_delta_at:
-                                    ttft = (time.perf_counter() - t_openai_start) * 1000
-                                    total_ttft = (time.perf_counter() - t0) * 1000
-                                    first_delta_at.append(time.perf_counter())
-                                    print(f"[TIMING] ⚡ FIRST TOKEN: {ttft:.0f}ms after OpenAI call | {total_ttft:.0f}ms end-to-end", flush=True)
-                                await queue.put(("delta", _clean_citations(delta)))
-            except asyncio.CancelledError:
-                print(f"[TIMING] ⏰ stream cancelled by watchdog (no first token in {_STREAM_TIMEOUT_S}s)", flush=True)
-            except Exception as e:
-                print(f"[TIMING] OpenAI error after {(time.perf_counter()-t_openai_start)*1000:.0f}ms: {type(e).__name__}: {e}", flush=True)
-                queue.put_nowait(("error", str(e)))
-            finally:
-                t_done = time.perf_counter()
-                print(f"[TIMING] ✓ stream done | total={( t_done - t0)*1000:.0f}ms | chars={len(full_text)}", flush=True)
-                queue.put_nowait(("done", None))
+        elapsed = (time.perf_counter() - t_call) * 1000
+        total = (time.perf_counter() - t0) * 1000
+        print(f"[TIMING] ✓ workflow done | call={elapsed:.0f}ms | total={total:.0f}ms | chars={len(full_text)}", flush=True)
 
-        stream_task = asyncio.create_task(run_stream())
+        if not full_text:
+            yield f"data: {json.dumps({'error': 'Failed to generate a response. Please try again.'})}\n\n"
+            return
 
-        # Watchdog: cancel the OpenAI call if no first token within timeout
-        async def _watchdog():
-            await asyncio.sleep(_STREAM_TIMEOUT_S)
-            if not stream_task.done() and not got_first_token:
-                stream_task.cancel()
-                queue.put_nowait(("error", "timeout"))
+        full_text = _clean_citations(full_text)
+        _check_drug_doses(full_text)
 
-        asyncio.create_task(_watchdog())
+        yield f"data: {json.dumps({'delta': full_text})}\n\n"
 
-        while True:
-            try:
-                kind, value = await asyncio.wait_for(queue.get(), timeout=15)
-                if kind == "delta":
-                    got_first_token = True  # type: ignore[assignment]  # nonlocal via closure
-                    full_text += value
-                    yield f"data: {json.dumps({'delta': value})}\n\n"
-                elif kind == "error":
-                    yield f"data: {json.dumps({'error': 'Failed to generate a response. Please try again.'})}\n\n"
-                    return
-                elif kind == "done":
-                    break
-            except asyncio.TimeoutError:
-                print(f"[TIMING] keepalive at {(time.perf_counter()-t0)*1000:.0f}ms (file_search still running)", flush=True)
-                yield ": keepalive\n\n"
-
-        if full_text:
-            _check_drug_doses(full_text)
-
-        # Store in cache (single-turn questions only, non-empty answers)
         if is_single_turn and user_question and full_text:
             _cache.set(cache_key, full_text)
             print(f"[CACHE] stored | chars={len(full_text)} | question={user_question[:60]}", flush=True)
-
-        # chat_history is now saved by the frontend (with session_id linkage).
-        # The backend no longer writes here to avoid duplicate rows.
 
         yield f"data: {json.dumps({'done': True})}\n\n"
 
