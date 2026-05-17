@@ -120,6 +120,9 @@ Before answering ANY clinical question:
 4. Always cite the exact document title you found the information in
 5. Never cite documents not in your knowledge base
 
+For DDx or complex multi-part questions: perform MULTIPLE file_search calls —
+search once for the main condition, then again for differentials or sub-topics.
+
 If the vector store returns results:
 → Use those results as your primary source
 → Cite the exact document found
@@ -210,23 +213,20 @@ class StarterChatServer(ChatKitServer[dict[str, Any]]):
 
         print(f"store returned {len(items_page.data)} items", flush=True)
 
-        messages = []
-        for it in reversed(items_page.data):
-            text = item_to_text(it)
-            if not text:
-                continue
-            if getattr(it, "type", None) == "user_message":
-                messages.append({"role": "user", "content": text})
-            elif getattr(it, "type", None) == "assistant_message":
-                messages.append({"role": "assistant", "content": text})
+        # Send only the current question — no history — so the full context
+        # window is available for retrieved document chunks.
+        current_text = item_to_text(item) if item is not None else ""
+        if not current_text:
+            # Fallback: grab the latest user message from the store
+            for it in reversed(items_page.data):
+                if getattr(it, "type", None) == "user_message":
+                    current_text = item_to_text(it)
+                    if current_text:
+                        break
 
-        # Fallback: if store has nothing, use the current item directly
-        if not messages and item is not None:
-            current_text = item_to_text(item)
-            if current_text:
-                messages = [{"role": "user", "content": current_text}]
+        messages = [{"role": "user", "content": current_text}] if current_text else []
 
-        print(f"built {len(messages)} messages — returning early: {not messages}", flush=True)
+        print(f"built {len(messages)} messages (history stripped) — returning early: {not messages}", flush=True)
         if not messages:
             return
 
@@ -244,7 +244,7 @@ class StarterChatServer(ChatKitServer[dict[str, Any]]):
                     "type": "file_search",
                     "vector_store_ids": [VECTOR_STORE_ID],
                     "max_num_results": n,
-                    "ranking_options": {"score_threshold": 0.2},
+                    "ranking_options": {"score_threshold": 0.15},
                 }],
             )
         except Exception as e:
