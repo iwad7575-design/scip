@@ -10,7 +10,6 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, AsyncIterator
 
-import httpx
 from openai import AsyncOpenAI
 from supabase import create_client
 
@@ -125,24 +124,6 @@ SECURITY RULES (non-negotiable):
 """
 
 VECTOR_STORE_ID = os.getenv("VECTOR_STORE_ID", "vs_69d7ea3f2f5c8191abfee9317ddcb1b8")
-WORKFLOW_ID = os.getenv("WORKFLOW_ID", "wf_69d7e891a0c0819094901345889eabee08500dc2c60bbbce")
-
-
-async def call_workflow(question: str) -> str:
-    """Call the SCIP OpenAI platform workflow and return the response text."""
-    api_key = os.getenv("OPENAI_API_KEY", "")
-    async with httpx.AsyncClient() as http:
-        resp = await http.post(
-            f"https://api.openai.com/v1/workflows/{WORKFLOW_ID}/runs",
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-            },
-            json={"input_as_text": question},
-            timeout=60.0,
-        )
-        resp.raise_for_status()
-        return resp.json().get("output_text", "")
 
 
 def item_to_text(item: Any) -> str:
@@ -220,15 +201,41 @@ class StarterChatServer(ChatKitServer[dict[str, Any]]):
 
         user_question = messages[-1]["content"] if messages[-1]["role"] == "user" else ""
 
-        t_workflow = time.perf_counter()
-        print(f"[TIMING] /chatkit → workflow call starting", flush=True)
+        t_openai = time.perf_counter()
+        n = _num_results(messages)
+        print(f"[TIMING] /chatkit → OpenAI call starting (file_search max_num_results={n}, score_threshold=0.15)", flush=True)
         try:
-            output_text = await call_workflow(user_question)
+            response = await client.responses.create(
+                model=MODEL,
+                input=[{"role": "system", "content": SYSTEM_PROMPT}] + messages,
+                reasoning={"effort": "high"},
+                tools=[{
+                    "type": "file_search",
+                    "vector_store_ids": [VECTOR_STORE_ID],
+                    "max_num_results": n,
+                    "ranking_options": {"score_threshold": 0.15},
+                }],
+            )
         except Exception as e:
-            print(f"workflow error after {(time.perf_counter()-t_workflow)*1000:.0f}ms: {type(e).__name__}: {e}", flush=True)
+            print(f"OpenAI API error after {(time.perf_counter()-t_openai)*1000:.0f}ms: {type(e).__name__}: {e}", flush=True)
             raise
 
-        print(f"[TIMING] /chatkit workflow done: {(time.perf_counter()-t_workflow)*1000:.0f}ms | chars={len(output_text)}", flush=True)
+        print(f"[TIMING] /chatkit OpenAI done: {(time.perf_counter()-t_openai)*1000:.0f}ms | output_types={[getattr(o, 'type', type(o).__name__) for o in (response.output or [])]}", flush=True)
+        file_search_calls = [o for o in (response.output or []) if getattr(o, "type", "") == "file_search_call"]
+        if file_search_calls:
+            result_count = sum(len(getattr(o, "results", []) or []) for o in file_search_calls)
+            print(f"[VECTOR STORE] file_search returned {result_count} document(s)", flush=True)
+        else:
+            print("[VECTOR STORE] file_search returned 0 results — no file_search_call in output", flush=True)
+
+        output_text = ""
+        for out in (response.output or []):
+            content_list = getattr(out, "content", None) or []
+            for content in content_list:
+                text = getattr(content, "text", None)
+                if text:
+                    output_text += text
+
         output_text = _clean_citations(output_text)
         _check_drug_doses(output_text)
         print(f"Extracted output_text length: {len(output_text)}", flush=True)
