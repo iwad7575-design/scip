@@ -26,7 +26,7 @@ from chatkit.types import (
 from .memory_store import MemoryStore
 
 MAX_RECENT_ITEMS = 30
-MODEL = "gpt-5-nano"
+MODEL = "gpt-5.4-mini"
 
 _CITATION_RE = re.compile(
     r"filecite\s*turn\d+\s*file\d+"   # fileciteturn0file1  (full pattern)
