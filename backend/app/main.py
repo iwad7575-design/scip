@@ -248,7 +248,7 @@ async def ask_endpoint(request: Request, _user=Depends(get_optional_user)):
     access_token = auth_header.removeprefix("Bearer ").strip() if auth_header.startswith("Bearer ") else ""
 
     t_parse = time.perf_counter()
-    print(f"[TIMING] request parsed: {(t_parse - t0)*1000:.0f}ms | messages={len(messages)}", flush=True)
+    print(f"[TIMING] request parsed: {(t_parse - t0)*1000:.0f}ms | messages_received={len(messages)} (only last question sent to OpenAI)", flush=True)
 
     # Extract last user question for cache lookup
     user_messages = [m for m in messages if m.get("role") == "user"]
