@@ -20,6 +20,19 @@ const DISCLAIMER_START_RE =
 const REFS_HEADER_RE =
   /^(?:📚\s*)?(?:\*{0,2}\s*)?references?(?:\s*\*{0,2})?[:\s]/im;
 
+// Remove duplicate list items from the references section
+function deduplicateRefs(text: string): string {
+  const seen = new Set<string>();
+  return text.split("\n").filter(line => {
+    const isList = /^[\s]*[-*]|\d+\./.test(line);
+    if (!isList) return true;
+    const key = line.toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).join("\n");
+}
+
 function splitResponse(text: string): {
   body: string;
   refs: string | null;
@@ -43,7 +56,7 @@ function splitResponse(text: string): {
   // Extract references — everything from the first refs-header paragraph onward
   const refIdx = parts.findIndex(p => REFS_HEADER_RE.test(p.trim()));
   if (refIdx !== -1) {
-    refs = parts.slice(refIdx).join("\n\n").trim();
+    refs = deduplicateRefs(parts.slice(refIdx).join("\n\n").trim());
     parts.splice(refIdx);
   }
 
