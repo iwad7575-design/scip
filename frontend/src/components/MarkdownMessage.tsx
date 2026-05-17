@@ -36,45 +36,94 @@ const FOLLOWUP_RE =
 // disclaimer and follow-up prompt to render as bullet points inside the refs list.
 function fixListBreaks(text: string): string {
   return text.replace(
-    /(\n- [^\n]+)\n(⚠️|🔍|💊|🧪|🏥|🚨|📋|📚)/g,
+    /(\n[-*] [^\n]+)\n(⚠️|🔍|💊|🧪|🏥|🚨|📋|📚)/g,
     "$1\n\n$2",
   );
 }
 
-// ── ARV drug name expansion ───────────────────────────────────────────────────
+// ── Abbreviation expansion ───────────────────────────────────────────────────
+// Expands the FIRST occurrence of each abbreviation to its full name.
+// Subsequent occurrences keep the short form.
+// Longer keys are processed first to prevent partial matches
+// (e.g. mWRD expanded before WRD, MDR-TB before TB).
+// Safe on raw markdown — **TDF** → **Tenofovir (TDF)** leaves ** intact.
 
-const ARV_NAMES: Record<string, string> = {
-  "TDF":   "Tenofovir (TDF)",
-  "3TC":   "Lamivudine (3TC)",
-  "DTG":   "Dolutegravir (DTG)",
-  "EFV":   "Efavirenz (EFV)",
-  "AZT":   "Zidovudine (AZT)",
-  "ABC":   "Abacavir (ABC)",
-  "NVP":   "Nevirapine (NVP)",
-  "LPV/r": "Lopinavir/ritonavir (LPV/r)",
-  "ATV/r": "Atazanavir/ritonavir (ATV/r)",
-  "FTC":   "Emtricitabine (FTC)",
-  "TAF":   "Tenofovir alafenamide (TAF)",
-  "RAL":   "Raltegravir (RAL)",
-  "DRV/r": "Darunavir/ritonavir (DRV/r)",
-  "RPV":   "Rilpivirine (RPV)",
-  "CAB":   "Cabotegravir (CAB)",
+const ALL_ABBREVIATIONS: Record<string, string> = {
+  // TB
+  "TB-LAMP": "TB loop-mediated isothermal amplification (TB-LAMP)",
+  "MDR-TB":  "multidrug-resistant TB (MDR-TB)",
+  "LF-LAM":  "lateral flow urine lipoarabinomannan (LF-LAM)",
+  "RR-TB":   "rifampicin-resistant TB (RR-TB)",
+  "DR-TB":   "drug-resistant TB (DR-TB)",
+  "mWRD":    "molecular WHO-recommended rapid diagnostic (mWRD)",
+  "EPTB":    "extrapulmonary tuberculosis (EPTB)",
+  "MTB":     "Mycobacterium tuberculosis (MTB)",
+  "WRD":     "WHO-recommended rapid diagnostic (WRD)",
+  "PTB":     "pulmonary tuberculosis (PTB)",
+  "AFB":     "acid-fast bacilli (AFB)",
+  "DST":     "drug susceptibility testing (DST)",
+  "DOT":     "directly observed therapy (DOT)",
+  "FDC":     "fixed-dose combination (FDC)",
+  // HIV
+  "PMTCT":   "prevention of mother-to-child transmission (PMTCT)",
+  "PLHIV":   "people living with HIV (PLHIV)",
+  "RVI":     "retroviral infection / HIV (RVI)",
+  "ART":     "antiretroviral therapy (ART)",
+  "OI":      "opportunistic infection (OI)",
+  "VL":      "viral load (VL)",
+  // ARV drugs
+  "LPV/r":   "Lopinavir/ritonavir (LPV/r)",
+  "ATV/r":   "Atazanavir/ritonavir (ATV/r)",
+  "DRV/r":   "Darunavir/ritonavir (DRV/r)",
+  "TDF":     "Tenofovir (TDF)",
+  "3TC":     "Lamivudine (3TC)",
+  "DTG":     "Dolutegravir (DTG)",
+  "EFV":     "Efavirenz (EFV)",
+  "AZT":     "Zidovudine (AZT)",
+  "ABC":     "Abacavir (ABC)",
+  "NVP":     "Nevirapine (NVP)",
+  "FTC":     "Emtricitabine (FTC)",
+  "TAF":     "Tenofovir alafenamide (TAF)",
+  "RAL":     "Raltegravir (RAL)",
+  "RPV":     "Rilpivirine (RPV)",
+  "CAB":     "Cabotegravir (CAB)",
+  // General clinical
+  "IMNCI":   "integrated management of neonatal and childhood illness (IMNCI)",
+  "MUAC":    "mid-upper arm circumference (MUAC)",
+  "SpO2":    "oxygen saturation (SpO2)",
+  "FNAC":    "fine needle aspiration cytology (FNAC)",
+  "SOFA":    "sequential organ failure assessment (SOFA)",
+  "SAAG":    "serum-ascites albumin gradient (SAAG)",
+  "SAM":     "severe acute malnutrition (SAM)",
+  "MAM":     "moderate acute malnutrition (MAM)",
+  "HEW":     "health extension worker (HEW)",
+  "ANC":     "antenatal care (ANC)",
+  "CBC":     "complete blood count (CBC)",
+  "LFT":     "liver function test (LFT)",
+  "CXR":     "chest X-ray (CXR)",
+  "CSF":     "cerebrospinal fluid (CSF)",
+  "ESR":     "erythrocyte sedimentation rate (ESR)",
+  "INR":     "international normalized ratio (INR)",
+  "ECG":     "electrocardiogram (ECG)",
+  "USS":     "ultrasound scan (USS)",
+  "GCS":     "Glasgow Coma Scale (GCS)",
+  "MAP":     "mean arterial pressure (MAP)",
+  "RLQ":     "right lower quadrant (RLQ)",
+  "LLQ":     "left lower quadrant (LLQ)",
+  "JVP":     "jugular venous pressure (JVP)",
+  "CT":      "computed tomography (CT)",
+  "MRI":     "magnetic resonance imaging (MRI)",
 };
 
-// Expand the FIRST occurrence of each ARV abbreviation to its full name.
-// Subsequent occurrences keep the short form.
-//
-// Safe to run on raw markdown — e.g. **TDF** → **Tenofovir (TDF)**
-// because the asterisks sit outside the replaced token.
-function expandArvNames(text: string): string {
+function expandAbbreviations(text: string): string {
+  // Sort longest key first to prevent shorter keys from matching inside longer ones
+  const entries = Object.entries(ALL_ABBREVIATIONS)
+    .sort((a, b) => b[0].length - a[0].length);
   let result = text;
-  for (const [abbr, full] of Object.entries(ARV_NAMES)) {
-    // If the full expanded form is already present, skip entirely
+  for (const [abbr, full] of entries) {
     if (result.includes(full)) continue;
-    // Escape regex-special chars in the abbreviation (handles / in LPV/r etc.)
     const esc = abbr.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    // Negative lookbehind/lookahead: must not be preceded or followed by
-    // word chars or ( ) so we don't match inside "13TC" or "(TDF)"
+    // Lookbehind/lookahead: not preceded by letter/digit/( and not followed by letter/digit/)
     const re = new RegExp(`(?<![A-Za-z0-9(])${esc}(?![A-Za-z0-9)])`, "");
     result = result.replace(re, full);
   }
@@ -372,7 +421,7 @@ const mdComponents = {
 export function MarkdownMessage({ content }: { content: string }) {
   injectStyles();
   const { body, refs, disclaimer, followup } = useMemo(
-    () => splitResponse(expandArvNames(cleanExtensions(fixListBreaks(content)))),
+    () => splitResponse(expandAbbreviations(cleanExtensions(fixListBreaks(content)))),
     [content]
   );
 
