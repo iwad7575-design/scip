@@ -16,7 +16,7 @@ import time
 from collections import OrderedDict
 from datetime import datetime, timezone
 
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -35,8 +35,8 @@ limiter = Limiter(key_func=get_remote_address)
 # Increment CACHE_VERSION whenever system prompt / instructions change to
 # instantly invalidate all existing cached answers.
 
-CACHE_VERSION = "v3"
-_CACHE_TTL = 3_600    # 1 hour
+CACHE_VERSION = "v4"
+_CACHE_TTL = 1_800    # 30 minutes
 _CACHE_SIZE = 50
 _STREAM_TIMEOUT_S = 55  # Cancel OpenAI call if no first token within this time
 
@@ -229,13 +229,13 @@ async def ping():
 
 
 @app.post("/admin/clear-cache")
-async def clear_cache(secret: str):
+async def clear_cache(secret: str = Header(None)):
     if not ADMIN_SECRET or secret != ADMIN_SECRET:
-        raise HTTPException(status_code=403, detail="Forbidden")
+        raise HTTPException(status_code=403, detail="Unauthorized")
     count = len(_cache._data)
     _cache._data.clear()
     print(f"[CACHE] Manually cleared via admin endpoint ({count} entries removed)", flush=True)
-    return {"message": "Cache cleared", "entries_removed": count, "version": CACHE_VERSION}
+    return {"cleared": count, "version": CACHE_VERSION, "message": f"Cleared {count} entries"}
 
 
 @app.get("/health")
