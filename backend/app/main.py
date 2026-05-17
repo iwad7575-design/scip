@@ -35,7 +35,7 @@ limiter = Limiter(key_func=get_remote_address)
 # Increment CACHE_VERSION whenever system prompt / instructions change to
 # instantly invalidate all existing cached answers.
 
-CACHE_VERSION = "v2"
+CACHE_VERSION = "v3"
 _CACHE_TTL = 3_600    # 1 hour
 _CACHE_SIZE = 50
 _STREAM_TIMEOUT_S = 55  # Cancel OpenAI call if no first token within this time
@@ -178,9 +178,17 @@ async def get_optional_user(request: Request):
         request.state.auth_ms = (time.perf_counter() - t) * 1000
         return None
 
+ADMIN_SECRET = os.getenv("ADMIN_SECRET", "")
+
 app = FastAPI(title="SCIP RAG Agent API")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+
+@app.on_event("startup")
+async def _startup():
+    _cache._data.clear()
+    print(f"[CACHE] Cleared on startup (version={CACHE_VERSION})", flush=True)
 
 _extra = os.getenv("FRONTEND_URL", "")
 
@@ -218,6 +226,16 @@ async def root():
 async def ping():
     """Ultra-lightweight keep-alive endpoint — no DB call."""
     return {"status": "alive"}
+
+
+@app.post("/admin/clear-cache")
+async def clear_cache(secret: str):
+    if not ADMIN_SECRET or secret != ADMIN_SECRET:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    count = len(_cache._data)
+    _cache._data.clear()
+    print(f"[CACHE] Manually cleared via admin endpoint ({count} entries removed)", flush=True)
+    return {"message": "Cache cleared", "entries_removed": count, "version": CACHE_VERSION}
 
 
 @app.get("/health")
