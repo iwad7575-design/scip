@@ -30,6 +30,17 @@ const REFS_LINE_RE =
 const FOLLOWUP_RE =
   /^[🔍💊🧪🏥🚨📋]\s+(?:For\b|To\b|Ask\b)/i;
 
+// Ensure lines starting with ⚠️ or section-emoji that immediately follow a
+// bullet item are separated by a blank line. Without this, the markdown parser
+// absorbs them as list continuations rather than new paragraphs, causing the
+// disclaimer and follow-up prompt to render as bullet points inside the refs list.
+function fixListBreaks(text: string): string {
+  return text.replace(
+    /(\n- [^\n]+)\n(⚠️|🔍|💊|🧪|🏥|🚨|📋|📚)/g,
+    "$1\n\n$2",
+  );
+}
+
 // ── ARV drug name expansion ───────────────────────────────────────────────────
 
 const ARV_NAMES: Record<string, string> = {
@@ -361,7 +372,7 @@ const mdComponents = {
 export function MarkdownMessage({ content }: { content: string }) {
   injectStyles();
   const { body, refs, disclaimer, followup } = useMemo(
-    () => splitResponse(expandArvNames(cleanExtensions(content))),
+    () => splitResponse(expandArvNames(cleanExtensions(fixListBreaks(content)))),
     [content]
   );
 
