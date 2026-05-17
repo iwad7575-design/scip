@@ -73,6 +73,7 @@ def _check_drug_doses(text: str) -> None:
 _BROAD_TERMS = [
     "management", "approach", "overview", "tell me about", "what do you know",
     "explain", "describe", "all", "complete", "comprehensive", "full",
+    "detailed", "workup", "how to",
 ]
 _OI_TERMS = ["oi", "opportunistic", "gi oi", "gastrointestinal"]
 _HIV_TERMS = ["hiv", "aids", "antiretroviral", "art ", "arvs", "cd4", "viral load"]
@@ -81,10 +82,10 @@ def _num_results(messages: list[dict]) -> int:
     last = next((m.get("content", "") for m in reversed(messages) if m.get("role") == "user"), "")
     q = last.lower()
     if any(t in q for t in _BROAD_TERMS) or any(t in q for t in _OI_TERMS):
-        return 8
+        return 10
     if any(t in q for t in _HIV_TERMS):
-        return 6
-    return 3 if len(last.split()) <= 10 else 5
+        return 8
+    return 5
 
 client = AsyncOpenAI()
 
@@ -221,7 +222,7 @@ class StarterChatServer(ChatKitServer[dict[str, Any]]):
 
         t_openai = time.perf_counter()
         n = _num_results(messages)
-        print(f"[TIMING] /chatkit → OpenAI call starting (file_search max_num_results={n}, score_threshold=0.2)", flush=True)
+        print(f"[TIMING] /chatkit → OpenAI call starting (file_search max_num_results={n}, score_threshold=0.15)", flush=True)
         try:
             response = await client.responses.create(
                 model=MODEL,
