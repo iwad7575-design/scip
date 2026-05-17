@@ -14,7 +14,7 @@ function cleanExtensions(text: string): string {
 
 // Matches the start of a disclaimer paragraph (many variants the AI may send)
 const DISCLAIMER_START_RE =
-  /^(?:⚠️\s*)?(?:disclaimer\b|this information is (?:general guidance|intended to support|for general guidance)|do not use without consulting)/i;
+  /^(?:⚠️\s*)?(?:disclaimer\b|this information is (?:general guidance|intended to support|for general guidance)|do not use without consulting|for clinical use\b)/i;
 
 // Matches the start of a references section header line
 const REFS_HEADER_RE =
