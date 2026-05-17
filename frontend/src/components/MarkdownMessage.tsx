@@ -12,21 +12,74 @@ function cleanExtensions(text: string): string {
   return text.replace(/\.(pdf|docx|doc)\b/gi, "").replace(/ {2,}/g, " ");
 }
 
-// Matches the start of a disclaimer paragraph (many variants the AI may send)
+// Matches the start of a disclaimer paragraph
 const DISCLAIMER_START_RE =
   /^(?:⚠️\s*)?(?:disclaimer\b|this information is (?:general guidance|intended to support|for general guidance)|do not use without consulting|for clinical use\b)/i;
 
-// Matches the start of a references section header line
+// Matches the start of a references section header line (multi-line context)
 const REFS_HEADER_RE =
   /^(?:📚\s*)?(?:\*{0,2}\s*)?references?(?:\s*\*{0,2})?[:\s]/im;
+
+// Matches a standalone refs header line (single-line test, no trailing char required)
+const REFS_LINE_RE =
+  /^(📚\s*)?(?:\*{0,2}\s*)?references?(?:\s*\*{0,2})?(?:[:\s].*)?$/i;
+
+// Matches the follow-up prompt the agent appends at the end, e.g.:
+// "🔍 For background, ask: approach to TB"
+// "💊 For management, ask: treatment of malaria"
+const FOLLOWUP_RE =
+  /^[🔍💊🧪🏥🚨📋]\s+(?:For\b|To\b|Ask\b)/i;
+
+// Normalize inline refs "📚 References: A; B" → proper markdown bullet list
+function normalizeRefs(refs: string): string {
+  const lines = refs.split("\n");
+  const out: string[] = [];
+  let inRefs = false;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+
+    // Empty lines pass through
+    if (!trimmed) { out.push(line); continue; }
+
+    // Detect and normalize the refs header line
+    if (!inRefs && REFS_LINE_RE.test(trimmed)) {
+      inRefs = true;
+      const colonPos = trimmed.indexOf(":");
+      const afterColon = colonPos !== -1 ? trimmed.slice(colonPos + 1).trim() : "";
+      out.push("📚 **References**");
+      // If inline refs follow the colon ("📚 References: A; B; C"), emit bullets now
+      if (afterColon) {
+        afterColon.split(";").map(s => s.trim()).filter(Boolean)
+          .forEach(item => out.push(`- ${item}`));
+      }
+      continue;
+    }
+
+    // Inside refs: lines not already in list format → convert to bullet items
+    if (
+      inRefs &&
+      !trimmed.startsWith("-") &&
+      !trimmed.startsWith("*") &&
+      !/^\d+\./.test(trimmed)
+    ) {
+      out.push(`- ${trimmed}`);
+    } else {
+      out.push(line);
+    }
+  }
+
+  return out.join("\n");
+}
 
 // Remove duplicate list items from the references section
 function deduplicateRefs(text: string): string {
   const seen = new Set<string>();
   return text.split("\n").filter(line => {
-    const isList = /^[\s]*[-*]|\d+\./.test(line);
+    const isList = /^[\s]*[-*•]|\d+\./.test(line);
     if (!isList) return true;
     const key = line.toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (!key) return true;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
@@ -37,12 +90,14 @@ function splitResponse(text: string): {
   body: string;
   refs: string | null;
   disclaimer: string | null;
+  followup: string | null;
 } {
-  if (!text.trim()) return { body: text, refs: null, disclaimer: null };
+  if (!text.trim()) return { body: text, refs: null, disclaimer: null, followup: null };
 
   const parts = text.trim().split(/\n\n+/);
   let disclaimer: string | null = null;
   let refs: string | null = null;
+  let followup: string | null = null;
 
   // Extract disclaimer — check last 2 paragraphs
   for (let i = parts.length - 1; i >= Math.max(0, parts.length - 2); i--) {
@@ -53,14 +108,24 @@ function splitResponse(text: string): {
     }
   }
 
+  // Extract follow-up prompt — check last 2 paragraphs
+  for (let i = parts.length - 1; i >= Math.max(0, parts.length - 2); i--) {
+    if (FOLLOWUP_RE.test(parts[i].trim())) {
+      followup = parts[i].trim();
+      parts.splice(i, 1);
+      break;
+    }
+  }
+
   // Extract references — everything from the first refs-header paragraph onward
   const refIdx = parts.findIndex(p => REFS_HEADER_RE.test(p.trim()));
   if (refIdx !== -1) {
-    refs = deduplicateRefs(parts.slice(refIdx).join("\n\n").trim());
+    const rawRefs = parts.slice(refIdx).join("\n\n").trim();
+    refs = deduplicateRefs(normalizeRefs(rawRefs));
     parts.splice(refIdx);
   }
 
-  return { body: parts.join("\n\n").trim(), refs, disclaimer };
+  return { body: parts.join("\n\n").trim(), refs, disclaimer, followup };
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -121,6 +186,14 @@ const LIST_CSS = `
 .md-body blockquote { border-left: 3px solid var(--brand-green); padding: 4px 12px; margin: 0 0 8px; color: #555; }
 .md-body a { color: var(--brand-green); text-decoration: underline; }
 
+/* → drug choice labels */
+.md-choice-label {
+  font-weight: 700;
+  color: var(--brand-navy);
+  font-size: 14px;
+  margin: 10px 0 2px;
+}
+
 /* References section */
 .md-refs {
   margin-top: 12px;
@@ -133,6 +206,18 @@ const LIST_CSS = `
 .md-refs strong { color: var(--brand-navy) !important; font-size: 14px; }
 .md-refs ul, .md-refs ol { padding-left: 16px; margin: 4px 0 0; }
 .md-refs ul > li, .md-refs ol > li { font-size: 13px; font-weight: 400; margin-bottom: 2px; color: #444; list-style-type: disc; }
+
+/* Follow-up prompt */
+.md-followup {
+  margin-top: 14px;
+  padding: 7px 12px 7px 14px;
+  border-left: 3px solid var(--brand-green);
+  font-size: 13px;
+  color: var(--brand-navy);
+  font-style: italic;
+  line-height: 1.55;
+}
+.md-followup p { margin: 0; }
 
 /* Disclaimer section */
 .md-disclaimer {
@@ -190,7 +275,14 @@ type NodeProps = { children?: React.ReactNode };
 type AnchorProps = { href?: string; children?: React.ReactNode };
 
 const mdComponents = {
-  p:          ({ children }: NodeProps) => <p>{children}</p>,
+  p: ({ children }: NodeProps) => {
+    // Style "→ Choose ONE:" / "→ Give BOTH:" lines as bold choice labels
+    const text = getNodeText(children).trim();
+    if (text.startsWith("→")) {
+      return <p className="md-choice-label">{children}</p>;
+    }
+    return <p>{children}</p>;
+  },
   strong:     ({ children }: NodeProps) => <strong>{children}</strong>,
   em:         ({ children }: NodeProps) => <em>{children}</em>,
   ul:         ({ children }: NodeProps) => <ul>{children}</ul>,
@@ -228,7 +320,7 @@ const mdComponents = {
 
 export function MarkdownMessage({ content }: { content: string }) {
   injectStyles();
-  const { body, refs, disclaimer } = useMemo(
+  const { body, refs, disclaimer, followup } = useMemo(
     () => splitResponse(cleanExtensions(content)),
     [content]
   );
@@ -243,6 +335,14 @@ export function MarkdownMessage({ content }: { content: string }) {
         <div className="md-refs">
           <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
             {refs}
+          </ReactMarkdown>
+        </div>
+      )}
+
+      {followup && (
+        <div className="md-followup">
+          <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
+            {followup}
           </ReactMarkdown>
         </div>
       )}
