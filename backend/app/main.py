@@ -313,7 +313,7 @@ async def ask_endpoint(request: Request, _user=Depends(get_optional_user)):
                 async with client.responses.stream(
                     model=MODEL,
                     input=[{"role": "system", "content": SYSTEM_PROMPT}] + messages_to_send,
-                    reasoning={"effort": "medium"},
+                    reasoning={"effort": "low"},
                     tools=[{
                         "type": "file_search",
                         "vector_store_ids": [VECTOR_STORE_ID],
