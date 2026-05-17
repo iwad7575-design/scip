@@ -32,11 +32,11 @@ bearer = HTTPBearer()
 limiter = Limiter(key_func=get_remote_address)
 
 # ── In-memory response cache ──────────────────────────────────────────────────
-# Stores up to 50 single-turn question→answer pairs for 24 hours.
-# Only caches the first message in a session (multi-turn answers depend on
-# prior context, so the same last message can produce different answers).
+# Increment CACHE_VERSION whenever system prompt / instructions change to
+# instantly invalidate all existing cached answers.
 
-_CACHE_TTL = 86_400   # 24 hours
+CACHE_VERSION = "v2"
+_CACHE_TTL = 3_600    # 1 hour
 _CACHE_SIZE = 50
 _STREAM_TIMEOUT_S = 55  # Cancel OpenAI call if no first token within this time
 
@@ -256,8 +256,9 @@ async def ask_endpoint(request: Request, _user=Depends(get_optional_user)):
     is_single_turn = len(user_messages) == 1  # Only cache first-turn; follow-ups depend on context
 
     # ── Cache hit: stream the cached answer immediately ───────────────────────
+    cache_key = f"{CACHE_VERSION}:{user_question}"
     if is_single_turn and user_question:
-        cached = _cache.get(user_question)
+        cached = _cache.get(cache_key)
         if cached:
             print(f"[CACHE] ✓ hit | chars={len(cached)} | question={user_question[:60]}", flush=True)
 
@@ -274,13 +275,9 @@ async def ask_endpoint(request: Request, _user=Depends(get_optional_user)):
     num_results = _num_results(messages)
     print(f"[TIMING] num_results={num_results} (question words: {len(user_question.split())})", flush=True)
 
-    # Keep the last 20 messages (10 exchanges) to bound context size and cost.
-    MAX_CONTEXT = 20
-    messages_to_send = messages[-MAX_CONTEXT:] if len(messages) > MAX_CONTEXT else messages
-
-    # Strip frontend-only fields (e.g. id, stopped) — OpenAI rejects unknown keys
-    # and requires any 'id' field to start with 'msg', which UUIDs do not.
-    messages_to_send = [{"role": m["role"], "content": m["content"]} for m in messages_to_send]
+    # Send only the current question — no history — so the full context
+    # window is available for retrieved document chunks.
+    messages_to_send = [{"role": "user", "content": user_question}]
 
     async def generate():
         nonlocal user_question
@@ -364,7 +361,7 @@ async def ask_endpoint(request: Request, _user=Depends(get_optional_user)):
 
         # Store in cache (single-turn questions only, non-empty answers)
         if is_single_turn and user_question and full_text:
-            _cache.set(user_question, full_text)
+            _cache.set(cache_key, full_text)
             print(f"[CACHE] stored | chars={len(full_text)} | question={user_question[:60]}", flush=True)
 
         # chat_history is now saved by the frontend (with session_id linkage).
