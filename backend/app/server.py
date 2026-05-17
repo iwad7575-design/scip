@@ -93,14 +93,14 @@ def _num_results(messages: list[dict]) -> int:
     is_hiv        = any(t in q for t in _HIV_TERMS)
     is_management = any(t in q for t in _MANAGEMENT_TERMS)
     if is_detailed:
-        n = 10
-    elif is_hiv and is_management:
-        n = 8
-    elif is_hiv or is_management:
         n = 6
+    elif is_hiv and is_management:
+        n = 6
+    elif is_hiv or is_management:
+        n = 5
     else:
         n = 5
-    return max(n, 5)
+    return min(max(n, 5), 6)
 
 client = AsyncOpenAI()
 
