@@ -420,10 +420,10 @@ const mdComponents = {
 
 export function MarkdownMessage({ content }: { content: string }) {
   injectStyles();
-  const { body, refs, disclaimer, followup } = useMemo(
-    () => splitResponse(expandAbbreviations(cleanExtensions(fixListBreaks(content)))),
-    [content]
-  );
+  const { body, refs, disclaimer, followup } = useMemo(() => {
+    console.log("[SCIP raw response]\n", content);
+    return splitResponse(expandAbbreviations(cleanExtensions(fixListBreaks(content))));
+  }, [content]);
 
   return (
     <div className="md-body">
