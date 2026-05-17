@@ -70,22 +70,34 @@ def _check_drug_doses(text: str) -> None:
             print(f"[DRUG WARNING] mentioned without dose: {drug}", flush=True)
 
 
-_BROAD_TERMS = [
-    "management", "approach", "overview", "tell me about", "what do you know",
-    "explain", "describe", "all", "complete", "comprehensive", "full",
-    "detailed", "workup", "how to",
+_DETAILED_TERMS = [
+    "detailed", "explain", "describe", "comprehensive", "full", "complete",
+    "workup", "approach", "overview", "how to", "tell me about",
+    "what are the", "all", "list all", "investigate", "investigation",
 ]
-_OI_TERMS = ["oi", "opportunistic", "gi oi", "gastrointestinal"]
-_HIV_TERMS = ["hiv", "aids", "antiretroviral", "art ", "arvs", "cd4", "viral load"]
+_HIV_TERMS = [
+    "rvi", "hiv", "aids", "plhiv", "antiretroviral", "art", "cd4",
+    "opportunistic", "oi",
+]
+_MANAGEMENT_TERMS = [
+    "management", "treatment", "treat", "manage", "gi oi", "opportunistic",
+]
 
 def _num_results(messages: list[dict]) -> int:
     last = next((m.get("content", "") for m in reversed(messages) if m.get("role") == "user"), "")
     q = last.lower()
-    if any(t in q for t in _BROAD_TERMS) or any(t in q for t in _OI_TERMS):
-        return 10
-    if any(t in q for t in _HIV_TERMS):
-        return 8
-    return 5
+    is_detailed   = any(t in q for t in _DETAILED_TERMS)
+    is_hiv        = any(t in q for t in _HIV_TERMS)
+    is_management = any(t in q for t in _MANAGEMENT_TERMS)
+    if is_detailed:
+        n = 10
+    elif is_hiv and is_management:
+        n = 8
+    elif is_hiv or is_management:
+        n = 6
+    else:
+        n = 5
+    return max(n, 5)
 
 client = AsyncOpenAI()
 

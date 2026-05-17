@@ -115,21 +115,34 @@ class _ResponseCache:
 _cache = _ResponseCache()
 
 
-_BROAD_TERMS = [
-    "management", "approach", "overview", "tell me about", "what do you know",
-    "explain", "describe", "all", "complete", "comprehensive", "full",
+_DETAILED_TERMS = [
+    "detailed", "explain", "describe", "comprehensive", "full", "complete",
+    "workup", "approach", "overview", "how to", "tell me about",
+    "what are the", "all", "list all", "investigate", "investigation",
 ]
-_OI_TERMS = ["oi", "opportunistic", "gi oi", "gastrointestinal"]
-_HIV_TERMS = ["hiv", "aids", "antiretroviral", "art ", "arvs", "cd4", "viral load"]
+_HIV_TERMS = [
+    "rvi", "hiv", "aids", "plhiv", "antiretroviral", "art", "cd4",
+    "opportunistic", "oi",
+]
+_MANAGEMENT_TERMS = [
+    "management", "treatment", "treat", "manage", "gi oi", "opportunistic",
+]
 
 def _num_results(messages: list[dict]) -> int:
     last = next((m.get("content", "") for m in reversed(messages) if m.get("role") == "user"), "")
     q = last.lower()
-    if any(t in q for t in _BROAD_TERMS) or any(t in q for t in _OI_TERMS):
-        return 8
-    if any(t in q for t in _HIV_TERMS):
-        return 6
-    return 3 if len(last.split()) <= 10 else 5
+    is_detailed   = any(t in q for t in _DETAILED_TERMS)
+    is_hiv        = any(t in q for t in _HIV_TERMS)
+    is_management = any(t in q for t in _MANAGEMENT_TERMS)
+    if is_detailed:
+        n = 10
+    elif is_hiv and is_management:
+        n = 8
+    elif is_hiv or is_management:
+        n = 6
+    else:
+        n = 5
+    return max(n, 5)
 
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -292,7 +305,7 @@ async def ask_endpoint(request: Request, _user=Depends(get_optional_user)):
                         "type": "file_search",
                         "vector_store_ids": [VECTOR_STORE_ID],
                         "max_num_results": num_results,
-                        "ranking_options": {"score_threshold": 0.2},
+                        "ranking_options": {"score_threshold": 0.15},
                     }],
                 ) as stream:
                     async for event in stream:
