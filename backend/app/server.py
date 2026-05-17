@@ -60,14 +60,17 @@ _COMMON_DRUGS = [
 _DOSE_RE = re.compile(r"\d+\s*(?:mg|mcg|g\b|IU|ml|mL|units?|tabs?)", re.IGNORECASE)
 
 def _check_drug_doses(text: str) -> None:
-    lower = text.lower()
+    lines = text.splitlines()
     for drug in _COMMON_DRUGS:
-        idx = lower.find(drug.lower())
-        if idx == -1:
-            continue
-        window = text[max(0, idx - 20): idx + len(drug) + 80]
-        if not _DOSE_RE.search(window):
-            print(f"[DRUG WARNING] mentioned without dose: {drug}", flush=True)
+        drug_lower = drug.lower()
+        for i, line in enumerate(lines):
+            if drug_lower not in line.lower():
+                continue
+            # 5-line window: 2 lines before, current line, 2 lines after
+            window = "\n".join(lines[max(0, i - 2) : min(len(lines), i + 3)])
+            if not _DOSE_RE.search(window):
+                print(f"[DRUG WARNING] mentioned without dose: {drug}", flush=True)
+            break  # only check first occurrence per drug
 
 
 _DETAILED_TERMS = [
