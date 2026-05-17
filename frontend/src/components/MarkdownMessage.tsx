@@ -30,6 +30,46 @@ const REFS_LINE_RE =
 const FOLLOWUP_RE =
   /^[🔍💊🧪🏥🚨📋]\s+(?:For\b|To\b|Ask\b)/i;
 
+// ── ARV drug name expansion ───────────────────────────────────────────────────
+
+const ARV_NAMES: Record<string, string> = {
+  "TDF":   "Tenofovir (TDF)",
+  "3TC":   "Lamivudine (3TC)",
+  "DTG":   "Dolutegravir (DTG)",
+  "EFV":   "Efavirenz (EFV)",
+  "AZT":   "Zidovudine (AZT)",
+  "ABC":   "Abacavir (ABC)",
+  "NVP":   "Nevirapine (NVP)",
+  "LPV/r": "Lopinavir/ritonavir (LPV/r)",
+  "ATV/r": "Atazanavir/ritonavir (ATV/r)",
+  "FTC":   "Emtricitabine (FTC)",
+  "TAF":   "Tenofovir alafenamide (TAF)",
+  "RAL":   "Raltegravir (RAL)",
+  "DRV/r": "Darunavir/ritonavir (DRV/r)",
+  "RPV":   "Rilpivirine (RPV)",
+  "CAB":   "Cabotegravir (CAB)",
+};
+
+// Expand the FIRST occurrence of each ARV abbreviation to its full name.
+// Subsequent occurrences keep the short form.
+//
+// Safe to run on raw markdown — e.g. **TDF** → **Tenofovir (TDF)**
+// because the asterisks sit outside the replaced token.
+function expandArvNames(text: string): string {
+  let result = text;
+  for (const [abbr, full] of Object.entries(ARV_NAMES)) {
+    // If the full expanded form is already present, skip entirely
+    if (result.includes(full)) continue;
+    // Escape regex-special chars in the abbreviation (handles / in LPV/r etc.)
+    const esc = abbr.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    // Negative lookbehind/lookahead: must not be preceded or followed by
+    // word chars or ( ) so we don't match inside "13TC" or "(TDF)"
+    const re = new RegExp(`(?<![A-Za-z0-9(])${esc}(?![A-Za-z0-9)])`, "");
+    result = result.replace(re, full);
+  }
+  return result;
+}
+
 // Normalize inline refs "📚 References: A; B" → proper markdown bullet list
 function normalizeRefs(refs: string): string {
   const lines = refs.split("\n");
@@ -321,7 +361,7 @@ const mdComponents = {
 export function MarkdownMessage({ content }: { content: string }) {
   injectStyles();
   const { body, refs, disclaimer, followup } = useMemo(
-    () => splitResponse(cleanExtensions(content)),
+    () => splitResponse(expandArvNames(cleanExtensions(content))),
     [content]
   );
 
