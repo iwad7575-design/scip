@@ -444,7 +444,9 @@ const mdComponents = {
 export function MarkdownMessage({ content }: { content: string }) {
   injectStyles();
   const { body, refs, disclaimer, followup } = useMemo(() => {
-    console.log("[SCIP raw response]\n", content);
+    console.log("[RAW RESPONSE START]");
+    console.log(content);
+    console.log("[RAW RESPONSE END]");
     return splitResponse(expandAbbreviations(cleanExtensions(fixListBreaks(content))));
   }, [content]);
 
