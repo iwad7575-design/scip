@@ -36,7 +36,7 @@ const FOLLOWUP_RE =
 // disclaimer and follow-up prompt to render as bullet points inside the refs list.
 function fixListBreaks(text: string): string {
   return text.replace(
-    /(\n[-*] [^\n]+)\n(⚠️|🔍|💊|🧪|🏥|🚨|📋|📚)/g,
+    /(\n[-*•] [^\n]+)\n(⚠️|🔍|💊|🧪|🏥|🚨|📋|📚)/g,
     "$1\n\n$2",
   );
 }
@@ -221,8 +221,31 @@ function splitResponse(text: string): {
   const refIdx = parts.findIndex(p => REFS_HEADER_RE.test(p.trim()));
   if (refIdx !== -1) {
     const rawRefs = parts.slice(refIdx).join("\n\n").trim();
-    refs = deduplicateRefs(normalizeRefs(rawRefs));
     parts.splice(refIdx);
+
+    // Strip disclaimer/followup lines that got mixed into the refs block.
+    // This happens when the model emits no blank line between the last
+    // reference bullet and the disclaimer or follow-up prompt, so they
+    // all land in one paragraph and splitResponse never sees them separately.
+    // Strip the leading "- " or "* " or "• " before testing so we catch
+    // both bare and bullet-wrapped forms: "⚠️ ..." and "- ⚠️ ...".
+    const refLines = rawRefs.split("\n").filter(line => {
+      const core = line.trim().replace(/^[-*•]\s*/, "");
+      if (!disclaimer && DISCLAIMER_START_RE.test(core)) {
+        disclaimer = STD_DISCLAIMER;
+        return false;
+      }
+      if (!followup && FOLLOWUP_RE.test(core)) {
+        followup = core;
+        return false;
+      }
+      return true;
+    });
+
+    // Only expose refs if there are actual document-title list items after cleaning
+    const cleaned = refLines.join("\n").trim();
+    const normalized = cleaned ? deduplicateRefs(normalizeRefs(cleaned)) : "";
+    refs = /^[-*•]\s/m.test(normalized) ? normalized : null;
   }
 
   return { body: parts.join("\n\n").trim(), refs, disclaimer, followup };
