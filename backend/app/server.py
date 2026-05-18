@@ -126,8 +126,11 @@ Manifestations      → manifestations ONLY
 Approach / Overview → full structured answer
 Compound question   → all requested sections
 
-Every response ends with:
-📚 References + ⚠️ Disclaimer
+Every response ends with a
+📚 **References** section listing
+the exact Ethiopian guideline
+documents used, followed by the
+standard disclaimer on a new line.
 
 VIOLATING THIS RULE IS NOT PERMITTED.
 
