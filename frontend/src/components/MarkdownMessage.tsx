@@ -41,6 +41,16 @@ function fixListBreaks(text: string): string {
   );
 }
 
+// Remove placeholder text the agent emits when it has no real references.
+// The system prompt says "Every response ends with 📚 References + ⚠️ Disclaimer"
+// so the model sometimes outputs that phrase literally instead of actual titles.
+function cleanPlaceholderRefs(text: string): string {
+  return text
+    .replace(/📚\s*References\s*\+\s*⚠️\s*Disclaimer/g, "")
+    .replace(/📚\s*References\s*\+\s*Disclaimer/g, "")
+    .trim();
+}
+
 // ── Abbreviation expansion ───────────────────────────────────────────────────
 // Expands the FIRST occurrence of each abbreviation to its full name.
 // Subsequent occurrences keep the short form.
@@ -447,7 +457,7 @@ export function MarkdownMessage({ content }: { content: string }) {
     console.log("[RAW RESPONSE START]");
     console.log(content);
     console.log("[RAW RESPONSE END]");
-    return splitResponse(expandAbbreviations(cleanExtensions(fixListBreaks(content))));
+    return splitResponse(expandAbbreviations(cleanExtensions(cleanPlaceholderRefs(fixListBreaks(content)))));
   }, [content]);
 
   return (
