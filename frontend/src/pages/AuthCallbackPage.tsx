@@ -13,17 +13,24 @@ export function AuthCallbackPage() {
   useEffect(() => {
     let done = false;
 
-    async function applyPendingReferral() {
+    async function applyPendingReferral(accessToken?: string | null) {
       const pendingRef = localStorage.getItem("pendingRefCode");
       if (!pendingRef) return;
-      try {
+      let token = accessToken;
+      if (!token) {
+        // Token passed directly from the auth event is preferred.
+        // Fallback: wait briefly for Supabase to persist the session to storage.
+        await new Promise(r => setTimeout(r, 800));
         const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.access_token) return;
+        token = session?.access_token ?? null;
+      }
+      if (!token) return;
+      try {
         await fetch(`${BACKEND_URL}/referral/apply`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${session.access_token}`,
+            "Authorization": `Bearer ${token}`,
           },
           body: JSON.stringify({ ref_code: pendingRef }),
         });
@@ -89,7 +96,7 @@ export function AuthCallbackPage() {
       let sub: { unsubscribe(): void } | null = null;
       let timeout: ReturnType<typeof setTimeout> | null = null;
 
-      sub = supabase.auth.onAuthStateChange((event) => {
+      sub = supabase.auth.onAuthStateChange((event, session) => {
         if (event === "PASSWORD_RECOVERY") {
           sub?.unsubscribe();
           if (timeout) clearTimeout(timeout);
@@ -97,7 +104,7 @@ export function AuthCallbackPage() {
         } else if (event === "SIGNED_IN") {
           sub?.unsubscribe();
           if (timeout) clearTimeout(timeout);
-          applyPendingReferral();
+          applyPendingReferral(session?.access_token);
           markSuccess();
         }
       }).data.subscription;
@@ -115,7 +122,7 @@ export function AuthCallbackPage() {
       timeout = setTimeout(() => {
         sub?.unsubscribe();
         supabase.auth.getSession().then(({ data: { session } }) => {
-          if (session) { applyPendingReferral(); markSuccess(); }
+          if (session) { applyPendingReferral(session.access_token); markSuccess(); }
           else markError("Authentication failed or the link has expired. Please request a new link.");
         });
       }, 10000);

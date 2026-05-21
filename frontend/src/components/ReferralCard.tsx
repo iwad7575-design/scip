@@ -20,18 +20,39 @@ export function ReferralCard() {
   const [stats, setStats]               = useState<ReferralStats | null>(null);
   const [copied, setCopied]             = useState(false);
   const [loading, setLoading]           = useState(true);
+  const [error, setError]               = useState("");
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session?.access_token) { setLoading(false); return; }
+      if (!session?.access_token) {
+        setError("You must be logged in to view referral info.");
+        setLoading(false);
+        return;
+      }
       const headers = { Authorization: `Bearer ${session.access_token}` };
-      Promise.all([
-        fetch(`${BACKEND_URL}/referral/code`,  { headers }).then(r => r.json()),
-        fetch(`${BACKEND_URL}/referral/stats`, { headers }).then(r => r.json()),
-      ]).then(([code, s]) => {
+
+      async function loadData() {
+        const [codeRes, statsRes] = await Promise.all([
+          fetch(`${BACKEND_URL}/referral/code`,  { headers }),
+          fetch(`${BACKEND_URL}/referral/stats`, { headers }),
+        ]);
+        if (!codeRes.ok)  throw new Error(`Referral code endpoint returned ${codeRes.status}`);
+        if (!statsRes.ok) throw new Error(`Referral stats endpoint returned ${statsRes.status}`);
+        const [code, s] = await Promise.all([codeRes.json(), statsRes.json()]);
+        if (!code.link) throw new Error("Unexpected response from referral/code");
         setReferralData(code);
         setStats(s);
-      }).catch(() => {}).finally(() => setLoading(false));
+      }
+
+      loadData()
+        .catch(err => {
+          console.error("[ReferralCard]", err);
+          setError("Could not load referral data. Please refresh the page.");
+        })
+        .finally(() => setLoading(false));
+    }).catch(() => {
+      setError("Could not load referral data. Please refresh the page.");
+      setLoading(false);
     });
   }, []);
 
@@ -56,7 +77,31 @@ export function ReferralCard() {
     window.open(`https://wa.me/?text=${msg}`, "_blank");
   }
 
-  if (loading) return null;
+  if (loading) {
+    return (
+      <div style={{ background: "var(--surface)", borderRadius: "var(--radius-2xl)", padding: "40px 24px", textAlign: "center", border: "1px solid var(--border)" }}>
+        <div style={{ width: 36, height: 36, borderRadius: "50%", border: "3px solid var(--border)", borderTopColor: "var(--brand-green)", margin: "0 auto 14px", animation: "spin 0.8s linear infinite" }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        <p style={{ margin: 0, fontSize: 14, color: "var(--text-secondary)" }}>Loading your referral info…</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ background: "var(--surface)", borderRadius: "var(--radius-2xl)", padding: "32px 24px", textAlign: "center", border: "1px solid var(--border)" }}>
+        <p style={{ margin: "0 0 14px", fontSize: 22 }}>⚠️</p>
+        <p style={{ margin: "0 0 14px", fontSize: 14, color: "var(--destructive)", fontWeight: 500 }}>{error}</p>
+        <button
+          onClick={() => window.location.reload()}
+          style={{ padding: "8px 20px", background: "var(--brand-navy)", color: "#fff", border: "none", borderRadius: "var(--radius-md)", fontSize: 13, fontFamily: "var(--font-heading)", fontWeight: 600, cursor: "pointer" }}
+        >
+          Refresh
+        </button>
+      </div>
+    );
+  }
+
   if (!referralData) return null;
 
   return (
@@ -139,10 +184,10 @@ export function ReferralCard() {
       <div style={{ borderTop: "1px solid var(--border)", paddingTop: 16 }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           {[
-            { value: stats?.total_referrals ?? 0,       label: "Total referrals",       color: "var(--text-primary)" },
-            { value: stats?.active_referrals ?? 0,      label: "Active subscribers",    color: "var(--brand-green)" },
-            { value: `${stats?.pending_earnings_etb ?? 0} ETB`, label: "Pending earnings", color: "#d97706" },
-            { value: `${stats?.total_paid_etb ?? 0} ETB`,       label: "Total paid out",   color: "var(--brand-green)" },
+            { value: stats?.total_referrals ?? 0,                   label: "Total referrals",    color: "var(--text-primary)" },
+            { value: stats?.active_referrals ?? 0,                  label: "Active subscribers", color: "var(--brand-green)" },
+            { value: `${stats?.pending_earnings_etb ?? 0} ETB`,     label: "Pending earnings",   color: "#d97706" },
+            { value: `${stats?.total_paid_etb ?? 0} ETB`,           label: "Total paid out",     color: "var(--brand-green)" },
           ].map(({ value, label, color }) => (
             <div key={label} style={{ background: "var(--bg)", borderRadius: "var(--radius-md)", padding: "12px 14px", border: "1px solid var(--border)" }}>
               <p style={{ margin: "0 0 2px", fontSize: 22, fontWeight: 700, color }}>{value}</p>
