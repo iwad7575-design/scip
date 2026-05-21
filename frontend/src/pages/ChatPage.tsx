@@ -701,6 +701,61 @@ export function ChatPage() {
           ))}
         </div>
 
+        {/* Mobile-only credibility stats (description + stat cards) */}
+        <div
+          className={`hero-mobile-stats${mounted ? " anim-fade-in-d2" : ""}`}
+          style={{ opacity: mounted ? undefined : 0, marginTop: 16, width: "100%", maxWidth: 560 }}
+        >
+          <p style={{
+            fontSize: 13, lineHeight: 1.65, textAlign: "center",
+            color: "rgba(255,255,255,0.6)", margin: "0 0 12px",
+            fontFamily: "var(--font-body)",
+          }}>
+            SCIP draws on{" "}
+            <span style={{ fontWeight: 700, color: "#ffffff" }}>109 validated national guidelines</span>
+            , clinical manuals, and protocols. Every answer comes from{" "}
+            <span style={{ fontWeight: 700, color: "#ffffff" }}>Ethiopian Ministry of Health and WHO-validated sources</span>
+            {" "}— not from the internet.
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            {[
+              { num: "109",  label: "Guidelines",             sub: "MoH & WHO validated",    span: false },
+              { num: "15+",  label: "Specialties",            sub: "Full clinical breadth",   span: false },
+              { num: "⚕️",   label: "Ethiopian Frontline Care", sub: "Designed for the field", span: true  },
+            ].map(stat => (
+              <div
+                key={stat.label}
+                style={{
+                  gridColumn: stat.span ? "1 / -1" : undefined,
+                  background: "rgba(255,255,255,0.06)",
+                  border: "1px solid rgba(255,255,255,0.12)",
+                  borderRadius: 12, padding: "12px 14px",
+                }}
+              >
+                <div style={{
+                  fontFamily: "var(--font-heading)", fontWeight: 800,
+                  fontSize: stat.span ? 18 : 24,
+                  color: "var(--brand-green)", lineHeight: 1.1, marginBottom: 3,
+                }}>
+                  {stat.num}
+                </div>
+                <div style={{
+                  fontFamily: "var(--font-heading)", fontSize: 12,
+                  fontWeight: 700, color: "#ffffff", lineHeight: 1.3,
+                }}>
+                  {stat.label}
+                </div>
+                <div style={{
+                  fontSize: 11, color: "rgba(255,255,255,0.4)",
+                  lineHeight: 1.3, marginTop: 2,
+                }}>
+                  {stat.sub}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* Example question cards */}
         <div
           className={mounted ? "anim-fade-in-d3" : ""}
@@ -897,10 +952,13 @@ export function ChatPage() {
         .msg-row-assistant:hover .msg-copy-btn,
         .msg-row-assistant:focus-within .msg-copy-btn { opacity: 1; }
         .msg-copy-btn:hover { background: var(--bg) !important; }
+        /* Mobile-only credibility block — hidden on desktop */
+        .hero-mobile-stats { display: none; }
         /* Mobile layout overrides */
         @media (max-width: 640px) {
           .hero-desc  { display: none !important; }
           .hero-stats { display: none !important; }
+          .hero-mobile-stats { display: block !important; }
           .hero-example-list {
             flex-direction: column !important;
             overflow-x: unset !important;
