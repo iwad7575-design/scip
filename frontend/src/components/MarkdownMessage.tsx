@@ -52,36 +52,20 @@ function cleanPlaceholderRefs(text: string): string {
 }
 
 // ── Abbreviation expansion ───────────────────────────────────────────────────
-// Expands the FIRST occurrence of each abbreviation to its full name.
-// Subsequent occurrences keep the short form.
+// ARV drug abbreviations are ONLY expanded when the response contains HIV/ART
+// context. This prevents clinical confusion where the same letters mean
+// something else — most critically ABC = Airway/Breathing/Circulation in
+// resuscitation and DKA contexts, NOT Abacavir.
+//
+// Medical abbreviations (TB, clinical, Ethiopian health system) are always
+// safe to expand and are not gated.
+//
 // Longer keys are processed first to prevent partial matches
-// (e.g. mWRD expanded before WRD, MDR-TB before TB).
+// (e.g. mWRD before WRD, MDR-TB before DR-TB).
 // Safe on raw markdown — **TDF** → **Tenofovir (TDF)** leaves ** intact.
 
-const ALL_ABBREVIATIONS: Record<string, string> = {
-  // TB
-  "TB-LAMP": "TB loop-mediated isothermal amplification (TB-LAMP)",
-  "MDR-TB":  "multidrug-resistant TB (MDR-TB)",
-  "LF-LAM":  "lateral flow urine lipoarabinomannan (LF-LAM)",
-  "RR-TB":   "rifampicin-resistant TB (RR-TB)",
-  "DR-TB":   "drug-resistant TB (DR-TB)",
-  "mWRD":    "molecular WHO-recommended rapid diagnostic (mWRD)",
-  "EPTB":    "extrapulmonary tuberculosis (EPTB)",
-  "MTB":     "Mycobacterium tuberculosis (MTB)",
-  "WRD":     "WHO-recommended rapid diagnostic (WRD)",
-  "PTB":     "pulmonary tuberculosis (PTB)",
-  "AFB":     "acid-fast bacilli (AFB)",
-  "DST":     "drug susceptibility testing (DST)",
-  "DOT":     "directly observed therapy (DOT)",
-  "FDC":     "fixed-dose combination (FDC)",
-  // HIV
-  "PMTCT":   "prevention of mother-to-child transmission (PMTCT)",
-  "PLHIV":   "people living with HIV (PLHIV)",
-  "RVI":     "retroviral infection / HIV (RVI)",
-  "ART":     "antiretroviral therapy (ART)",
-  "OI":      "opportunistic infection (OI)",
-  "VL":      "viral load (VL)",
-  // ARV drugs
+// ARV drug names — gated behind isHIVResponse()
+const ARV_ABBREVIATIONS: Record<string, string> = {
   "LPV/r":   "Lopinavir/ritonavir (LPV/r)",
   "ATV/r":   "Atazanavir/ritonavir (ATV/r)",
   "DRV/r":   "Darunavir/ritonavir (DRV/r)",
@@ -97,6 +81,32 @@ const ALL_ABBREVIATIONS: Record<string, string> = {
   "RAL":     "Raltegravir (RAL)",
   "RPV":     "Rilpivirine (RPV)",
   "CAB":     "Cabotegravir (CAB)",
+};
+
+// Medical abbreviations — always expanded regardless of clinical context
+const MEDICAL_ABBREVIATIONS: Record<string, string> = {
+  // TB
+  "TB-LAMP": "TB loop-mediated isothermal amplification (TB-LAMP)",
+  "MDR-TB":  "multidrug-resistant TB (MDR-TB)",
+  "LF-LAM":  "lateral flow urine lipoarabinomannan (LF-LAM)",
+  "RR-TB":   "rifampicin-resistant TB (RR-TB)",
+  "DR-TB":   "drug-resistant TB (DR-TB)",
+  "mWRD":    "molecular WHO-recommended rapid diagnostic (mWRD)",
+  "EPTB":    "extrapulmonary tuberculosis (EPTB)",
+  "MTB":     "Mycobacterium tuberculosis (MTB)",
+  "WRD":     "WHO-recommended rapid diagnostic (WRD)",
+  "PTB":     "pulmonary tuberculosis (PTB)",
+  "AFB":     "acid-fast bacilli (AFB)",
+  "DST":     "drug susceptibility testing (DST)",
+  "DOT":     "directly observed therapy (DOT)",
+  "FDC":     "fixed-dose combination (FDC)",
+  // HIV context terms (inherently HIV-specific — safe to always expand)
+  "PMTCT":   "prevention of mother-to-child transmission (PMTCT)",
+  "PLHIV":   "people living with HIV (PLHIV)",
+  "RVI":     "retroviral infection / HIV (RVI)",
+  "ART":     "antiretroviral therapy (ART)",
+  "OI":      "opportunistic infection (OI)",
+  "VL":      "viral load (VL)",
   // General clinical
   "IMNCI":   "integrated management of neonatal and childhood illness (IMNCI)",
   "MUAC":    "mid-upper arm circumference (MUAC)",
@@ -125,17 +135,35 @@ const ALL_ABBREVIATIONS: Record<string, string> = {
   "MRI":     "magnetic resonance imaging (MRI)",
 };
 
-function expandAbbreviations(text: string): string {
-  // Sort longest key first to prevent shorter keys from matching inside longer ones
-  const entries = Object.entries(ALL_ABBREVIATIONS)
-    .sort((a, b) => b[0].length - a[0].length);
+// Returns true when the response text is about HIV/ART treatment,
+// meaning ARV drug abbreviations are unambiguous in context.
+function isHIVResponse(text: string): boolean {
+  const hivTerms = [
+    "antiretroviral", "ART", "RVI", "HIV", "PLHIV",
+    "first-line regimen", "ARV", "CD4", "viral load",
+  ];
+  return hivTerms.some(term => text.includes(term));
+}
+
+// Shared expand helper — sorts longest key first, replaces first occurrence only.
+function expandMap(text: string, map: Record<string, string>): string {
+  const entries = Object.entries(map).sort((a, b) => b[0].length - a[0].length);
   let result = text;
   for (const [abbr, full] of entries) {
     if (result.includes(full)) continue;
     const esc = abbr.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    // Lookbehind/lookahead: not preceded by letter/digit/( and not followed by letter/digit/)
     const re = new RegExp(`(?<![A-Za-z0-9(])${esc}(?![A-Za-z0-9)])`, "");
     result = result.replace(re, full);
+  }
+  return result;
+}
+
+function expandAbbreviations(text: string): string {
+  // Always expand safe medical/TB/clinical abbreviations
+  let result = expandMap(text, MEDICAL_ABBREVIATIONS);
+  // Only expand ARV drug names when response is in HIV/ART context
+  if (isHIVResponse(result)) {
+    result = expandMap(result, ARV_ABBREVIATIONS);
   }
   return result;
 }
