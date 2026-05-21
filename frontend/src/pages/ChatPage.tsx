@@ -4,7 +4,7 @@ import type { User } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
 import { Sidebar } from "../components/Sidebar";
 import { MarkdownMessage } from "../components/MarkdownMessage";
-import { ASK_API_URL, BACKEND_HEALTH_URL, BACKEND_PING_URL, SHARE_API_URL } from "../lib/config";
+import { ASK_API_URL, BACKEND_HEALTH_URL, BACKEND_PING_URL, SHARE_API_URL, BACKEND_URL } from "../lib/config";
 
 const EXAMPLE_QUESTIONS = [
   { icon: "🍼", category: "Pediatrics",        text: "Management of severe acute malnutrition in children under 5" },
@@ -77,6 +77,7 @@ export function ChatPage() {
   const [shareLinkCopied, setShareLinkCopied] = useState(false);
   const [shareTextCopied, setShareTextCopied] = useState(false);
   const [copiedMsgId, setCopiedMsgId]         = useState<string | null>(null);
+  const [freeQuestions, setFreeQuestions]     = useState(0);
 
   const location    = useLocation();
   const isOnChatPage = location.pathname === "/chat";
@@ -95,6 +96,19 @@ export function ChatPage() {
   }, []);
 
   useEffect(() => { setMounted(true); }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session?.access_token) return;
+      fetch(`${BACKEND_URL}/referral/credits`, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+        .then(r => r.json())
+        .then(d => setFreeQuestions(d.free_questions_remaining ?? 0))
+        .catch(() => {});
+    });
+  }, [user]);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data.user));
@@ -490,6 +504,20 @@ export function ChatPage() {
             <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: "var(--brand-green)", flexShrink: 0 }} />
             <span style={{ fontSize: 12, fontFamily: "var(--font-heading)", fontWeight: 500, color: "rgba(255,255,255,0.5)" }}>
               Ask SCIP a Clinical Question — SCIP is ready
+            </span>
+          </div>
+        )}
+
+        {freeQuestions > 0 && (
+          <div style={{ textAlign: "center", marginBottom: 8 }}>
+            <span style={{
+              display: "inline-flex", alignItems: "center", gap: 5,
+              background: "var(--success-bg)", border: "1px solid #bbf7d0",
+              color: "var(--success)", fontSize: 12, fontWeight: 600,
+              padding: "4px 12px", borderRadius: 20,
+              fontFamily: "var(--font-heading)",
+            }}>
+              🎁 {freeQuestions} free {freeQuestions === 1 ? "question" : "questions"} remaining
             </span>
           </div>
         )}

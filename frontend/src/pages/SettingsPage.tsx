@@ -3,14 +3,16 @@ import { useNavigate } from "react-router-dom";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
 import { LogoutModal } from "../components/LogoutModal";
+import { ReferralCard } from "../components/ReferralCard";
 
-type Tab = "profile" | "security" | "notifications" | "subscription" | "danger";
+type Tab = "profile" | "security" | "notifications" | "subscription" | "referrals" | "danger";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "profile", label: "Profile" },
   { id: "security", label: "Security" },
   { id: "notifications", label: "Notifications" },
   { id: "subscription", label: "Subscription" },
+  { id: "referrals", label: "Refer & Earn" },
   { id: "danger", label: "Danger Zone" },
 ];
 
@@ -95,6 +97,7 @@ export function SettingsPage() {
         {activeTab === "security"      && <SecurityTab user={user} />}
         {activeTab === "notifications" && <NotificationsTab />}
         {activeTab === "subscription"  && <SubscriptionTab user={user} />}
+        {activeTab === "referrals"     && <ReferralCard />}
         {activeTab === "danger"        && <DangerTab user={user} />}
       </div>
     </div>

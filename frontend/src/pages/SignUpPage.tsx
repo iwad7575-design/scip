@@ -16,6 +16,14 @@ function getStrength(pwd: string): { level: StrengthLevel; label: string; color:
 }
 
 export function SignUpPage() {
+  const [refCode] = useState(
+    () => new URLSearchParams(window.location.search).get("ref") || ""
+  );
+
+  useEffect(() => {
+    if (refCode) localStorage.setItem("pendingRefCode", refCode);
+  }, [refCode]);
+
   const [fullName, setFullName]           = useState("");
   const [email, setEmail]                 = useState("");
   const [password, setPassword]           = useState("");
@@ -182,6 +190,18 @@ export function SignUpPage() {
             <h2 style={{ fontFamily: "var(--font-heading)", fontSize: 24, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 6px" }}>Create your account</h2>
             <p style={{ fontSize: 15, color: "var(--text-secondary)", margin: 0 }}>Ethiopia's clinical intelligence platform</p>
           </div>
+
+          {refCode && (
+            <div style={{
+              background: "var(--success-bg)", border: "1px solid #bbf7d0",
+              borderRadius: "var(--radius-lg)", padding: "12px 16px",
+              textAlign: "center", marginBottom: 8,
+            }}>
+              <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "var(--success)" }}>
+                🎁 You were invited to SCIP! Sign up to get <strong>10 free questions</strong>
+              </p>
+            </div>
+          )}
 
           <form onSubmit={handleSignUp} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
 

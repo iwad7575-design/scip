@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase, initialAuthType, initialAccessToken, initialRefreshToken } from "../lib/supabase";
+import { BACKEND_URL } from "../lib/config";
 
 type Status = "loading" | "success" | "error";
 
@@ -11,6 +12,24 @@ export function AuthCallbackPage() {
 
   useEffect(() => {
     let done = false;
+
+    async function applyPendingReferral() {
+      const pendingRef = localStorage.getItem("pendingRefCode");
+      if (!pendingRef) return;
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) return;
+        await fetch(`${BACKEND_URL}/referral/apply`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ ref_code: pendingRef }),
+        });
+        localStorage.removeItem("pendingRefCode");
+      } catch { /* silent fail */ }
+    }
 
     function goTo(path: string) {
       if (done) return;
@@ -78,6 +97,7 @@ export function AuthCallbackPage() {
         } else if (event === "SIGNED_IN") {
           sub?.unsubscribe();
           if (timeout) clearTimeout(timeout);
+          applyPendingReferral();
           markSuccess();
         }
       }).data.subscription;
@@ -95,7 +115,7 @@ export function AuthCallbackPage() {
       timeout = setTimeout(() => {
         sub?.unsubscribe();
         supabase.auth.getSession().then(({ data: { session } }) => {
-          if (session) markSuccess();
+          if (session) { applyPendingReferral(); markSuccess(); }
           else markError("Authentication failed or the link has expired. Please request a new link.");
         });
       }, 10000);
@@ -109,7 +129,7 @@ export function AuthCallbackPage() {
     // ── No code, no hash recovery — hash-based email confirmation or OAuth ─────
     // Supabase has auto-processed the tokens; wait for the SIGNED_IN event.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_IN" && session) markSuccess();
+      if (event === "SIGNED_IN" && session) { applyPendingReferral(); markSuccess(); }
     });
 
     const fallback = setTimeout(async () => {

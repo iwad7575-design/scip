@@ -14,3 +14,6 @@ export const SHARE_API_URL      = _local ? "/share"  : `${RENDER}/share`;
 export const CHATKIT_API_DOMAIN_KEY = _local
   ? "domain_pk_localhost_dev"
   : "domain_pk_69f8bb0636408195afca74ace8a68f83078aac657c9cc0e7";
+
+// Base URL for direct fetch calls (empty string = Vite proxy on localhost)
+export const BACKEND_URL = _local ? "" : RENDER;
