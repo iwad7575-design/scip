@@ -12,6 +12,7 @@ import asyncio
 import json
 import re
 import secrets
+import string
 import time
 from collections import OrderedDict
 from datetime import datetime, timezone
@@ -543,3 +544,106 @@ async def chatkit_endpoint(request: Request, _user=Depends(get_current_user)) ->
             status_code=500,
             content={"error": str(e)},
         )
+
+
+# ── Referral system ───────────────────────────────────────────────────────────
+
+def _generate_referral_code() -> str:
+    chars = string.ascii_uppercase + string.digits
+    return "".join(secrets.choice(chars) for _ in range(8))
+
+
+@app.get("/referral/code")
+async def get_referral_code(user=Depends(get_current_user)):
+    user_id = str(user.id)
+    result = supabase.table("referral_codes").select("code").eq("user_id", user_id).execute()
+    if result.data:
+        code = result.data[0]["code"]
+    else:
+        code = _generate_referral_code()
+        supabase.table("referral_codes").insert({"user_id": user_id, "code": code}).execute()
+    return {
+        "code": code,
+        "link": f"https://scip-et.com/signup?ref={code}",
+        "commission_rate": "10%",
+        "commission_etb": 25,
+        "subscription_etb": 250,
+        "message": "Share this link. Earn 25 ETB every month your referral stays subscribed.",
+    }
+
+
+@app.get("/referral/stats")
+async def get_referral_stats(user=Depends(get_current_user)):
+    user_id = str(user.id)
+    referrals = supabase.table("referrals").select("*").eq("referrer_id", user_id).execute()
+    earnings  = supabase.table("referral_earnings").select("*").eq("referrer_id", user_id).execute()
+    credits   = supabase.table("question_credits").select("*").eq("user_id", user_id).execute()
+
+    active_referrals = sum(1 for r in referrals.data if r["status"] == "active")
+    return {
+        "total_referrals": len(referrals.data),
+        "active_referrals": active_referrals,
+        "pending_earnings_etb": sum(
+            e["commission_amount"] for e in earnings.data if e["status"] == "pending"
+        ),
+        "total_paid_etb": sum(
+            e["commission_amount"] for e in earnings.data if e["status"] == "paid"
+        ),
+        "monthly_earning_potential": active_referrals * 25,
+        "free_questions_remaining": credits.data[0]["free_questions_remaining"] if credits.data else 0,
+    }
+
+
+@app.post("/referral/apply")
+async def apply_referral(request: Request, user=Depends(get_current_user)):
+    body = await request.json()
+    ref_code = body.get("ref_code", "").upper().strip()
+    user_id = str(user.id)
+
+    if not ref_code:
+        raise HTTPException(status_code=400, detail="Referral code required")
+
+    referrer = supabase.table("referral_codes").select("user_id").eq("code", ref_code).execute()
+    if not referrer.data:
+        raise HTTPException(status_code=404, detail="Invalid referral code")
+
+    referrer_id = referrer.data[0]["user_id"]
+    if referrer_id == user_id:
+        raise HTTPException(status_code=400, detail="Cannot refer yourself")
+
+    existing = supabase.table("referrals").select("id").eq("referred_id", user_id).execute()
+    if existing.data:
+        raise HTTPException(status_code=400, detail="Referral already applied")
+
+    supabase.table("referrals").insert({
+        "referrer_id": referrer_id,
+        "referred_id": user_id,
+        "referral_code": ref_code,
+        "status": "pending",
+    }).execute()
+
+    existing_credits = supabase.table("question_credits").select("*").eq("user_id", user_id).execute()
+    if existing_credits.data:
+        curr = existing_credits.data[0]
+        supabase.table("question_credits").update({
+            "free_questions_remaining": curr["free_questions_remaining"] + 10,
+            "total_earned": curr["total_earned"] + 10,
+            "updated_at": "now()",
+        }).eq("user_id", user_id).execute()
+    else:
+        supabase.table("question_credits").insert({
+            "user_id": user_id,
+            "free_questions_remaining": 10,
+            "total_earned": 10,
+        }).execute()
+
+    return {"success": True, "message": "Referral applied! You have 10 free questions.", "free_questions": 10}
+
+
+@app.get("/referral/credits")
+async def get_credits(user=Depends(get_current_user)):
+    user_id = str(user.id)
+    credits = supabase.table("question_credits").select("*").eq("user_id", user_id).execute()
+    return {
+        "free_questions_remaining": credits.data[0]["free_questions_remaining"] if credits.data else 0
+    }
