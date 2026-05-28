@@ -114,14 +114,14 @@ export function ReferralCard() {
           <h3 style={{ fontFamily: "var(--font-heading)", margin: 0, fontSize: 17, fontWeight: 700, color: "var(--brand-navy-700)" }}>
             Refer & Earn
           </h3>
-          <p style={{ margin: 0, fontSize: 13, color: "var(--text-secondary)" }}>Earn 25 ETB/month per referral</p>
+          <p style={{ margin: 0, fontSize: 13, color: "var(--text-secondary)" }}>Earn 10% of their subscription fee every month</p>
         </div>
       </div>
 
       {/* How it works */}
       <div style={{ background: "var(--success-bg)", border: "1px solid #bbf7d0", borderRadius: "var(--radius-lg)", padding: "12px 14px", marginBottom: 16 }}>
         <p style={{ margin: 0, fontSize: 13, color: "var(--success)", lineHeight: 1.5 }}>
-          Share your link → colleague signs up → <strong>they get 10 free questions</strong> → <strong>you earn 25 ETB every month</strong> they stay subscribed
+          Share your link → colleague signs up → <strong>they get 10 free questions</strong> → <strong>you earn 10% of their subscription fee every month</strong> they stay subscribed
         </p>
       </div>
 
