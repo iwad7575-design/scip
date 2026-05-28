@@ -15,7 +15,7 @@ import secrets
 import string
 import time
 from collections import OrderedDict
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -610,6 +610,11 @@ async def apply_referral(request: Request, user=Depends(get_current_user)):
     referrer_id = referrer.data[0]["user_id"]
     if referrer_id == user_id:
         raise HTTPException(status_code=400, detail="Cannot refer yourself")
+
+    user_data = supabase_admin.auth.admin.get_user_by_id(user_id)
+    created_at = user_data.user.created_at
+    if datetime.now(timezone.utc) - created_at > timedelta(minutes=10):
+        raise HTTPException(status_code=400, detail="Referral links are only valid for new accounts")
 
     existing = supabase_admin.table("referrals").select("id").eq("referred_id", user_id).execute()
     if existing.data:

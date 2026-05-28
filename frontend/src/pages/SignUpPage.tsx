@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { GoogleButton } from "../components/GoogleButton";
 
@@ -16,6 +16,7 @@ function getStrength(pwd: string): { level: StrengthLevel; label: string; color:
 }
 
 export function SignUpPage() {
+  const navigate = useNavigate();
   const [refCode] = useState(
     () => new URLSearchParams(window.location.search).get("ref") || ""
   );
@@ -23,6 +24,16 @@ export function SignUpPage() {
   useEffect(() => {
     if (refCode) localStorage.setItem("pendingRefCode", refCode);
   }, [refCode]);
+
+  useEffect(() => {
+    if (!refCode) return;
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        localStorage.removeItem("pendingRefCode");
+        navigate("/chat", { replace: true });
+      }
+    });
+  }, [refCode, navigate]);
 
   const [fullName, setFullName]           = useState("");
   const [email, setEmail]                 = useState("");
