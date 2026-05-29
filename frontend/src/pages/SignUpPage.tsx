@@ -52,6 +52,30 @@ export function SignUpPage() {
   const [resendMessage, setResendMessage] = useState("");
   const [resendCooldown, setResendCooldown] = useState(0);
   const [resendLoading, setResendLoading] = useState(false);
+  const [emailExists, setEmailExists] = useState(false);
+
+  useEffect(() => {
+    if (!email || !email.includes("@")) { setEmailExists(false); return; }
+    const timer = setTimeout(async () => {
+      try {
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password: "check_only_xyz_123__",
+        });
+        // "Invalid login credentials" → email exists but password wrong
+        // "Email not confirmed" → email exists, unconfirmed
+        // Any other error (e.g. user not found) → treat as new
+        const msg = error?.message ?? "";
+        setEmailExists(
+          msg.includes("Invalid login credentials") ||
+          msg.includes("Email not confirmed")
+        );
+      } catch {
+        setEmailExists(false);
+      }
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [email]);
 
   useEffect(() => {
     if (resendCooldown <= 0) return;
@@ -202,7 +226,22 @@ export function SignUpPage() {
             <p style={{ fontSize: 15, color: "var(--text-secondary)", margin: 0 }}>Ethiopia's clinical intelligence platform</p>
           </div>
 
-          {refCode && (
+          {emailExists && (
+            <div style={{
+              background: "#fffbeb", border: "1px solid #fde68a",
+              borderRadius: "var(--radius-lg)", padding: "12px 16px",
+              marginBottom: 8,
+            }}>
+              <p style={{ margin: 0, fontSize: 14, color: "#92400e" }}>
+                ⚠️ This email is already registered.{" "}
+                <Link to="/login" style={{ fontWeight: 600, color: "#92400e", textDecoration: "underline" }}>
+                  Login instead →
+                </Link>
+              </p>
+            </div>
+          )}
+
+          {refCode && !emailExists && (
             <div style={{
               background: "var(--success-bg)", border: "1px solid #bbf7d0",
               borderRadius: "var(--radius-lg)", padding: "12px 16px",

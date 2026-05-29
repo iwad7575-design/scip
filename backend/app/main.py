@@ -613,6 +613,8 @@ async def apply_referral(request: Request, user=Depends(get_current_user)):
 
     user_data = supabase_admin.auth.admin.get_user_by_id(user_id)
     created_at = user_data.user.created_at
+    if isinstance(created_at, str):
+        created_at = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
     if datetime.now(timezone.utc) - created_at > timedelta(minutes=10):
         raise HTTPException(status_code=400, detail="Referral links are only valid for new accounts")
 
