@@ -6,10 +6,7 @@
     "start": "node index.js"
   },
   "dependencies": {
-    "@openai/agents": "latest",
-    "@openai/guardrails": "latest",
-    "openai": "latest",
-    "zod": "^3.0.0",
+    "openai": "^4.0.0",
     "express": "^4.18.0",
     "dotenv": "^16.0.0"
   }
