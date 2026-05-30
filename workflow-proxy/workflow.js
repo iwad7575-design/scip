@@ -234,7 +234,6 @@ export async function runWorkflow({ input_as_text }) {
   const response = await client.responses.create({
     model: 'gpt-5-nano',
     reasoning: { effort: 'high' },
-    temperature: 0,
     input: [
       { role: 'system', content: SYSTEM_PROMPT },
       { role: 'user',   content: input_as_text },
