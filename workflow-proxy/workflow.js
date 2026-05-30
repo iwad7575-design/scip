@@ -247,12 +247,24 @@ export async function runWorkflow({ input_as_text }) {
     }],
   });
 
-  const output_text = (response.output ?? [])
-    .filter(item => item.type === 'message')
-    .flatMap(item => item.content ?? [])
-    .filter(c => c.type === 'output_text' || c.type === 'text')
-    .map(c => c.text ?? '')
-    .join('');
+  console.log('[WORKFLOW] response output items:', response.output?.length || 0);
+  response.output?.forEach((item, i) => {
+    console.log(`[WORKFLOW] item ${i}: type=${item.type}`);
+    if (item.type === 'message') {
+      console.log('[WORKFLOW] message content:', JSON.stringify(item.content)?.slice(0, 200));
+    }
+  });
+
+  const output_text = response.output_text
+    || (response.output ?? [])
+      .filter(i => i.type === 'message')
+      .flatMap(i => i.content || [])
+      .filter(c => c.type === 'output_text' || c.type === 'text')
+      .map(c => c.text || c.value || '')
+      .join('')
+    || '';
+
+  console.log('[WORKFLOW] extracted text length:', output_text.length);
 
   return { output_text };
 }
