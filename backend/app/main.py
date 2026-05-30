@@ -180,6 +180,7 @@ async def get_optional_user(request: Request):
         return None
 
 ADMIN_SECRET = os.getenv("ADMIN_SECRET", "")
+ADMIN_EMAIL  = os.getenv("ADMIN_EMAIL", "")
 
 app = FastAPI(title="SCIP RAG Agent API")
 app.state.limiter = limiter
@@ -237,6 +238,39 @@ async def clear_cache(secret: str = Header(None)):
     _cache._data.clear()
     print(f"[CACHE] Manually cleared via admin endpoint ({count} entries removed)", flush=True)
     return {"cleared": count, "version": CACHE_VERSION, "message": f"Cleared {count} entries"}
+
+
+@app.get("/admin/referral-stats")
+async def admin_referral_stats(user=Depends(get_current_user)):
+    if not ADMIN_EMAIL or getattr(user, "email", "") != ADMIN_EMAIL:
+        raise HTTPException(status_code=403, detail="Unauthorized")
+
+    result = supabase_admin.table("referrals").select(
+        "referral_code, referrer_id, referred_id, status, created_at"
+    ).execute()
+
+    stats: dict = {}
+    for row in result.data:
+        code = row["referral_code"]
+        if code not in stats:
+            stats[code] = {
+                "code": code,
+                "referrer_id": row["referrer_id"],
+                "total": 0,
+                "active": 0,
+                "pending": 0,
+            }
+        stats[code]["total"] += 1
+        if row["status"] == "active":
+            stats[code]["active"] += 1
+        else:
+            stats[code]["pending"] += 1
+
+    return {
+        "referral_codes": list(stats.values()),
+        "total_referrals": len(result.data),
+        "total_active": sum(1 for r in result.data if r["status"] == "active"),
+    }
 
 
 @app.get("/health")
