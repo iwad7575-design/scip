@@ -247,24 +247,68 @@ export async function runWorkflow({ input_as_text }) {
     }],
   });
 
-  console.log('[WORKFLOW] response output items:', response.output?.length || 0);
-  response.output?.forEach((item, i) => {
-    console.log(`[WORKFLOW] item ${i}: type=${item.type}`);
-    if (item.type === 'message') {
-      console.log('[WORKFLOW] message content:', JSON.stringify(item.content)?.slice(0, 200));
-    }
-  });
+  // One-time full structure dump so we can see exactly what gpt-5-nano returns
+  if (!global.loggedOnce) {
+    global.loggedOnce = true;
+    console.log('[WORKFLOW] FULL RESPONSE STRUCTURE (first request):');
+    console.log(JSON.stringify(response, null, 2).slice(0, 2000));
+  }
 
-  const output_text = response.output_text
-    || (response.output ?? [])
-      .filter(i => i.type === 'message')
-      .flatMap(i => i.content || [])
+  console.log('[WORKFLOW] output type:', typeof response.output);
+  console.log('[WORKFLOW] output length:', response.output?.length);
+  console.log('[WORKFLOW] output_text:', response.output_text?.slice(0, 100));
+
+  if (response.output) {
+    response.output.forEach((item, i) => {
+      console.log(`[WORKFLOW] item[${i}] type:`, item.type);
+      if (item.content) {
+        item.content.forEach((c, j) => {
+          console.log(`[WORKFLOW] content[${j}]:`, c.type, (c.text || c.value || '').slice(0, 100));
+        });
+      }
+    });
+  }
+
+  let text = '';
+
+  // Try 1: direct output_text
+  if (response.output_text) {
+    text = response.output_text;
+    console.log('[WORKFLOW] extracted via output_text');
+  }
+
+  // Try 2: output array messages
+  if (!text && response.output) {
+    text = response.output
+      .filter(item => item.type === 'message')
+      .flatMap(item => item.content || [])
       .filter(c => c.type === 'output_text' || c.type === 'text')
       .map(c => c.text || c.value || '')
-      .join('')
-    || '';
+      .join('');
+    if (text) console.log('[WORKFLOW] extracted via output array messages');
+  }
 
-  console.log('[WORKFLOW] extracted text length:', output_text.length);
+  // Try 3: any text content in any item
+  if (!text && response.output) {
+    text = response.output
+      .flatMap(item => item.content || [item])
+      .map(c => c.text || c.value || c.output_text || '')
+      .filter(Boolean)
+      .join('');
+    if (text) console.log('[WORKFLOW] extracted via any text content');
+  }
 
-  return { output_text };
+  // Try 4: regex over raw JSON
+  if (!text) {
+    const raw = JSON.stringify(response.output || {});
+    const match = raw.match(/"text":"((?:[^"\\]|\\.)*)"/);
+    if (match) {
+      text = JSON.parse(`"${match[1]}"`);
+      console.log('[WORKFLOW] extracted via regex fallback');
+    }
+  }
+
+  console.log('[WORKFLOW] final text length:', text.length);
+
+  return { output_text: text };
 }
