@@ -289,7 +289,7 @@ async def ask_endpoint(request: Request, _user=Depends(get_optional_user)):
     """Public chat endpoint — streams SSE text deltas as they arrive."""
     t0 = time.perf_counter()
     auth_ms = getattr(request.state, "auth_ms", 0.0)
-    print(f"[TIMING] /ask received | model={MODEL} | auth={auth_ms:.0f}ms | user={'yes' if _user else 'guest'}", flush=True)
+    print(f"[TIMING] /ask received | model={'proxy/gpt-5-nano' if PROXY_URL else MODEL} | auth={auth_ms:.0f}ms | user={'yes' if _user else 'guest'}", flush=True)
 
     body = await request.json()
     messages = body.get("messages", [])
