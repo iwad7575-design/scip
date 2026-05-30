@@ -4,6 +4,7 @@ import type { User } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
 import { Sidebar } from "../components/Sidebar";
 import { MarkdownMessage } from "../components/MarkdownMessage";
+import { WelcomeModal } from "../components/WelcomeModal";
 import { ASK_API_URL, BACKEND_HEALTH_URL, BACKEND_PING_URL, SHARE_API_URL, BACKEND_URL } from "../lib/config";
 
 const EXAMPLE_QUESTIONS = [
@@ -78,6 +79,8 @@ export function ChatPage() {
   const [shareTextCopied, setShareTextCopied] = useState(false);
   const [copiedMsgId, setCopiedMsgId]         = useState<string | null>(null);
   const [freeQuestions, setFreeQuestions]     = useState(0);
+  const [showWelcome, setShowWelcome]         = useState(false);
+  const [wasReferred, setWasReferred]         = useState(false);
 
   const location    = useLocation();
   const isOnChatPage = location.pathname === "/chat";
@@ -87,6 +90,17 @@ export function ChatPage() {
   const abortControllerRef   = useRef<AbortController | null>(null);
   const isSendingRef         = useRef(false);
   const isCreatingSessionRef = useRef(false);
+
+  useEffect(() => {
+    const shouldShow = localStorage.getItem("showWelcome");
+    if (shouldShow === "true") {
+      setShowWelcome(true);
+      localStorage.removeItem("showWelcome");
+    }
+    const referred = localStorage.getItem("wasReferred");
+    setWasReferred(referred === "true");
+    localStorage.removeItem("wasReferred");
+  }, []);
 
   useEffect(() => { fetch(BACKEND_HEALTH_URL).catch(() => {}); }, []);
 
@@ -962,6 +976,12 @@ export function ChatPage() {
 
   return (
     <>
+      <WelcomeModal
+        isOpen={showWelcome}
+        onClose={() => setShowWelcome(false)}
+        freeQuestions={10}
+        wasReferred={wasReferred}
+      />
       <style>{`
         @keyframes fadeInUp {
           from { opacity: 0; transform: translateY(20px); }

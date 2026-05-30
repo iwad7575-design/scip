@@ -85,6 +85,9 @@ export function SignUpPage() {
         // Supabase returns success with empty identities when email is already registered
         setError("This email is already registered.");
       } else {
+        const pendingRef = localStorage.getItem("pendingRefCode");
+        localStorage.setItem("showWelcome", "true");
+        localStorage.setItem("wasReferred", pendingRef ? "true" : "false");
         setConfirmedEmail(email);
       }
     } finally { setLoading(false); }

@@ -48,6 +48,16 @@ export function AuthCallbackPage() {
       } catch { /* silent fail */ }
     }
 
+    function setWelcomeIfNewUser(createdAt?: string | null) {
+      if (!createdAt) return;
+      const ageMs = Date.now() - new Date(createdAt).getTime();
+      if (ageMs < 10 * 60 * 1000) {
+        const pendingRef = localStorage.getItem("pendingRefCode");
+        localStorage.setItem("showWelcome", "true");
+        localStorage.setItem("wasReferred", pendingRef ? "true" : "false");
+      }
+    }
+
     function goTo(path: string) {
       if (done) return;
       done = true;
@@ -114,6 +124,7 @@ export function AuthCallbackPage() {
         } else if (event === "SIGNED_IN") {
           sub?.unsubscribe();
           if (timeout) clearTimeout(timeout);
+          setWelcomeIfNewUser(session?.user.created_at);
           applyPendingReferral(session?.access_token, session?.user.created_at);
           markSuccess();
         }
@@ -132,7 +143,7 @@ export function AuthCallbackPage() {
       timeout = setTimeout(() => {
         sub?.unsubscribe();
         supabase.auth.getSession().then(({ data: { session } }) => {
-          if (session) { applyPendingReferral(session.access_token, session.user.created_at); markSuccess(); }
+          if (session) { setWelcomeIfNewUser(session.user.created_at); applyPendingReferral(session.access_token, session.user.created_at); markSuccess(); }
           else markError("Authentication failed or the link has expired. Please request a new link.");
         });
       }, 10000);
@@ -146,7 +157,7 @@ export function AuthCallbackPage() {
     // ── No code, no hash recovery — hash-based email confirmation or OAuth ─────
     // Supabase has auto-processed the tokens; wait for the SIGNED_IN event.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_IN" && session) { applyPendingReferral(session.access_token, session.user.created_at); markSuccess(); }
+      if (event === "SIGNED_IN" && session) { setWelcomeIfNewUser(session.user.created_at); applyPendingReferral(session.access_token, session.user.created_at); markSuccess(); }
     });
 
     const fallback = setTimeout(async () => {
