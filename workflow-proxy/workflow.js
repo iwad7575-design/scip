@@ -230,6 +230,34 @@ clinical decision-making and should not
 replace the judgment of a qualified clinician.
 `;
 
+function extractText(response) {
+  let text = '';
+
+  if (response.output_text) {
+    text = response.output_text;
+  }
+
+  if (!text && response.output) {
+    text = response.output
+      .filter(i => i.type === 'message')
+      .flatMap(i => i.content || [])
+      .filter(c => c.type === 'output_text' || c.type === 'text')
+      .map(c => c.text || c.value || '')
+      .join('');
+  }
+
+  if (!text && response.output) {
+    text = response.output
+      .flatMap(i => i.content || [i])
+      .map(c => c.text || c.value || c.output_text || '')
+      .filter(Boolean)
+      .join('');
+  }
+
+  console.log('[WORKFLOW] chars:', text.length);
+  return { output_text: text };
+}
+
 export async function runWorkflow({ input_as_text }) {
   const response = await client.responses.create({
     model: 'gpt-5-nano',
@@ -242,73 +270,30 @@ export async function runWorkflow({ input_as_text }) {
     tools: [{
       type: 'file_search',
       vector_store_ids: [VECTOR_STORE_ID],
-      max_num_results: 3,
-      ranking_options: { score_threshold: 0.15 },
+      max_num_results: 5,
+      ranking_options: { score_threshold: 0.05 },
     }],
+    include: ['file_search_call.results'],
   });
 
-  // One-time full structure dump so we can see exactly what gpt-5-nano returns
-  if (!global.loggedOnce) {
-    global.loggedOnce = true;
-    console.log('[WORKFLOW] FULL RESPONSE STRUCTURE (first request):');
-    console.log(JSON.stringify(response, null, 2).slice(0, 2000));
-  }
+  const hasMessage = response.output?.some(item => item.type === 'message');
 
-  console.log('[WORKFLOW] output type:', typeof response.output);
-  console.log('[WORKFLOW] output length:', response.output?.length);
-  console.log('[WORKFLOW] output_text:', response.output_text?.slice(0, 100));
-
-  if (response.output) {
-    response.output.forEach((item, i) => {
-      console.log(`[WORKFLOW] item[${i}] type:`, item.type);
-      if (item.content) {
-        item.content.forEach((c, j) => {
-          console.log(`[WORKFLOW] content[${j}]:`, c.type, (c.text || c.value || '').slice(0, 100));
-        });
-      }
+  if (!hasMessage) {
+    console.log('[WORKFLOW] no message in response — retrying without file_search');
+    const retryResponse = await client.responses.create({
+      model: 'gpt-5-nano',
+      reasoning: { effort: 'medium' },
+      max_output_tokens: 1500,
+      input: [
+        {
+          role: 'system',
+          content: SYSTEM_PROMPT + '\n\nNo Ethiopian guideline found in knowledge base. Answer from general medical knowledge and note this.',
+        },
+        { role: 'user', content: input_as_text },
+      ],
     });
+    return extractText(retryResponse);
   }
 
-  let text = '';
-
-  // Try 1: direct output_text
-  if (response.output_text) {
-    text = response.output_text;
-    console.log('[WORKFLOW] extracted via output_text');
-  }
-
-  // Try 2: output array messages
-  if (!text && response.output) {
-    text = response.output
-      .filter(item => item.type === 'message')
-      .flatMap(item => item.content || [])
-      .filter(c => c.type === 'output_text' || c.type === 'text')
-      .map(c => c.text || c.value || '')
-      .join('');
-    if (text) console.log('[WORKFLOW] extracted via output array messages');
-  }
-
-  // Try 3: any text content in any item
-  if (!text && response.output) {
-    text = response.output
-      .flatMap(item => item.content || [item])
-      .map(c => c.text || c.value || c.output_text || '')
-      .filter(Boolean)
-      .join('');
-    if (text) console.log('[WORKFLOW] extracted via any text content');
-  }
-
-  // Try 4: regex over raw JSON
-  if (!text) {
-    const raw = JSON.stringify(response.output || {});
-    const match = raw.match(/"text":"((?:[^"\\]|\\.)*)"/);
-    if (match) {
-      text = JSON.parse(`"${match[1]}"`);
-      console.log('[WORKFLOW] extracted via regex fallback');
-    }
-  }
-
-  console.log('[WORKFLOW] final text length:', text.length);
-
-  return { output_text: text };
+  return extractText(response);
 }

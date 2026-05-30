@@ -27,7 +27,7 @@ from chatkit.types import (
 from .memory_store import MemoryStore
 
 MAX_RECENT_ITEMS = 30
-MODEL = "gpt-5.4-mini"
+MODEL = "gpt-5-nano"
 
 PROXY_URL    = os.getenv("WORKFLOW_PROXY_URL", "")
 PROXY_SECRET = os.getenv("PROXY_SECRET", "")

@@ -25,7 +25,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
-from app.server import StarterChatServer, MODEL, SYSTEM_PROMPT, VECTOR_STORE_ID, client, call_via_proxy, PROXY_URL  # IMPORTANT: absolute import
+from app.server import StarterChatServer, call_via_proxy, PROXY_URL  # IMPORTANT: absolute import
 from app.supabase_client import supabase, supabase_admin
 
 bearer = HTTPBearer()
@@ -36,7 +36,7 @@ limiter = Limiter(key_func=get_remote_address)
 # Increment CACHE_VERSION whenever system prompt / instructions change to
 # instantly invalidate all existing cached answers.
 
-CACHE_VERSION = "v9"
+CACHE_VERSION = "v10"
 _CACHE_TTL = 1_800    # 30 minutes
 _CACHE_SIZE = 50
 _STREAM_TIMEOUT_S = 55  # Cancel OpenAI call if no first token within this time
@@ -289,7 +289,7 @@ async def ask_endpoint(request: Request, _user=Depends(get_optional_user)):
     """Public chat endpoint — streams SSE text deltas as they arrive."""
     t0 = time.perf_counter()
     auth_ms = getattr(request.state, "auth_ms", 0.0)
-    print(f"[TIMING] /ask received | model={'proxy/gpt-5-nano' if PROXY_URL else MODEL} | auth={auth_ms:.0f}ms | user={'yes' if _user else 'guest'}", flush=True)
+    print(f"[TIMING] /ask received | model=gpt-5-nano | auth={auth_ms:.0f}ms | user={'yes' if _user else 'guest'}", flush=True)
 
     body = await request.json()
     messages = body.get("messages", [])
@@ -325,114 +325,25 @@ async def ask_endpoint(request: Request, _user=Depends(get_optional_user)):
                 headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
             )
 
-    num_results = _num_results(messages)
-    print(f"[TIMING] num_results={num_results} (question words: {len(user_question.split())})", flush=True)
-
-    messages_to_send = [{"role": "user", "content": user_question}]
-
     async def generate():
-        nonlocal user_question
-        full_text = ""
-        first_delta_at: list[float] = []
-        queue: asyncio.Queue = asyncio.Queue()
-        got_first_token = False
-
-        # ── Proxy path ────────────────────────────────────────────────────────
-        if PROXY_URL and user_question:
-            try:
-                print(f"[PROXY] → calling workflow proxy for: {user_question[:60]}", flush=True)
-                t_proxy = time.perf_counter()
-                proxy_text = await call_via_proxy(user_question)
-                proxy_text = _clean_citations(proxy_text)
-                print(f"[PROXY] ✓ done in {(time.perf_counter()-t_proxy)*1000:.0f}ms | chars={len(proxy_text)}", flush=True)
-                if proxy_text:
-                    _check_drug_doses(proxy_text)
-                    if is_single_turn:
-                        _cache.set(cache_key, proxy_text)
-                    yield f"data: {json.dumps({'delta': proxy_text})}\n\n"
-                    yield f"data: {json.dumps({'done': True})}\n\n"
-                    return
-            except Exception as e:
-                print(f"[PROXY] ✗ error: {e} — falling back to direct OpenAI call", flush=True)
-        # ── End proxy path ────────────────────────────────────────────────────
-
-        async def run_stream():
-            t_openai_start = time.perf_counter()
-            print(
-                f"[TIMING] → OpenAI stream starting "
-                f"(file_search max_num_results={num_results}, score_threshold=0.15)",
-                flush=True,
-            )
-            try:
-                async with client.responses.stream(
-                    model=MODEL,
-                    input=[{"role": "system", "content": SYSTEM_PROMPT}] + messages_to_send,
-                    reasoning={"effort": "low"},
-                    tools=[{
-                        "type": "file_search",
-                        "vector_store_ids": [VECTOR_STORE_ID],
-                        "max_num_results": num_results,
-                        "ranking_options": {"score_threshold": 0.15},
-                    }],
-                ) as stream:
-                    async for event in stream:
-                        etype = getattr(event, "type", "")
-                        if etype == "response.output_item.added":
-                            item_type = getattr(getattr(event, "item", None), "type", "?")
-                            print(f"[TIMING] output_item.added type={item_type} at {(time.perf_counter()-t_openai_start)*1000:.0f}ms", flush=True)
-                        elif etype == "response.output_text.delta":
-                            delta = getattr(event, "delta", "")
-                            if delta:
-                                if not first_delta_at:
-                                    ttft = (time.perf_counter() - t_openai_start) * 1000
-                                    total_ttft = (time.perf_counter() - t0) * 1000
-                                    first_delta_at.append(time.perf_counter())
-                                    print(f"[TIMING] ⚡ FIRST TOKEN: {ttft:.0f}ms after OpenAI call | {total_ttft:.0f}ms end-to-end", flush=True)
-                                await queue.put(("delta", _clean_citations(delta)))
-            except asyncio.CancelledError:
-                print(f"[TIMING] ⏰ stream cancelled by watchdog (no first token in {_STREAM_TIMEOUT_S}s)", flush=True)
-            except Exception as e:
-                print(f"[TIMING] OpenAI error after {(time.perf_counter()-t_openai_start)*1000:.0f}ms: {type(e).__name__}: {e}", flush=True)
-                queue.put_nowait(("error", str(e)))
-            finally:
-                t_done = time.perf_counter()
-                print(f"[TIMING] ✓ stream done | total={(t_done - t0)*1000:.0f}ms | chars={len(full_text)}", flush=True)
-                queue.put_nowait(("done", None))
-
-        stream_task = asyncio.create_task(run_stream())
-
-        async def _watchdog():
-            await asyncio.sleep(_STREAM_TIMEOUT_S)
-            if not stream_task.done() and not got_first_token:
-                stream_task.cancel()
-                queue.put_nowait(("error", "timeout"))
-
-        asyncio.create_task(_watchdog())
-
-        while True:
-            try:
-                kind, value = await asyncio.wait_for(queue.get(), timeout=15)
-                if kind == "delta":
-                    got_first_token = True  # type: ignore[assignment]
-                    full_text += value
-                    yield f"data: {json.dumps({'delta': value})}\n\n"
-                elif kind == "error":
-                    yield f"data: {json.dumps({'error': 'Failed to generate a response. Please try again.'})}\n\n"
-                    return
-                elif kind == "done":
-                    break
-            except asyncio.TimeoutError:
-                print(f"[TIMING] keepalive at {(time.perf_counter()-t0)*1000:.0f}ms (file_search still running)", flush=True)
-                yield ": keepalive\n\n"
-
-        if full_text:
-            _check_drug_doses(full_text)
-
-        if is_single_turn and user_question and full_text:
-            _cache.set(cache_key, full_text)
-            print(f"[CACHE] stored | chars={len(full_text)} | question={user_question[:60]}", flush=True)
-
-        yield f"data: {json.dumps({'done': True})}\n\n"
+        try:
+            print(f"[PROXY] → calling workflow proxy for: {user_question[:60]}", flush=True)
+            t_proxy = time.perf_counter()
+            proxy_text = await call_via_proxy(user_question)
+            proxy_text = _clean_citations(proxy_text) if proxy_text else ""
+            print(f"[PROXY] ✓ done in {(time.perf_counter()-t_proxy)*1000:.0f}ms | chars={len(proxy_text)}", flush=True)
+            if not proxy_text:
+                yield f"data: {json.dumps({'error': 'Failed to generate a response. Please try again.'})}\n\n"
+                return
+            _check_drug_doses(proxy_text)
+            if is_single_turn and user_question:
+                _cache.set(cache_key, proxy_text)
+                print(f"[CACHE] stored | chars={len(proxy_text)} | question={user_question[:60]}", flush=True)
+            yield f"data: {json.dumps({'delta': proxy_text})}\n\n"
+            yield f"data: {json.dumps({'done': True})}\n\n"
+        except Exception as e:
+            print(f"[PROXY] ✗ error: {e}", flush=True)
+            yield f"data: {json.dumps({'error': 'Failed to generate a response. Please try again.'})}\n\n"
 
     return StreamingResponse(
         generate(),
