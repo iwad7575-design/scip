@@ -229,14 +229,12 @@ export function ChatPage() {
   const sendMessage = useCallback(async (text: string) => {
     if (!text.trim() || loading || isSendingRef.current) return;
 
-    if (user === null) {
-      const used = getGuestQuestionsUsed();
-      if (used >= GUEST_LIMIT) {
-        setShowGuestLimitModal(true);
-        return;
-      }
-      incrementGuestQuestions();
-    }
+    // Temporarily disabled for grant evaluation period — re-enable after submission
+    // if (user === null) {
+    //   const used = getGuestQuestionsUsed();
+    //   if (used >= GUEST_LIMIT) { setShowGuestLimitModal(true); return; }
+    //   incrementGuestQuestions();
+    // }
 
     isSendingRef.current = true;
 
@@ -545,22 +543,7 @@ export function ChatPage() {
           </div>
         )}
 
-        {user === null && (
-          <div style={{ textAlign: "center", marginBottom: 8 }}>
-            <span style={{
-              display: "inline-flex", alignItems: "center", gap: 5,
-              background: "#fefce8", border: "1px solid #fde68a",
-              color: "#92400e", fontSize: 12, fontWeight: 600,
-              padding: "4px 12px", borderRadius: 20,
-              fontFamily: "var(--font-heading)",
-            }}>
-              👤 {guestQuestionsRemaining()} free {guestQuestionsRemaining() === 1 ? "question" : "questions"} remaining •{" "}
-              <Link to="/signup" style={{ color: "#92400e", textDecoration: "underline", fontWeight: 700 }}>Sign up for more</Link>
-            </span>
-          </div>
-        )}
-
-        {user !== null && freeQuestions > 0 && (
+        {freeQuestions > 0 && user !== null && (
           <div style={{ textAlign: "center", marginBottom: 8 }}>
             <span style={{
               display: "inline-flex", alignItems: "center", gap: 5,
@@ -1020,10 +1003,8 @@ export function ChatPage() {
         freeQuestions={wasReferred ? 10 : 5}
         wasReferred={wasReferred}
       />
-      <GuestLimitModal
-        isOpen={showGuestLimitModal}
-        onClose={() => setShowGuestLimitModal(false)}
-      />
+      {/* GuestLimitModal disabled for grant evaluation period */}
+      {/* <GuestLimitModal isOpen={showGuestLimitModal} onClose={() => setShowGuestLimitModal(false)} /> */}
       <style>{`
         @keyframes fadeInUp {
           from { opacity: 0; transform: translateY(20px); }
