@@ -30,6 +30,15 @@ const REFS_LINE_RE =
 const FOLLOWUP_RE =
   /^[🔍💊🧪🏥🚨📋]\s+(?:For\b|To\b|Ask\b)/i;
 
+// Strip any raw citation tokens that leak through from nano responses
+function cleanCitationTokens(text: string): string {
+  return text
+    .replace(/filecite\w*/gi, "")
+    .replace(/turn\d+file\d+/gi, "")
+    .replace(/ {2,}/g, " ")
+    .trim();
+}
+
 // Ensure lines starting with ⚠️ or section-emoji that immediately follow a
 // bullet item are separated by a blank line. Without this, the markdown parser
 // absorbs them as list continuations rather than new paragraphs, causing the
@@ -485,7 +494,7 @@ export function MarkdownMessage({ content }: { content: string }) {
     console.log("[RAW RESPONSE START]");
     console.log(content);
     console.log("[RAW RESPONSE END]");
-    return splitResponse(expandAbbreviations(cleanExtensions(cleanPlaceholderRefs(fixListBreaks(content)))));
+    return splitResponse(expandAbbreviations(cleanExtensions(cleanPlaceholderRefs(cleanCitationTokens(fixListBreaks(content))))));
   }, [content]);
 
   return (

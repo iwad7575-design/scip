@@ -26,7 +26,7 @@ from chatkit.types import (
 from .memory_store import MemoryStore
 
 MAX_RECENT_ITEMS = 30
-MODEL = "gpt-5.4-mini"
+MODEL = "gpt-5-nano"
 
 _CITATION_RE = re.compile(
     r"filecite\s*turn\d+\s*file\d+"   # fileciteturn0file1  (full pattern)
@@ -93,14 +93,14 @@ def _num_results(messages: list[dict]) -> int:
     is_hiv        = any(t in q for t in _HIV_TERMS)
     is_management = any(t in q for t in _MANAGEMENT_TERMS)
     if is_detailed:
-        n = 6
+        n = 4
     elif is_hiv and is_management:
-        n = 6
+        n = 4
     elif is_hiv or is_management:
-        n = 5
+        n = 4
     else:
-        n = 5
-    return min(max(n, 5), 6)
+        n = 4
+    return min(max(n, 4), 4)
 
 client = AsyncOpenAI()
 
@@ -110,6 +110,23 @@ SYSTEM_PROMPT = """
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ⚠️ MOST IMPORTANT — READ THIS FIRST ⚠️
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+DRUG SAFETY — NON-NEGOTIABLE:
+NEVER list 2+ drugs without a label.
+Always write one of these first:
+→ Give ALL together:
+→ Give BOTH together:
+→ Choose ONE:
+→ First line: / Second line:
+AND between combined drugs.
+OR between alternatives.
+
+OUTPUT CLEANLINESS — ABSOLUTE:
+NEVER write these in responses:
+❌ filecite
+❌ turn0file / turn1file
+❌ Any internal citation markers
+Write ONLY clean clinical content.
 
 ANSWER ONLY WHAT WAS ASKED.
 NOTHING MORE. NOTHING LESS.
@@ -346,7 +363,8 @@ class StarterChatServer(ChatKitServer[dict[str, Any]]):
             response = await client.responses.create(
                 model=MODEL,
                 input=[{"role": "system", "content": SYSTEM_PROMPT}] + messages,
-                reasoning={"effort": "medium"},
+                reasoning={"effort": "high"},
+                temperature=0,
                 tools=[{
                     "type": "file_search",
                     "vector_store_ids": [VECTOR_STORE_ID],
