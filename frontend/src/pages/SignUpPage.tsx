@@ -52,30 +52,6 @@ export function SignUpPage() {
   const [resendMessage, setResendMessage] = useState("");
   const [resendCooldown, setResendCooldown] = useState(0);
   const [resendLoading, setResendLoading] = useState(false);
-  const [emailExists, setEmailExists] = useState(false);
-
-  useEffect(() => {
-    if (!email || !email.includes("@")) { setEmailExists(false); return; }
-    const timer = setTimeout(async () => {
-      try {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password: "check_only_xyz_123__",
-        });
-        // "Invalid login credentials" → email exists but password wrong
-        // "Email not confirmed" → email exists, unconfirmed
-        // Any other error (e.g. user not found) → treat as new
-        const msg = error?.message ?? "";
-        setEmailExists(
-          msg.includes("Invalid login credentials") ||
-          msg.includes("Email not confirmed")
-        );
-      } catch {
-        setEmailExists(false);
-      }
-    }, 800);
-    return () => clearTimeout(timer);
-  }, [email]);
 
   useEffect(() => {
     if (resendCooldown <= 0) return;
@@ -96,15 +72,21 @@ export function SignUpPage() {
     if (password !== confirmPassword) { setConfirmError("Passwords do not match."); return; }
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email, password,
         options: {
           emailRedirectTo: `${window.location.origin}/auth/callback`,
           data: { full_name: fullName, profession, health_facility: facility },
         },
       });
-      if (error) setError(friendlyError(error.message));
-      else setConfirmedEmail(email);
+      if (error) {
+        setError(friendlyError(error.message));
+      } else if (data.user?.identities?.length === 0) {
+        // Supabase returns success with empty identities when email is already registered
+        setError("This email is already registered.");
+      } else {
+        setConfirmedEmail(email);
+      }
     } finally { setLoading(false); }
   }
 
@@ -226,22 +208,7 @@ export function SignUpPage() {
             <p style={{ fontSize: 15, color: "var(--text-secondary)", margin: 0 }}>Ethiopia's clinical intelligence platform</p>
           </div>
 
-          {emailExists && (
-            <div style={{
-              background: "#fffbeb", border: "1px solid #fde68a",
-              borderRadius: "var(--radius-lg)", padding: "12px 16px",
-              marginBottom: 8,
-            }}>
-              <p style={{ margin: 0, fontSize: 14, color: "#92400e" }}>
-                ⚠️ This email is already registered.{" "}
-                <Link to="/login" style={{ fontWeight: 600, color: "#92400e", textDecoration: "underline" }}>
-                  Login instead →
-                </Link>
-              </p>
-            </div>
-          )}
-
-          {refCode && !emailExists && (
+          {refCode && (
             <div style={{
               background: "var(--success-bg)", border: "1px solid #bbf7d0",
               borderRadius: "var(--radius-lg)", padding: "12px 16px",
