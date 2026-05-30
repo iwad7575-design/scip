@@ -33,7 +33,10 @@ app.post('/run', async (req, res) => {
 
   try {
     console.log(`[PROXY] Running workflow for: ${question.slice(0, 60)}`);
-    const result = await runWorkflow({ input_as_text: question });
+    const timeout = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Workflow timed out after 45s')), 45000)
+    );
+    const result = await Promise.race([runWorkflow({ input_as_text: question }), timeout]);
     const text = result?.output_text || '';
     console.log(`[PROXY] Done — ${text.length} chars`);
     res.json({ success: true, response: text, chars: text.length });

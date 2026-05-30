@@ -233,7 +233,8 @@ replace the judgment of a qualified clinician.
 export async function runWorkflow({ input_as_text }) {
   const response = await client.responses.create({
     model: 'gpt-5-nano',
-    reasoning: { effort: 'high' },
+    reasoning: { effort: 'medium' },
+    max_output_tokens: 1500,
     input: [
       { role: 'system', content: SYSTEM_PROMPT },
       { role: 'user',   content: input_as_text },
@@ -241,7 +242,7 @@ export async function runWorkflow({ input_as_text }) {
     tools: [{
       type: 'file_search',
       vector_store_ids: [VECTOR_STORE_ID],
-      max_num_results: 4,
+      max_num_results: 3,
       ranking_options: { score_threshold: 0.15 },
     }],
   });

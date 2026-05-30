@@ -35,7 +35,7 @@ PROXY_SECRET = os.getenv("PROXY_SECRET", "")
 
 async def call_via_proxy(question: str) -> str:
     """Call the Node.js workflow proxy. Falls back to direct API if proxy is unavailable."""
-    async with httpx.AsyncClient(timeout=90.0) as http:
+    async with httpx.AsyncClient(timeout=45.0) as http:
         resp = await http.post(
             f"{PROXY_URL}/run",
             headers={"x-proxy-secret": PROXY_SECRET, "Content-Type": "application/json"},
