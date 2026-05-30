@@ -5,6 +5,7 @@ import { supabase } from "../lib/supabase";
 import { Sidebar } from "../components/Sidebar";
 import { MarkdownMessage } from "../components/MarkdownMessage";
 import { WelcomeModal } from "../components/WelcomeModal";
+import { GuestLimitModal } from "../components/GuestLimitModal";
 import { ASK_API_URL, BACKEND_HEALTH_URL, BACKEND_PING_URL, SHARE_API_URL, BACKEND_URL } from "../lib/config";
 
 const EXAMPLE_QUESTIONS = [
@@ -47,6 +48,17 @@ function cleanCitations(text: string): string {
 
 const RESPONSE_TIMEOUT_S = 65;
 
+const GUEST_LIMIT = 3;
+function getGuestQuestionsUsed(): number {
+  return parseInt(localStorage.getItem("guestQuestionsUsed") || "0", 10);
+}
+function incrementGuestQuestions() {
+  localStorage.setItem("guestQuestionsUsed", String(getGuestQuestionsUsed() + 1));
+}
+function guestQuestionsRemaining(): number {
+  return Math.max(0, GUEST_LIMIT - getGuestQuestionsUsed());
+}
+
 function loadingPhaseMessage(elapsed: number): string {
   if (elapsed < 3)  return "Searching 109 medical guidelines…";
   if (elapsed < 7)  return "Retrieving relevant protocols…";
@@ -81,6 +93,7 @@ export function ChatPage() {
   const [freeQuestions, setFreeQuestions]     = useState(0);
   const [showWelcome, setShowWelcome]         = useState(false);
   const [wasReferred, setWasReferred]         = useState(false);
+  const [showGuestLimitModal, setShowGuestLimitModal] = useState(false);
 
   const location    = useLocation();
   const isOnChatPage = location.pathname === "/chat";
@@ -215,6 +228,16 @@ export function ChatPage() {
 
   const sendMessage = useCallback(async (text: string) => {
     if (!text.trim() || loading || isSendingRef.current) return;
+
+    if (user === null) {
+      const used = getGuestQuestionsUsed();
+      if (used >= GUEST_LIMIT) {
+        setShowGuestLimitModal(true);
+        return;
+      }
+      incrementGuestQuestions();
+    }
+
     isSendingRef.current = true;
 
     // Swap URL from / to /chat without remounting (preserves all state)
@@ -522,7 +545,22 @@ export function ChatPage() {
           </div>
         )}
 
-        {freeQuestions > 0 && (
+        {user === null && (
+          <div style={{ textAlign: "center", marginBottom: 8 }}>
+            <span style={{
+              display: "inline-flex", alignItems: "center", gap: 5,
+              background: "#fefce8", border: "1px solid #fde68a",
+              color: "#92400e", fontSize: 12, fontWeight: 600,
+              padding: "4px 12px", borderRadius: 20,
+              fontFamily: "var(--font-heading)",
+            }}>
+              👤 {guestQuestionsRemaining()} free {guestQuestionsRemaining() === 1 ? "question" : "questions"} remaining •{" "}
+              <Link to="/signup" style={{ color: "#92400e", textDecoration: "underline", fontWeight: 700 }}>Sign up for more</Link>
+            </span>
+          </div>
+        )}
+
+        {user !== null && freeQuestions > 0 && (
           <div style={{ textAlign: "center", marginBottom: 8 }}>
             <span style={{
               display: "inline-flex", alignItems: "center", gap: 5,
@@ -981,6 +1019,10 @@ export function ChatPage() {
         onClose={() => setShowWelcome(false)}
         freeQuestions={wasReferred ? 10 : 5}
         wasReferred={wasReferred}
+      />
+      <GuestLimitModal
+        isOpen={showGuestLimitModal}
+        onClose={() => setShowGuestLimitModal(false)}
       />
       <style>{`
         @keyframes fadeInUp {

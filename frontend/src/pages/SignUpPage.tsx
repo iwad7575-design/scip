@@ -88,6 +88,7 @@ export function SignUpPage() {
         const pendingRef = localStorage.getItem("pendingRefCode");
         localStorage.setItem("showWelcome", "true");
         localStorage.setItem("wasReferred", pendingRef ? "true" : "false");
+        localStorage.removeItem("guestQuestionsUsed");
         setConfirmedEmail(email);
       }
     } finally { setLoading(false); }
