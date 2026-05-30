@@ -48,14 +48,24 @@ export function AuthCallbackPage() {
       } catch { /* silent fail */ }
     }
 
-    function setWelcomeIfNewUser(createdAt?: string | null) {
+    async function giveSignupCredits(accessToken: string) {
+      try {
+        await fetch(`${BACKEND_URL}/referral/credits/add`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
+          body: JSON.stringify({ questions: 5, reason: "signup_bonus" }),
+        });
+      } catch { /* silent */ }
+    }
+
+    function handleNewUser(createdAt?: string | null, accessToken?: string | null) {
       if (!createdAt) return;
       const ageMs = Date.now() - new Date(createdAt).getTime();
-      if (ageMs < 10 * 60 * 1000) {
-        const pendingRef = localStorage.getItem("pendingRefCode");
-        localStorage.setItem("showWelcome", "true");
-        localStorage.setItem("wasReferred", pendingRef ? "true" : "false");
-      }
+      if (ageMs >= 10 * 60 * 1000) return;
+      const pendingRef = localStorage.getItem("pendingRefCode");
+      localStorage.setItem("showWelcome", "true");
+      localStorage.setItem("wasReferred", pendingRef ? "true" : "false");
+      if (!pendingRef && accessToken) giveSignupCredits(accessToken);
     }
 
     function goTo(path: string) {
@@ -124,7 +134,7 @@ export function AuthCallbackPage() {
         } else if (event === "SIGNED_IN") {
           sub?.unsubscribe();
           if (timeout) clearTimeout(timeout);
-          setWelcomeIfNewUser(session?.user.created_at);
+          handleNewUser(session?.user.created_at, session?.access_token);
           applyPendingReferral(session?.access_token, session?.user.created_at);
           markSuccess();
         }
@@ -143,7 +153,7 @@ export function AuthCallbackPage() {
       timeout = setTimeout(() => {
         sub?.unsubscribe();
         supabase.auth.getSession().then(({ data: { session } }) => {
-          if (session) { setWelcomeIfNewUser(session.user.created_at); applyPendingReferral(session.access_token, session.user.created_at); markSuccess(); }
+          if (session) { handleNewUser(session.user.created_at, session.access_token); applyPendingReferral(session.access_token, session.user.created_at); markSuccess(); }
           else markError("Authentication failed or the link has expired. Please request a new link.");
         });
       }, 10000);
@@ -157,7 +167,7 @@ export function AuthCallbackPage() {
     // ── No code, no hash recovery — hash-based email confirmation or OAuth ─────
     // Supabase has auto-processed the tokens; wait for the SIGNED_IN event.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_IN" && session) { setWelcomeIfNewUser(session.user.created_at); applyPendingReferral(session.access_token, session.user.created_at); markSuccess(); }
+      if (event === "SIGNED_IN" && session) { handleNewUser(session.user.created_at, session.access_token); applyPendingReferral(session.access_token, session.user.created_at); markSuccess(); }
     });
 
     const fallback = setTimeout(async () => {

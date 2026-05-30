@@ -979,7 +979,7 @@ export function ChatPage() {
       <WelcomeModal
         isOpen={showWelcome}
         onClose={() => setShowWelcome(false)}
-        freeQuestions={10}
+        freeQuestions={wasReferred ? 10 : 5}
         wasReferred={wasReferred}
       />
       <style>{`

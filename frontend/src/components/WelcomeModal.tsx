@@ -84,14 +84,25 @@ export function WelcomeModal({ isOpen, onClose, freeQuestions = 10, wasReferred 
             background: "var(--success-bg)", border: "1px solid #bbf7d0",
             borderRadius: 12, padding: "14px 16px", marginBottom: 20, textAlign: "center",
           }}>
-            <div style={{ fontSize: 22, fontWeight: 700, color: "var(--success)", marginBottom: 4 }}>
-              🎁 {freeQuestions} Free Questions
-            </div>
-            <p style={{ margin: 0, fontSize: 13, color: "#166534" }}>
-              {wasReferred
-                ? "Added to your account as a referral bonus!"
-                : "To get you started — ask anything clinical!"}
-            </p>
+            {wasReferred ? (
+              <>
+                <div style={{ fontSize: 22, fontWeight: 700, color: "var(--success)", marginBottom: 4 }}>
+                  🎁 10 Free Questions
+                </div>
+                <p style={{ margin: 0, fontSize: 13, color: "#166534" }}>
+                  Added to your account as a referral bonus!
+                </p>
+              </>
+            ) : (
+              <>
+                <div style={{ fontSize: 22, fontWeight: 700, color: "var(--success)", marginBottom: 4 }}>
+                  🎁 5 Free Questions to get started!
+                </div>
+                <p style={{ margin: 0, fontSize: 13, color: "#166534" }}>
+                  Want more? Refer a colleague and they get 10!
+                </p>
+              </>
+            )}
           </div>
 
           {/* Feature pills */}

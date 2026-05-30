@@ -647,6 +647,30 @@ async def apply_referral(request: Request, user=Depends(get_current_user)):
     return {"success": True, "message": "Referral applied! You have 10 free questions.", "free_questions": 10}
 
 
+@app.post("/referral/credits/add")
+async def add_credits(request: Request, user=Depends(get_current_user)):
+    body = await request.json()
+    questions = int(body.get("questions", 5))
+    reason = body.get("reason", "signup_bonus")
+    user_id = str(user.id)
+
+    existing = supabase_admin.table("question_credits").select("*").eq("user_id", user_id).execute()
+    if existing.data:
+        curr = existing.data[0]
+        supabase_admin.table("question_credits").update({
+            "free_questions_remaining": curr["free_questions_remaining"] + questions,
+            "total_earned": curr["total_earned"] + questions,
+        }).eq("user_id", user_id).execute()
+    else:
+        supabase_admin.table("question_credits").insert({
+            "user_id": user_id,
+            "free_questions_remaining": questions,
+            "total_earned": questions,
+        }).execute()
+
+    return {"success": True, "questions_added": questions, "reason": reason}
+
+
 @app.get("/referral/credits")
 async def get_credits(user=Depends(get_current_user)):
     user_id = str(user.id)
