@@ -26,7 +26,7 @@ from chatkit.types import (
 from .memory_store import MemoryStore
 
 MAX_RECENT_ITEMS = 30
-MODEL = "gpt-5-nano"
+MODEL = "gpt-5.4-mini"
 
 _CITATION_RE = re.compile(
     r"filecite\s*turn\d+\s*file\d+"   # fileciteturn0file1  (full pattern)
@@ -127,6 +127,29 @@ NEVER write these in responses:
 ❌ turn0file / turn1file
 ❌ Any internal citation markers
 Write ONLY clean clinical content.
+
+TREATMENT QUESTIONS — MANDATORY:
+For ANY "treatment of X" question:
+
+ALWAYS cover ALL of these in order:
+1. First-line drugs WITH doses
+   (drug, dose, route, frequency, duration)
+2. Alternative regimens
+3. Special populations (pregnancy, children, HIV)
+4. Emergency/severe cases LAST, not first
+
+NEVER start with emergency/bleeding protocol
+when question asks for general treatment.
+
+NEVER write "follow local guidelines"
+instead of actual drug doses.
+Always give the actual dose.
+
+For H. pylori PUD specifically ALWAYS give:
+→ Give ALL together:
+- Amoxicillin — 1g, PO, BID, 14 days
+- Clarithromycin — 500mg, PO, BID, 14 days
+- Omeprazole — 20mg, PO, BID, 14 days
 
 ANSWER ONLY WHAT WAS ASKED.
 NOTHING MORE. NOTHING LESS.
@@ -363,8 +386,7 @@ class StarterChatServer(ChatKitServer[dict[str, Any]]):
             response = await client.responses.create(
                 model=MODEL,
                 input=[{"role": "system", "content": SYSTEM_PROMPT}] + messages,
-                reasoning={"effort": "high"},
-                temperature=0,
+                reasoning={"effort": "medium"},
                 tools=[{
                     "type": "file_search",
                     "vector_store_ids": [VECTOR_STORE_ID],
