@@ -2,6 +2,11 @@ import express from 'express';
 import dotenv from 'dotenv';
 dotenv.config();
 
+console.log('[PROXY] Starting...');
+console.log('[PROXY] OPENAI_API_KEY:', process.env.OPENAI_API_KEY ? 'SET' : 'MISSING');
+console.log('[PROXY] VECTOR_STORE_ID:', process.env.VECTOR_STORE_ID ? 'SET' : 'MISSING');
+console.log('[PROXY] PROXY_SECRET:', process.env.PROXY_SECRET ? 'SET' : 'MISSING');
+
 import { runWorkflow } from './workflow.js';
 
 const app = express();
@@ -34,7 +39,8 @@ app.post('/run', async (req, res) => {
     res.json({ success: true, response: text, chars: text.length });
   } catch (error) {
     console.error('[PROXY ERROR]', error.message);
-    res.status(500).json({ error: error.message });
+    console.error('[PROXY STACK]', error.stack);
+    res.status(500).json({ error: error.message, stack: error.stack });
   }
 });
 
