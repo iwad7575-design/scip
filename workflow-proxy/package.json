@@ -1,0 +1,14 @@
+{
+  "name": "scip-workflow-proxy",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@openai/agents": "latest",
+    "openai": "latest",
+    "express": "^4.18.0",
+    "dotenv": "^16.0.0"
+  }
+}

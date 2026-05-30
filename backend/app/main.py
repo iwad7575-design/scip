@@ -25,7 +25,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
-from app.server import StarterChatServer, MODEL, SYSTEM_PROMPT, VECTOR_STORE_ID, client  # IMPORTANT: absolute import
+from app.server import StarterChatServer, MODEL, SYSTEM_PROMPT, VECTOR_STORE_ID, client, call_via_proxy, PROXY_URL  # IMPORTANT: absolute import
 from app.supabase_client import supabase, supabase_admin
 
 bearer = HTTPBearer()
@@ -336,6 +336,25 @@ async def ask_endpoint(request: Request, _user=Depends(get_optional_user)):
         first_delta_at: list[float] = []
         queue: asyncio.Queue = asyncio.Queue()
         got_first_token = False
+
+        # ── Proxy path ────────────────────────────────────────────────────────
+        if PROXY_URL and user_question:
+            try:
+                print(f"[PROXY] → calling workflow proxy for: {user_question[:60]}", flush=True)
+                t_proxy = time.perf_counter()
+                proxy_text = await call_via_proxy(user_question)
+                proxy_text = _clean_citations(proxy_text)
+                print(f"[PROXY] ✓ done in {(time.perf_counter()-t_proxy)*1000:.0f}ms | chars={len(proxy_text)}", flush=True)
+                if proxy_text:
+                    _check_drug_doses(proxy_text)
+                    if is_single_turn:
+                        _cache.set(cache_key, proxy_text)
+                    yield f"data: {json.dumps({'delta': proxy_text})}\n\n"
+                    yield f"data: {json.dumps({'done': True})}\n\n"
+                    return
+            except Exception as e:
+                print(f"[PROXY] ✗ error: {e} — falling back to direct OpenAI call", flush=True)
+        # ── End proxy path ────────────────────────────────────────────────────
 
         async def run_stream():
             t_openai_start = time.perf_counter()

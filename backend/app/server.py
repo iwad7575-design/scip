@@ -10,6 +10,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, AsyncIterator
 
+import httpx
 from openai import AsyncOpenAI
 from supabase import create_client
 
@@ -27,6 +28,21 @@ from .memory_store import MemoryStore
 
 MAX_RECENT_ITEMS = 30
 MODEL = "gpt-5.4-mini"
+
+PROXY_URL    = os.getenv("WORKFLOW_PROXY_URL", "")
+PROXY_SECRET = os.getenv("PROXY_SECRET", "")
+
+
+async def call_via_proxy(question: str) -> str:
+    """Call the Node.js workflow proxy. Falls back to direct API if proxy is unavailable."""
+    async with httpx.AsyncClient(timeout=90.0) as http:
+        resp = await http.post(
+            f"{PROXY_URL}/run",
+            headers={"x-proxy-secret": PROXY_SECRET, "Content-Type": "application/json"},
+            json={"question": question},
+        )
+        resp.raise_for_status()
+        return resp.json().get("response", "")
 
 _CITATION_RE = re.compile(
     r"filecite\s*turn\d+\s*file\d+"   # fileciteturn0file1  (full pattern)

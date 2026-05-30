@@ -24,3 +24,21 @@ services:
         value: "3.11"
       - key: PYTHONUNBUFFERED
         value: "1"
+
+  - type: web
+    name: scip-workflow-proxy
+    runtime: node
+    rootDir: workflow-proxy
+    filter:
+      paths:
+        - workflow-proxy/**
+    buildCommand: npm install
+    startCommand: node index.js
+    plan: starter
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: VECTOR_STORE_ID
+        value: vs_69d7ea3f2f5c8191abfee9317ddcb1b8
+      - key: PROXY_SECRET
+        sync: false
