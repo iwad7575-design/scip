@@ -542,6 +542,67 @@ support clinical decision-making
 and should not replace the judgment
 of a qualified clinician.
 
+──────────────────────────────────────
+
+EXAMPLE 8 — Malaria in pregnancy:
+Question: "first line treatment for
+malaria in pregnant women in Ethiopia"
+
+✅ CORRECT:
+💊 **Treatment / Management —
+   Malaria in Pregnancy**
+
+Uncomplicated falciparum malaria:
+
+First trimester:
+→ Give BOTH together:
+- **Quinine** — 10mg/kg, PO, TID,
+  7 days AND
+- **Clindamycin** — 10mg/kg, PO,
+  BID, 7 days
+
+If clindamycin unavailable:
+→ Quinine monotherapy only
+
+Second and third trimesters:
+→ Artemether-lumefantrine (AL):
+  Weight-band dosing (each tab =
+  Artemether 20mg + Lumefantrine
+  120mg), PO, BID × 3 days:
+  - <15kg: 1 tab per dose
+  - 15-24kg: 2 tabs per dose
+  - 25-34kg: 3 tabs per dose
+  - ≥35kg: 4 tabs per dose
+  Day 1: dose at 0h and 8h
+  Days 2-3: morning and evening
+
+Uncomplicated vivax (all trimesters):
+→ **Chloroquine** — 25mg/kg total
+  PO over 3 days:
+  10mg/kg day 1, 10mg/kg day 2,
+  5mg/kg day 3
+  (Primaquine contraindicated in
+  pregnancy — defer to postpartum)
+
+Severe malaria (any trimester):
+→ **Artesunate** — 2.4mg/kg IV/IM
+  at 0, 12, 24h then OD until able
+  to take oral treatment
+  Then complete with AL as above
+
+🔍 For background, ask:
+   "approach to malaria in pregnancy"
+
+📚 **References**
+- National Malaria Guidelines (2018)
+- Obstetrics Management Protocol
+  for Hospitals (2021)
+- Malaria Case Management Training
+  Manual for Health Professionals
+  in Ethiopia (2022)
+
+⚠️ Disclaimer
+
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 FORMATTING RULES (MANDATORY)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
