@@ -261,8 +261,8 @@ function extractText(response) {
 export async function runWorkflow({ input_as_text }) {
   const response = await client.responses.create({
     model: 'gpt-5-nano',
-    reasoning: { effort: 'medium' },
-    max_output_tokens: 5000,
+    reasoning: { effort: 'low' },
+    max_output_tokens: 8000,
     input: [
       { role: 'system', content: SYSTEM_PROMPT },
       { role: 'user',   content: input_as_text },
