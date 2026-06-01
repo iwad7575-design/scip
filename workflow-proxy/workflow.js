@@ -605,7 +605,8 @@ Severe malaria (any trimester):
 
 ──────────────────────────────────────
 
-EXAMPLE 9 — Diarrhea in children:
+EXAMPLE 9 — Diarrhea in children
+(IMNCI classification format):
 Question: "treatment of diarrhea
 in children"
 
@@ -613,63 +614,178 @@ in children"
 💊 **Treatment / Management —
    Diarrhea in Children**
 
-→ Give BOTH together for ALL cases:
-- **ORS** (Oral Rehydration Solution)
-  AND
-- **Zinc** dispersible tablet
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+INFANTS <2 MONTHS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-REHYDRATION — Choose plan by severity:
+**SEVERE DEHYDRATION**
+≥2 of: movement only when stimulated
+or no movement, sunken eyes, skin
+pinch goes back very slowly
 
-Plan A (no dehydration):
-→ ORS after each loose stool:
-  <2 years: 50-100ml per stool
-  2-10 years: 100-200ml per stool
-  >10 years: drink freely
+→ With another severe classification:
+  Refer URGENTLY to hospital
+  ORS sips on the way
+  Continue breastfeeding + keep warm
+→ No other severe classification:
+  **Ringer's Lactate** IV:
+  30ml/kg over 1h then 70ml/kg over 5h
 
-Plan B (some dehydration):
-→ ORS — 75ml/kg, PO, over 4 hours
-  Reassess after 4 hours
+─────────────────────────────────
+**SOME DEHYDRATION**
+≥2 of: restless/irritable, sunken
+eyes, skin pinch goes back slowly
 
-Plan C (severe dehydration):
-→ Ringer's Lactate — 100ml/kg IV:
-  Infants (<12mo): 30ml/kg over 1h
-  then 70ml/kg over 5h
-  Children (>12mo): 30ml/kg over 30min
-  then 70ml/kg over 2.5h
+→ With another severe classification:
+  Refer URGENTLY to hospital
+  ORS sips on the way
+→ No other severe classification:
+  Give BOTH together:
+  - **ORS** — 75ml/kg over 4h AND
+  - **Zinc** — 10mg, PO, OD, 10 days
+  Follow up in 2 days
+
+─────────────────────────────────
+**NO DEHYDRATION**
+Not enough signs for above
+
+→ Give BOTH together:
+  - **ORS** — after each loose stool
+    50-100ml per stool AND
+  - **Zinc** — 10mg, PO, OD, 10 days
+  Follow up in 5 days if not improving
+
+─────────────────────────────────
+**SEVERE PERSISTENT DIARRHEA**
+Diarrhea ≥14 days
+
+→ Give ALL together then refer:
+  - **Ampicillin** — 50mg/kg, IM,
+    stat AND
+  - **Gentamicin** — 7.5mg/kg, IM,
+    stat
+  Prevent hypoglycaemia
+  Keep warm → Refer to hospital
+
+─────────────────────────────────
+**DYSENTERY**
+Blood in stool
+
+→ Give ALL together then refer:
+  - **Ampicillin** — 50mg/kg, IM,
+    stat AND
+  - **Gentamicin** — 7.5mg/kg, IM,
+    stat
+  Prevent hypoglycaemia
+  Keep warm → Refer to hospital
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHILDREN 2 MONTHS TO 5 YEARS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+**SEVERE DEHYDRATION**
+≥2 of: lethargic or unconscious,
+sunken eyes, not able to drink or
+drinking poorly, skin pinch goes
+back very slowly
+
+→ No other severe classification:
+  **Ringer's Lactate** IV:
+  Children >12mo:
+  30ml/kg over 30min then
+  70ml/kg over 2.5h
   Reassess after each phase
+→ With another severe classification:
+  Refer URGENTLY to hospital
+  ORS sips on the way
+→ If ≥2 years and cholera in area:
+  Add antibiotic for cholera
 
-ZINC (all children with diarrhea):
-→ **Zinc** dispersible tablet, PO,
-  OD, 10 days (even after diarrhea
-  stops):
-  <6 months: 10mg (½ tablet) OD
-  ≥6 months: 20mg (1 tablet) OD
+─────────────────────────────────
+**SOME DEHYDRATION**
+≥2 of: restless/irritable, sunken
+eyes, drinks eagerly/thirsty, skin
+pinch goes back slowly
 
-ANTIBIOTICS (dysentery only):
-→ Choose ONE:
-- **Ciprofloxacin** — 15mg/kg, PO,
-  BID, 3 days OR
-- **Cotrimoxazole** — 5mg/kg TMP,
-  PO, BID, 5 days
+→ Give ALL together:
+  - **ORS** — 75ml/kg, PO, over 4h
+    AND
+  - **Zinc** — 20mg, PO, OD, 10 days
+    AND
+  - Continue feeding
+→ With severe classification:
+  Refer URGENTLY to hospital
+  ORS sips on the way
+  Follow up in 5 days if not improving
 
-Do NOT give antibiotics for
-watery diarrhea without dysentery.
-Do NOT give antidiarrheal agents
-(loperamide) to children.
+─────────────────────────────────
+**NO DEHYDRATION**
+Not enough signs for above
 
-Continue breastfeeding throughout.
+→ Give ALL together:
+  - **ORS** Plan A:
+    <2 years: 50-100ml per stool
+    2-10 years: 100-200ml per stool
+    AND
+  - **Zinc** — 20mg, PO, OD, 10 days
+    AND
+  - Continue feeding
+  Follow up in 5 days if not improving
+
+─────────────────────────────────
+**SEVERE PERSISTENT DIARRHEA**
+Diarrhea ≥14 days WITH dehydration
+
+→ Treat dehydration first unless
+  another severe classification
+→ Give **Vitamin A** therapeutic dose
+→ Refer to hospital
+
+─────────────────────────────────
+**PERSISTENT DIARRHEA**
+Diarrhea ≥14 days WITHOUT dehydration
+
+→ Give ALL together:
+  - **Vitamin A** — therapeutic dose
+    AND
+  - **Zinc** — 20mg, PO, OD, 10 days
+→ Feeding recommendations for
+  persistent diarrhea
+  Follow up in 5 days
+
+─────────────────────────────────
+**DYSENTERY**
+Blood in stool
+
+→ **Ciprofloxacin** — 15mg/kg, PO,
+  BID, 3 days
+  Follow up in 2 days
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ALL CASES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- Continue breastfeeding throughout
+- Do NOT give antidiarrheal agents
+- Do NOT give antiemetics routinely
+- Prevent hypoglycaemia in sick
+  infants
 
 🔍 For background, ask:
    "approach to diarrhea in children"
 
 📚 **References**
+- IMNCI Ethiopia (2021),
+  Tables 6.5 and 6.6
 - Standard Treatment Guidelines for
   General Hospitals (2021)
-- IMNCI Ethiopia (2021)
 - Pediatric Hospital Care Ethiopia
   Pocket Book (2016)
 
-⚠️ Disclaimer
+⚠️ This information is intended to
+support clinical decision-making and
+should not replace the judgment of
+a qualified clinician.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 FORMATTING RULES (MANDATORY)
