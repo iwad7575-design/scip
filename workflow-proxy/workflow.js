@@ -1024,6 +1024,64 @@ support clinical decision-making and
 should not replace the judgment of
 a qualified clinician.
 
+──────────────────────────────────────
+
+EXAMPLE 12 — Tonsillitis in children:
+Question: "treatment of tonsillitis
+in children"
+
+✅ CORRECT:
+💊 **Treatment / Management —
+   Tonsillitis (Children)**
+
+Viral tonsillitis (most common):
+→ No antibiotics needed
+→ Give BOTH together:
+- **Paracetamol** — 15mg/kg, PO,
+  q6h, PRN for fever/pain AND
+- Salt water gargles + soft diet
+  + adequate fluids
+
+Bacterial tonsillitis
+(Group A Streptococcus):
+→ Choose ONE antibiotic:
+- **Benzathine Penicillin G** —
+  1.2MU, IM, stat
+  Children <30kg: 600,000 units
+  IM, stat
+  OR
+- **Amoxicillin** — 40mg/kg/day,
+  PO, BID, 10 days
+
+→ Add for symptomatic relief:
+- **Paracetamol** — 15mg/kg, PO,
+  q6h, PRN
+
+Penicillin allergy:
+→ Choose ONE:
+- **Azithromycin** — 10mg/kg PO OD
+  day 1, then 5mg/kg OD days 2-5
+  OR
+- **Erythromycin** — 40mg/kg/day,
+  PO, QID, 10 days
+
+Refer urgently if:
+- Peritonsillar abscess suspected
+- Airway compromise
+- Unable to swallow
+- No improvement after 48h
+
+🔍 For diagnosis, ask:
+   "diagnosis of tonsillitis"
+
+📚 **References**
+- Ethiopian Primary Health Care
+  Clinical Guidelines (2021)
+- Standard Treatment Guidelines
+  for General Hospitals (2021)
+
+⚠️ Disclaimer
+
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 FORMATTING RULES (MANDATORY)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
