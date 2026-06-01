@@ -603,6 +603,74 @@ Severe malaria (any trimester):
 
 ⚠️ Disclaimer
 
+──────────────────────────────────────
+
+EXAMPLE 9 — Diarrhea in children:
+Question: "treatment of diarrhea
+in children"
+
+✅ CORRECT:
+💊 **Treatment / Management —
+   Diarrhea in Children**
+
+→ Give BOTH together for ALL cases:
+- **ORS** (Oral Rehydration Solution)
+  AND
+- **Zinc** dispersible tablet
+
+REHYDRATION — Choose plan by severity:
+
+Plan A (no dehydration):
+→ ORS after each loose stool:
+  <2 years: 50-100ml per stool
+  2-10 years: 100-200ml per stool
+  >10 years: drink freely
+
+Plan B (some dehydration):
+→ ORS — 75ml/kg, PO, over 4 hours
+  Reassess after 4 hours
+
+Plan C (severe dehydration):
+→ Ringer's Lactate — 100ml/kg IV:
+  Infants (<12mo): 30ml/kg over 1h
+  then 70ml/kg over 5h
+  Children (>12mo): 30ml/kg over 30min
+  then 70ml/kg over 2.5h
+  Reassess after each phase
+
+ZINC (all children with diarrhea):
+→ **Zinc** dispersible tablet, PO,
+  OD, 10 days (even after diarrhea
+  stops):
+  <6 months: 10mg (½ tablet) OD
+  ≥6 months: 20mg (1 tablet) OD
+
+ANTIBIOTICS (dysentery only):
+→ Choose ONE:
+- **Ciprofloxacin** — 15mg/kg, PO,
+  BID, 3 days OR
+- **Cotrimoxazole** — 5mg/kg TMP,
+  PO, BID, 5 days
+
+Do NOT give antibiotics for
+watery diarrhea without dysentery.
+Do NOT give antidiarrheal agents
+(loperamide) to children.
+
+Continue breastfeeding throughout.
+
+🔍 For background, ask:
+   "approach to diarrhea in children"
+
+📚 **References**
+- Standard Treatment Guidelines for
+  General Hospitals (2021)
+- IMNCI Ethiopia (2021)
+- Pediatric Hospital Care Ethiopia
+  Pocket Book (2016)
+
+⚠️ Disclaimer
+
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 FORMATTING RULES (MANDATORY)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
