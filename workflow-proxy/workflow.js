@@ -787,6 +787,136 @@ support clinical decision-making and
 should not replace the judgment of
 a qualified clinician.
 
+──────────────────────────────────────
+
+EXAMPLE 10 — Pneumonia in children
+(IMNCI classification format):
+Question: "treatment of pneumonia
+in children"
+
+✅ CORRECT:
+💊 **Treatment / Management —
+   Pneumonia in Children**
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHILDREN 2 MONTHS TO 5 YEARS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+**VERY SEVERE DISEASE**
+Signs (any one):
+- Any general danger sign
+  (cannot drink, convulsions,
+  lethargic/unconscious, vomiting
+  everything)
+- Chest indrawing
+- Stridor in calm child
+
+→ Give ALL together then refer:
+- **Benzyl Penicillin** —
+  50,000 units/kg, IV, q6h AND
+- **Gentamicin** — 7.5mg/kg,
+  IV/IM, OD
+- Give first dose then refer
+  URGENTLY to hospital
+
+If staphylococcal suspected
+(extensive pustules, pneumatocele):
+→ Give ALL together:
+- **Cloxacillin** — 50mg/kg,
+  IV, q6h AND
+- **Gentamicin** — 7.5mg/kg,
+  IV/IM, OD
+
+─────────────────────────────────
+**SEVERE PNEUMONIA**
+Signs (any one):
+- Lower chest wall indrawing
+- Oxygen saturation <90%
+
+→ Admit + Give ALL together:
+- **Benzyl Penicillin** —
+  50,000 units/kg, IV, q6h AND
+- **Gentamicin** — 7.5mg/kg,
+  IV/IM, OD
+- Switch to oral amoxicillin
+  when improving:
+  **Amoxicillin** — 40mg/kg,
+  PO, BID, 5 days total
+- **Zinc** — 20mg, PO, OD,
+  10 days (<6mo: 10mg)
+
+─────────────────────────────────
+**PNEUMONIA (non-severe)**
+Signs:
+- Fast breathing ONLY
+  <2 months: ≥60 breaths/min
+  2-12 months: ≥50 breaths/min
+  1-5 years: ≥40 breaths/min
+
+→ Treat at home:
+- **Amoxicillin** — 40mg/kg,
+  PO, BID, 5 days
+- **Zinc** — 20mg, PO, OD,
+  10 days (<6mo: 10mg)
+- Follow up in 2 days
+
+If no improvement after 48h:
+→ Add or switch to:
+- **Ceftriaxone** — 80mg/kg,
+  IM/IV, OD, 5 days
+
+─────────────────────────────────
+**NO PNEUMONIA (cough or cold)**
+Signs: no fast breathing,
+no chest indrawing
+
+→ No antibiotics needed
+- Home care only
+- Treat fever if present
+- Return if worse
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+NEONATES <2 MONTHS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+→ Give ALL together then refer:
+- **Ampicillin** — 50mg/kg,
+  IV, q12h AND
+- **Gentamicin** — 5mg/kg,
+  IV/IM, OD
+Refer ALL neonates with
+respiratory symptoms urgently.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+REASSESSMENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Reassess after 48-72 hours:
+- Improving → complete course
+- Not improving → escalate regimen
+  or refer
+
+Duration:
+- Non-severe: 5 days
+- Severe: 7-10 days
+- Suspected septicemia: 10 days
+- Suspected meningitis: 21 days
+
+🔍 For background, ask:
+   "approach to pneumonia in children"
+
+📚 **References**
+- IMNCI Ethiopia (2021)
+- Standard Treatment Guidelines for
+  General Hospitals (2021)
+- Pediatric Hospital Care Ethiopia
+  Pocket Book (2016)
+
+⚠️ This information is intended to
+support clinical decision-making and
+should not replace the judgment of
+a qualified clinician.
+
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 FORMATTING RULES (MANDATORY)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
