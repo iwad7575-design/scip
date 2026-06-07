@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
+import { isAdmin } from "../lib/admin";
 import { LogoutModal } from "./LogoutModal";
 
 export interface ChatSession {
@@ -367,7 +368,17 @@ export function Sidebar({
               zIndex: 50,
               boxShadow: "0 -8px 24px rgba(0,0,0,0.3)",
             }}>
-<SidebarMenuItem
+{isAdmin(user.email) && (
+                <>
+                  <SidebarMenuItem
+                    icon={<span style={{ fontSize: 14 }}>⚙️</span>}
+                    label="Admin Panel"
+                    onClick={() => { setShowUserMenu(false); navigate("/admin"); }}
+                  />
+                  <div style={{ height: 1, background: "rgba(255,255,255,0.07)", margin: "3px 4px" }} />
+                </>
+              )}
+              <SidebarMenuItem
                 icon={
                   <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />

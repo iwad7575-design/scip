@@ -242,6 +242,30 @@ async def clear_cache(secret: str = Header(None)):
     return {"cleared": count, "version": CACHE_VERSION, "message": f"Cleared {count} entries"}
 
 
+@app.get("/admin/stats")
+async def admin_stats(user=Depends(get_current_user)):
+    if not ADMIN_EMAIL or getattr(user, "email", "") != ADMIN_EMAIL:
+        raise HTTPException(status_code=403, detail="Unauthorized")
+
+    pending      = supabase_admin.table("payments").select("id").eq("status", "pending_review").execute()
+    paid_subs    = supabase_admin.table("subscriptions").select("id").neq("plan_tier", "free").eq("status", "active").execute()
+    all_subs     = supabase_admin.table("subscriptions").select("id").execute()
+    referrals    = supabase_admin.table("referrals").select("id").execute()
+
+    now = datetime.now(timezone.utc)
+    first_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    revenue_rows = supabase_admin.table("payments").select("amount_etb").eq("status", "approved").gte("created_at", first_of_month.isoformat()).execute()
+    total_revenue = sum(float(p["amount_etb"]) for p in revenue_rows.data)
+
+    return {
+        "pending_payments":              len(pending.data),
+        "active_paid_subscriptions":     len(paid_subs.data),
+        "total_revenue_etb_this_month":  total_revenue,
+        "total_referrals":               len(referrals.data),
+        "total_subscriptions":           len(all_subs.data),
+    }
+
+
 @app.get("/admin/referral-stats")
 async def admin_referral_stats(user=Depends(get_current_user)):
     if not ADMIN_EMAIL or getattr(user, "email", "") != ADMIN_EMAIL:

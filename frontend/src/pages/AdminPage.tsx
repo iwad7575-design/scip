@@ -3,167 +3,144 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { BACKEND_URL } from "../lib/config";
 
-interface ReferralStat {
-  code: string;
-  referrer_id: string;
-  total: number;
-  active: number;
-  pending: number;
-}
-
-interface StatsResponse {
-  referral_codes: ReferralStat[];
+interface AdminStats {
+  pending_payments: number;
+  active_paid_subscriptions: number;
+  total_revenue_etb_this_month: number;
   total_referrals: number;
-  total_active: number;
+  total_subscriptions: number;
 }
 
-const COMMISSION_PER_ACTIVE = 25;
+const NAV_CARDS = [
+  { icon: "💳", label: "Review Payments",       desc: "Approve or reject pending payment screenshots", path: "/admin/payments", badge: "pending_payments" },
+  { icon: "📊", label: "Referral Analytics",    desc: "View referral codes, active subscribers, commissions", path: "/admin/referrals" },
+  { icon: "🎓", label: "Student Verifications", desc: "Review student ID submissions",                 path: "/admin/students",  soon: true },
+  { icon: "👥", label: "All Users",             desc: "Browse registered users and subscriptions",     path: "/admin/users",     soon: true },
+];
 
 export function AdminPage() {
   const navigate = useNavigate();
-  const [stats, setStats]     = useState<StatsResponse | null>(null);
+  const [stats, setStats]     = useState<AdminStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState("");
+  const [token, setToken]     = useState("");
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) { navigate("/login", { replace: true }); return; }
+      setToken(session.access_token);
       try {
-        const res = await fetch(`${BACKEND_URL}/admin/referral-stats`, {
+        const res = await fetch(`${BACKEND_URL}/admin/stats`, {
           headers: { Authorization: `Bearer ${session.access_token}` },
         });
-        if (res.status === 403) { setError("Access denied. Admin only."); return; }
-        if (!res.ok) { setError(`Server error: ${res.status}`); return; }
+        if (res.status === 403) { setError("Access denied."); return; }
+        if (!res.ok) { setError(`Error ${res.status}`); return; }
         setStats(await res.json());
       } catch {
-        setError("Failed to load admin stats. Check your connection.");
+        setError("Failed to load stats.");
       } finally {
         setLoading(false);
       }
     });
   }, [navigate]);
 
-  const totalCommission = (stats?.referral_codes ?? []).reduce(
-    (sum, r) => sum + r.active * COMMISSION_PER_ACTIVE, 0
-  );
+  const month = new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" });
 
   return (
-    <div style={{ minHeight: "100dvh", background: "var(--bg)", padding: "32px 24px" }}>
-      <div style={{ maxWidth: 1000, margin: "0 auto" }}>
+    <div style={{ minHeight: "100dvh", background: "var(--bg)", padding: "32px 20px" }}>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+
+      <div style={{ maxWidth: 900, margin: "0 auto" }}>
 
         {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 28 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 32 }}>
           <button
-            onClick={() => navigate(-1)}
+            onClick={() => navigate("/chat")}
             style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", fontSize: 22, padding: 0, lineHeight: 1 }}
-          >
-            ←
-          </button>
+          >←</button>
           <div>
-            <h1 style={{ fontFamily: "var(--font-heading)", fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
-              Referral Analytics
+            <h1 style={{ fontFamily: "var(--font-heading)", fontSize: 22, fontWeight: 800, color: "var(--text-primary)", margin: 0 }}>
+              Admin Panel
             </h1>
-            <p style={{ margin: 0, fontSize: 13, color: "var(--text-secondary)" }}>Admin panel — referral program overview</p>
+            <p style={{ margin: 0, fontSize: 13, color: "var(--text-muted)" }}>SCIP — internal management</p>
           </div>
         </div>
 
-        {loading && (
-          <div style={{ textAlign: "center", padding: "80px 0", color: "var(--text-muted)" }}>
-            <div style={{ width: 36, height: 36, border: "3px solid var(--border)", borderTopColor: "var(--brand-green)", borderRadius: "50%", margin: "0 auto 14px", animation: "spin 0.8s linear infinite" }} />
-            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-            <p style={{ margin: 0, fontSize: 14 }}>Loading referral data…</p>
-          </div>
-        )}
-
         {error && (
-          <div style={{ background: "var(--destructive-bg)", border: "1px solid #fecaca", borderRadius: 12, padding: "20px 24px", color: "var(--destructive)", fontSize: 15, fontWeight: 500 }}>
+          <div style={{ background: "var(--destructive-bg, #fef2f2)", border: "1px solid #fecaca", borderRadius: 10, padding: "14px 18px", color: "var(--destructive, #dc2626)", fontSize: 14, marginBottom: 24 }}>
             {error}
           </div>
         )}
 
-        {stats && !loading && (
-          <>
-            {/* Summary cards */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 28 }}>
-              {[
-                { label: "Total Referrals",    value: stats.total_referrals,                   color: "var(--text-primary)" },
-                { label: "Active Subscribers", value: stats.total_active,                       color: "var(--brand-green)" },
-                { label: "Commission Owed",    value: `${totalCommission} ETB`,                 color: "#d97706" },
-              ].map(({ label, value, color }) => (
-                <div key={label} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "18px 20px" }}>
-                  <p style={{ margin: "0 0 4px", fontSize: 26, fontWeight: 700, color }}>{value}</p>
-                  <p style={{ margin: 0, fontSize: 12, color: "var(--text-muted)" }}>{label}</p>
-                </div>
-              ))}
+        {/* Stats row */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: 32 }}>
+          {[
+            { label: "Pending Payments",       value: stats?.pending_payments,                    color: "#ef4444", icon: "⏳" },
+            { label: "Paid Subscriptions",     value: stats?.active_paid_subscriptions,           color: "var(--brand-green)", icon: "✅" },
+            { label: `Revenue (${month})`,     value: stats ? `${stats.total_revenue_etb_this_month.toFixed(0)} ETB` : null, color: "#7c3aed", icon: "💰" },
+            { label: "Total Referrals",        value: stats?.total_referrals,                     color: "#2563eb", icon: "🔗" },
+            { label: "Total Subscriptions",    value: stats?.total_subscriptions,                 color: "var(--text-primary)", icon: "👤" },
+          ].map(({ label, value, color, icon }) => (
+            <div key={label} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "16px 18px" }}>
+              <p style={{ margin: "0 0 6px", fontSize: 22 }}>{icon}</p>
+              <p style={{ margin: "0 0 3px", fontSize: 24, fontWeight: 800, color, lineHeight: 1 }}>
+                {loading ? (
+                  <span style={{ display: "inline-block", width: 40, height: 22, background: "var(--border)", borderRadius: 4, verticalAlign: "middle" }} />
+                ) : (value ?? "—")}
+              </p>
+              <p style={{ margin: 0, fontSize: 11, color: "var(--text-muted)", fontWeight: 500 }}>{label}</p>
             </div>
+          ))}
+        </div>
 
-            {/* Table */}
-            <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, overflow: "hidden" }}>
-              <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)" }}>
-                <h2 style={{ fontFamily: "var(--font-heading)", fontSize: 15, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
-                  Referral Codes
-                </h2>
-              </div>
+        {/* Nav cards */}
+        <h2 style={{ fontFamily: "var(--font-heading)", fontSize: 14, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8, margin: "0 0 12px" }}>
+          Management
+        </h2>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
+          {NAV_CARDS.map(card => {
+            const badgeCount = card.badge === "pending_payments" ? (stats?.pending_payments ?? 0) : 0;
+            return (
+              <button
+                key={card.label}
+                disabled={!!card.soon}
+                onClick={() => !card.soon && navigate(card.path)}
+                style={{
+                  background:    "var(--surface)",
+                  border:        "1px solid var(--border)",
+                  borderRadius:  14,
+                  padding:       "20px 18px",
+                  textAlign:     "left",
+                  cursor:        card.soon ? "default" : "pointer",
+                  opacity:       card.soon ? 0.5 : 1,
+                  transition:    "box-shadow 0.15s, transform 0.15s",
+                  position:      "relative",
+                }}
+                onMouseEnter={e => { if (!card.soon) { (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 4px 20px rgba(0,0,0,0.1)"; (e.currentTarget as HTMLButtonElement).style.transform = "translateY(-2px)"; } }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.boxShadow = "none"; (e.currentTarget as HTMLButtonElement).style.transform = "none"; }}
+              >
+                {badgeCount > 0 && (
+                  <span style={{ position: "absolute", top: 14, right: 14, background: "#ef4444", color: "#fff", fontSize: 11, fontWeight: 800, padding: "2px 7px", borderRadius: 20 }}>
+                    {badgeCount}
+                  </span>
+                )}
+                {card.soon && (
+                  <span style={{ position: "absolute", top: 14, right: 14, background: "var(--border)", color: "var(--text-muted)", fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 20 }}>
+                    SOON
+                  </span>
+                )}
+                <p style={{ margin: "0 0 8px", fontSize: 28 }}>{card.icon}</p>
+                <p style={{ margin: "0 0 4px", fontFamily: "var(--font-heading)", fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>
+                  {card.label}
+                </p>
+                <p style={{ margin: 0, fontSize: 12, color: "var(--text-muted)", lineHeight: 1.4 }}>
+                  {card.desc}
+                </p>
+              </button>
+            );
+          })}
+        </div>
 
-              {stats.referral_codes.length === 0 ? (
-                <div style={{ padding: "40px 20px", textAlign: "center", color: "var(--text-muted)", fontSize: 14 }}>
-                  No referrals yet.
-                </div>
-              ) : (
-                <div style={{ overflowX: "auto" }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-                    <thead>
-                      <tr style={{ background: "var(--bg)" }}>
-                        {["Code", "Referrer ID", "Total Signups", "Active", "Pending", "Commission Owed"].map(h => (
-                          <th key={h} style={{
-                            padding: "10px 16px", textAlign: "left",
-                            fontFamily: "var(--font-heading)", fontWeight: 600,
-                            color: "var(--text-secondary)", fontSize: 12,
-                            borderBottom: "1px solid var(--border)",
-                            whiteSpace: "nowrap",
-                          }}>
-                            {h}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {stats.referral_codes.map((row, i) => (
-                        <tr
-                          key={row.code}
-                          style={{ background: i % 2 === 0 ? "var(--surface)" : "var(--bg)", borderBottom: "1px solid var(--border)" }}
-                        >
-                          <td style={{ padding: "12px 16px", fontFamily: "var(--font-heading)", fontWeight: 700, color: "var(--brand-navy-700)", letterSpacing: 1 }}>
-                            {row.code}
-                          </td>
-                          <td style={{ padding: "12px 16px", color: "var(--text-muted)", fontFamily: "monospace", fontSize: 12 }}>
-                            {row.referrer_id.slice(0, 8)}…
-                          </td>
-                          <td style={{ padding: "12px 16px", color: "var(--text-primary)", fontWeight: 600, textAlign: "center" }}>
-                            {row.total}
-                          </td>
-                          <td style={{ padding: "12px 16px", textAlign: "center" }}>
-                            <span style={{ background: "var(--success-bg)", color: "var(--success)", fontWeight: 700, padding: "2px 10px", borderRadius: 20, fontSize: 12 }}>
-                              {row.active}
-                            </span>
-                          </td>
-                          <td style={{ padding: "12px 16px", textAlign: "center" }}>
-                            <span style={{ background: "#fef3c7", color: "#92400e", fontWeight: 700, padding: "2px 10px", borderRadius: 20, fontSize: 12 }}>
-                              {row.pending}
-                            </span>
-                          </td>
-                          <td style={{ padding: "12px 16px", fontWeight: 700, color: "#d97706", textAlign: "right" }}>
-                            {row.active * COMMISSION_PER_ACTIVE} ETB
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          </>
-        )}
       </div>
     </div>
   );
