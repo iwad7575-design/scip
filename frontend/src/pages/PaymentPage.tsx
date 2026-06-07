@@ -5,11 +5,11 @@ import { BACKEND_URL } from "../lib/config";
 
 // ── Update these with real account details ─────────────────────────────────
 const PAYMENT_ACCOUNTS = [
-  { icon: "📱", label: "Telebirr",      value: "0911 XXX XXX" },
-  { icon: "🏦", label: "CBE",           value: "1000-XXXX-XXXX-XX" },
-  { icon: "💰", label: "Awash Bank",    value: "XXXX XXXX XXXX" },
+  { icon: "📱", label: "Telebirr", value: "0966217319" },
+  { icon: "📱", label: "Ebirr",    value: "0901415577" },
+  { icon: "🏦", label: "CBE",      value: "1000652719547" },
 ];
-const ACCOUNT_NAME = "Mahmud Ahmed";
+const ACCOUNT_NAME = "Mahmud Ahmed Mohammed";
 // ─────────────────────────────────────────────────────────────────────────────
 
 const TIER_PRICES: Record<string, number> = {
@@ -26,7 +26,7 @@ const TIER_NAMES: Record<string, string> = {
   institution: "Institution",
 };
 
-const PAYMENT_METHODS = ["Telebirr", "CBE", "Awash Bank", "Bank Transfer", "Other"];
+const PAYMENT_METHODS = ["Telebirr", "Ebirr", "CBE", "Bank Transfer", "Other"];
 
 function toBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
