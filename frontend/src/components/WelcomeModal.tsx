@@ -87,19 +87,19 @@ export function WelcomeModal({ isOpen, onClose, freeQuestions = 10, wasReferred 
             {wasReferred ? (
               <>
                 <div style={{ fontSize: 22, fontWeight: 700, color: "var(--success)", marginBottom: 4 }}>
-                  🎁 10 Free Questions
+                  🎁 20/month + 10 bonus questions
                 </div>
                 <p style={{ margin: 0, fontSize: 13, color: "#166534" }}>
-                  Added to your account as a referral bonus!
+                  20 free questions/month + 10 referral bonus added to your account!
                 </p>
               </>
             ) : (
               <>
                 <div style={{ fontSize: 22, fontWeight: 700, color: "var(--success)", marginBottom: 4 }}>
-                  🎁 5 Free Questions to get started!
+                  🎁 20 free questions every month
                 </div>
                 <p style={{ margin: 0, fontSize: 13, color: "#166534" }}>
-                  Want more? Refer a colleague and they get 10!
+                  No credit card required. Refer a colleague and they get 10 bonus questions!
                 </p>
               </>
             )}

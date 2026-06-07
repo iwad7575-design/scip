@@ -689,6 +689,70 @@ async def get_credits(user=Depends(get_current_user)):
     }
 
 
+@app.post("/subscription/create-free")
+async def create_free_subscription(user=Depends(get_current_user)):
+    user_id = str(user.id)
+    existing = supabase_admin.table("subscriptions").select("id").eq("user_id", user_id).execute()
+    if existing.data:
+        return {"success": True, "message": "Subscription already exists"}
+    now = datetime.now(timezone.utc)
+    supabase_admin.table("subscriptions").insert({
+        "user_id":                user_id,
+        "plan_tier":              "free",
+        "status":                 "active",
+        "tokens_used_this_month": 0,
+        "tokens_limit":           94000,
+        "current_period_start":   now.isoformat(),
+        "current_period_end":     (now + timedelta(days=30)).isoformat(),
+    }).execute()
+    return {"success": True, "message": "Free subscription created"}
+
+
+@app.get("/admin/student-verifications")
+async def admin_student_verifications(status: str = "pending", user=Depends(get_current_user)):
+    if str(user.email) != os.getenv("ADMIN_EMAIL", ""):
+        raise HTTPException(status_code=403, detail="Admin only")
+    result = supabase_admin.table("student_verifications").select("*").eq("status", status).order("created_at", desc=False).execute()
+    return {"verifications": result.data}
+
+
+@app.post("/admin/student/approve")
+async def approve_student(request: Request, user=Depends(get_current_user)):
+    if str(user.email) != os.getenv("ADMIN_EMAIL", ""):
+        raise HTTPException(status_code=403, detail="Admin only")
+    body = await request.json()
+    supabase_admin.table("student_verifications").update({
+        "status":      "verified",
+        "reviewed_at": datetime.now(timezone.utc).isoformat(),
+    }).eq("id", body.get("id")).execute()
+    return {"success": True}
+
+
+@app.post("/admin/student/reject")
+async def reject_student(request: Request, user=Depends(get_current_user)):
+    if str(user.email) != os.getenv("ADMIN_EMAIL", ""):
+        raise HTTPException(status_code=403, detail="Admin only")
+    body = await request.json()
+    supabase_admin.table("student_verifications").update({
+        "status":           "rejected",
+        "rejection_reason": body.get("reason", "ID could not be verified"),
+        "reviewed_at":      datetime.now(timezone.utc).isoformat(),
+    }).eq("id", body.get("id")).execute()
+    return {"success": True}
+
+
+@app.get("/admin/student-id-url/{vid}")
+async def get_student_id_url(vid: str, user=Depends(get_current_user)):
+    if str(user.email) != os.getenv("ADMIN_EMAIL", ""):
+        raise HTTPException(status_code=403, detail="Admin only")
+    row = supabase_admin.table("student_verifications").select("document_url").eq("id", vid).execute()
+    if not row.data:
+        raise HTTPException(status_code=404, detail="Not found")
+    path = row.data[0]["document_url"]
+    signed = supabase_admin.storage.from_("student-ids").create_signed_url(path, 3600)
+    return {"url": signed.get("signedURL") or signed.get("signed_url")}
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # SUBSCRIPTION & TOKEN TRACKING
 # ─────────────────────────────────────────────────────────────────────────────

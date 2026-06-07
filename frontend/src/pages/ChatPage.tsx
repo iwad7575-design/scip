@@ -49,7 +49,7 @@ function cleanCitations(text: string): string {
 
 const RESPONSE_TIMEOUT_S = 65;
 
-const GUEST_LIMIT = 3;
+const GUEST_LIMIT = 5;
 function getGuestQuestionsUsed(): number {
   return parseInt(localStorage.getItem("guestQuestionsUsed") || "0", 10);
 }
@@ -237,12 +237,11 @@ export function ChatPage() {
   const sendMessage = useCallback(async (text: string) => {
     if (!text.trim() || loading || isSendingRef.current) return;
 
-    // Temporarily disabled for grant evaluation period — re-enable after submission
-    // if (user === null) {
-    //   const used = getGuestQuestionsUsed();
-    //   if (used >= GUEST_LIMIT) { setShowGuestLimitModal(true); return; }
-    //   incrementGuestQuestions();
-    // }
+    if (user === null) {
+      const used = getGuestQuestionsUsed();
+      if (used >= GUEST_LIMIT) { setShowGuestLimitModal(true); return; }
+      incrementGuestQuestions();
+    }
 
     isSendingRef.current = true;
 
@@ -551,6 +550,20 @@ export function ChatPage() {
           </div>
         )}
 
+        {user === null && (
+          <div style={{ textAlign: "center", marginBottom: 8 }}>
+            <a href="/signup" style={{
+              display: "inline-flex", alignItems: "center", gap: 5,
+              background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)",
+              color: "rgba(255,255,255,0.75)", fontSize: 12, fontWeight: 600,
+              padding: "4px 12px", borderRadius: 20,
+              fontFamily: "var(--font-heading)", textDecoration: "none",
+            }}>
+              👤 {guestQuestionsRemaining()}/{GUEST_LIMIT} questions · Sign up for 20/month free
+            </a>
+          </div>
+        )}
+
         {freeQuestions > 0 && user !== null && (
           <div style={{ textAlign: "center", marginBottom: 8 }}>
             <span style={{
@@ -560,7 +573,7 @@ export function ChatPage() {
               padding: "4px 12px", borderRadius: 20,
               fontFamily: "var(--font-heading)",
             }}>
-              🎁 {freeQuestions} free {freeQuestions === 1 ? "question" : "questions"} remaining
+              🎁 {freeQuestions} bonus {freeQuestions === 1 ? "question" : "questions"} remaining
             </span>
           </div>
         )}
@@ -1010,11 +1023,10 @@ export function ChatPage() {
       <WelcomeModal
         isOpen={showWelcome}
         onClose={() => setShowWelcome(false)}
-        freeQuestions={wasReferred ? 10 : 5}
+        freeQuestions={wasReferred ? 10 : 20}
         wasReferred={wasReferred}
       />
-      {/* GuestLimitModal disabled for grant evaluation period */}
-      {/* <GuestLimitModal isOpen={showGuestLimitModal} onClose={() => setShowGuestLimitModal(false)} /> */}
+      <GuestLimitModal isOpen={showGuestLimitModal} onClose={() => setShowGuestLimitModal(false)} />
       <style>{`
         @keyframes fadeInUp {
           from { opacity: 0; transform: translateY(20px); }

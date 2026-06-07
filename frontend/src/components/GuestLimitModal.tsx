@@ -21,7 +21,7 @@ export function GuestLimitModal({ isOpen, onClose }: { isOpen: boolean; onClose:
           fontFamily: "var(--font-heading)", fontSize: 20, fontWeight: 700,
           color: "var(--text-primary)", margin: "0 0 10px",
         }}>
-          You've used your 3 free questions
+          You've used your 5 free questions
         </h2>
 
         <p style={{
@@ -29,11 +29,11 @@ export function GuestLimitModal({ isOpen, onClose }: { isOpen: boolean; onClose:
           margin: "0 0 24px",
         }}>
           Create a free account to get{" "}
-          <strong style={{ color: "var(--text-primary)" }}>5 more free questions</strong>
+          <strong style={{ color: "var(--text-primary)" }}>20 questions every month — free</strong>
           {" "}and full access to SCIP — Ethiopia's clinical AI assistant.
           <br /><br />
-          Know someone on SCIP? Ask them for a referral link and get{" "}
-          <strong style={{ color: "var(--text-primary)" }}>10!</strong>
+          Have a referral link? Sign up with it and get{" "}
+          <strong style={{ color: "var(--text-primary)" }}>10 bonus questions</strong> on top!
         </p>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 }}>

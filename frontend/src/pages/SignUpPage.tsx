@@ -91,9 +91,10 @@ export function SignUpPage() {
         } else {
           setError(friendlyError(error.message));
         }
-      } else if (data.user?.identities?.length === 0) {
-        // Supabase security feature: returns success + empty identities when email exists but unconfirmed
-        setErrorWithLink({ message: "This email is already registered.", linkText: "Login instead →", linkHref: "/login" });
+      } else if (data.user?.identities?.length === 0 || !data.user?.identities) {
+        // Supabase silently resends a confirmation email and returns empty identities
+        // when the address exists but was never confirmed — tell the user to check inbox
+        setErrorWithLink({ message: "This email is already registered but not yet confirmed. Check your inbox for the confirmation email.", linkText: "Login instead →", linkHref: "/login" });
       } else {
         const pendingRef = localStorage.getItem("pendingRefCode");
         localStorage.setItem("showWelcome", "true");
@@ -115,10 +116,9 @@ export function SignUpPage() {
             localStorage.removeItem("pendingRefCode");
           } else {
             try {
-              await fetch(`${BACKEND_URL}/referral/credits/add`, {
+              await fetch(`${BACKEND_URL}/subscription/create-free`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-                body: JSON.stringify({ questions: 5, reason: "signup_bonus" }),
+                headers: { Authorization: `Bearer ${token}` },
               });
             } catch { /* silent */ }
           }
@@ -255,7 +255,7 @@ export function SignUpPage() {
               textAlign: "center", marginBottom: 8,
             }}>
               <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "var(--success)" }}>
-                🎁 You were invited to SCIP! Sign up to get <strong>10 free questions</strong>
+                🎁 You were invited to SCIP! Sign up for <strong>20 free questions every month</strong> — no payment required.
               </p>
             </div>
           )}

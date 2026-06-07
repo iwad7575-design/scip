@@ -48,14 +48,11 @@ export function AuthCallbackPage() {
       } catch { /* silent fail */ }
     }
 
-    async function giveSignupCredits(accessToken: string) {
-      try {
-        await fetch(`${BACKEND_URL}/referral/credits/add`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
-          body: JSON.stringify({ questions: 5, reason: "signup_bonus" }),
-        });
-      } catch { /* silent */ }
+    function createFreeSubscription(accessToken: string) {
+      fetch(`${BACKEND_URL}/subscription/create-free`, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${accessToken}` },
+      }).catch(() => { /* silent */ });
     }
 
     function handleNewUser(createdAt?: string | null, accessToken?: string | null) {
@@ -65,7 +62,8 @@ export function AuthCallbackPage() {
       const pendingRef = localStorage.getItem("pendingRefCode");
       localStorage.setItem("showWelcome", "true");
       localStorage.setItem("wasReferred", pendingRef ? "true" : "false");
-      if (!pendingRef && accessToken) giveSignupCredits(accessToken);
+      // Ensure free subscription row exists for ALL new users (referred or not)
+      if (accessToken) createFreeSubscription(accessToken);
     }
 
     function goTo(path: string) {
