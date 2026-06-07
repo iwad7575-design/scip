@@ -635,7 +635,7 @@ async def apply_referral(request: Request, user=Depends(get_current_user)):
         "referrer_id": referrer_id,
         "referred_id": user_id,
         "referral_code": ref_code,
-        "status": "pending",
+        "status": "active",
     }).execute()
 
     existing_credits = supabase_admin.table("question_credits").select("*").eq("user_id", user_id).execute()

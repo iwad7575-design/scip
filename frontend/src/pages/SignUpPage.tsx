@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
+import { BACKEND_URL } from "../lib/config";
 import { GoogleButton } from "../components/GoogleButton";
 
 const PROFESSIONS = ["Doctor", "Nurse", "Public Health Officer", "Other"];
@@ -42,6 +43,7 @@ export function SignUpPage() {
   const [profession, setProfession]       = useState("");
   const [facility, setFacility]           = useState("");
   const [error, setError]                 = useState("");
+  const [errorWithLink, setErrorWithLink] = useState<{ message: string; linkText: string; linkHref: string } | null>(null);
   const [loading, setLoading]             = useState(false);
   const [pwdFieldError, setPwdFieldError] = useState("");
   const [confirmError, setConfirmError]   = useState("");
@@ -67,7 +69,7 @@ export function SignUpPage() {
 
   async function handleSignUp(e: React.FormEvent) {
     e.preventDefault();
-    setError(""); setPwdFieldError(""); setConfirmError("");
+    setError(""); setErrorWithLink(null); setPwdFieldError(""); setConfirmError("");
     if (password.length < 8) { setPwdFieldError("Password must be at least 8 characters."); return; }
     if (password !== confirmPassword) { setConfirmError("Passwords do not match."); return; }
     setLoading(true);
@@ -80,16 +82,50 @@ export function SignUpPage() {
         },
       });
       if (error) {
-        setError(friendlyError(error.message));
+        if (
+          error.message.includes("already registered") ||
+          error.message.includes("User already registered") ||
+          error.message.includes("already been registered")
+        ) {
+          setErrorWithLink({ message: "This email is already registered.", linkText: "Login instead →", linkHref: "/login" });
+        } else {
+          setError(friendlyError(error.message));
+        }
       } else if (data.user?.identities?.length === 0) {
-        // Supabase returns success with empty identities when email is already registered
-        setError("This email is already registered.");
+        // Supabase security feature: returns success + empty identities when email exists but unconfirmed
+        setErrorWithLink({ message: "This email is already registered.", linkText: "Login instead →", linkHref: "/login" });
       } else {
         const pendingRef = localStorage.getItem("pendingRefCode");
         localStorage.setItem("showWelcome", "true");
         localStorage.setItem("wasReferred", pendingRef ? "true" : "false");
         localStorage.removeItem("guestQuestionsUsed");
-        setConfirmedEmail(email);
+
+        if (data.session) {
+          // Email confirmation is disabled — user has a live session immediately.
+          // Apply referral or give signup bonus now; AuthCallbackPage won't be hit.
+          const token = data.session.access_token;
+          if (pendingRef) {
+            try {
+              await fetch(`${BACKEND_URL}/referral/apply`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ ref_code: pendingRef }),
+              });
+            } catch { /* silent */ }
+            localStorage.removeItem("pendingRefCode");
+          } else {
+            try {
+              await fetch(`${BACKEND_URL}/referral/credits/add`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ questions: 5, reason: "signup_bonus" }),
+              });
+            } catch { /* silent */ }
+          }
+          navigate("/chat", { replace: true });
+        } else {
+          setConfirmedEmail(email);
+        }
       }
     } finally { setLoading(false); }
   }
@@ -298,12 +334,18 @@ export function SignUpPage() {
                 placeholder="e.g. Tikur Anbessa Specialized Hospital" className="input" />
             </FormField>
 
+            {errorWithLink && (
+              <div style={{ background: "var(--destructive-bg)", border: "1px solid #fecaca", borderRadius: "var(--radius-lg)", padding: "12px 14px", fontSize: 14, color: "var(--destructive)" }}>
+                {errorWithLink.message}{" "}
+                <Link to={errorWithLink.linkHref} style={{ fontWeight: 700, color: "var(--destructive)", textDecoration: "underline" }}>
+                  {errorWithLink.linkText}
+                </Link>
+              </div>
+            )}
+
             {error && (
               <div style={{ background: "var(--destructive-bg)", border: "1px solid #fecaca", borderRadius: "var(--radius-lg)", padding: "12px 14px", fontSize: 14, color: "var(--destructive)" }}>
                 {error}
-                {error.includes("already registered") && (
-                  <> — <Link to="/login" style={{ fontWeight: 600, color: "var(--destructive)" }}>Sign in instead</Link></>
-                )}
               </div>
             )}
 
