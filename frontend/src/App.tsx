@@ -12,6 +12,9 @@ import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { SharePage } from "./pages/SharePage";
 import { AdminPage } from "./pages/AdminPage";
+import { AdminPaymentsPage } from "./pages/AdminPaymentsPage";
+import { PricingPage } from "./pages/PricingPage";
+import { PaymentPage } from "./pages/PaymentPage";
 import { InstallBanner } from "./components/InstallBanner";
 
 // Safety net for recovery links that land on any page other than /reset-password.
@@ -60,6 +63,9 @@ export default function App() {
         <Route path="/settings" element={session ? <SettingsPage /> : <Navigate to="/login" replace />} />
         <Route path="/share/:id" element={<SharePage />} />
         <Route path="/admin" element={session ? <AdminPage /> : <Navigate to="/login" replace />} />
+        <Route path="/admin/payments" element={session ? <AdminPaymentsPage /> : <Navigate to="/login" replace />} />
+        <Route path="/pricing" element={<PricingPage />} />
+        <Route path="/subscribe/:tier" element={<PaymentPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <InstallBanner />

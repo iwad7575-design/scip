@@ -9,7 +9,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import asyncio
+import base64
 import json
+import math
 import re
 import secrets
 import string
@@ -308,6 +310,23 @@ async def ask_endpoint(request: Request, _user=Depends(get_optional_user)):
     user_question = user_messages[-1].get("content", "") if user_messages else ""
     is_single_turn = len(user_messages) == 1  # Only cache first-turn; follow-ups depend on context
 
+    # Token limit check — only for logged-in users
+    if _user:
+        limit_check = await check_token_limit(str(_user.id))
+        if not limit_check["allowed"]:
+            raise HTTPException(
+                status_code=429,
+                detail={
+                    "error": "token_limit_reached",
+                    "message": (
+                        f"You have used all {limit_check['questions_limit']} questions "
+                        f"on your {limit_check['plan']} plan. Upgrade to continue."
+                    ),
+                    "plan": limit_check["plan"],
+                    "upgrade_url": "/pricing",
+                },
+            )
+
     # ── Cache hit: stream the cached answer immediately ───────────────────────
     cache_key = f"{CACHE_VERSION}:{user_question}"
     if is_single_turn and user_question:
@@ -340,6 +359,8 @@ async def ask_endpoint(request: Request, _user=Depends(get_optional_user)):
                 _cache.set(cache_key, proxy_text)
                 print(f"[CACHE] stored | chars={len(proxy_text)} | question={user_question[:60]}", flush=True)
             yield f"data: {json.dumps({'delta': proxy_text})}\n\n"
+            if _user:
+                asyncio.ensure_future(consume_tokens(str(_user.id), user_question, proxy_text))
             yield f"data: {json.dumps({'done': True})}\n\n"
         except Exception as e:
             print(f"[PROXY] ✗ error: {e}", flush=True)
@@ -642,3 +663,297 @@ async def get_credits(user=Depends(get_current_user)):
     return {
         "free_questions_remaining": credits.data[0]["free_questions_remaining"] if credits.data else 0
     }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SUBSCRIPTION & TOKEN TRACKING
+# ─────────────────────────────────────────────────────────────────────────────
+
+def estimate_tokens(text: str) -> int:
+    return max(1, len(text) // 4)
+
+
+async def check_token_limit(user_id: str) -> dict:
+    sub = supabase_admin.table("subscriptions").select("*").eq("user_id", user_id).execute()
+
+    if not sub.data:
+        now = datetime.now(timezone.utc)
+        sub_data = {
+            "user_id":                user_id,
+            "plan_tier":              "free",
+            "status":                 "active",
+            "tokens_used_this_month": 0,
+            "tokens_limit":           94000,
+            "current_period_start":   now.isoformat(),
+            "current_period_end":     (now + timedelta(days=30)).isoformat(),
+        }
+        supabase_admin.table("subscriptions").insert(sub_data).execute()
+        return {
+            "allowed":            True,
+            "tokens_used":        0,
+            "tokens_limit":       94000,
+            "tokens_remaining":   94000,
+            "plan":               "free",
+            "questions_remaining": 94000 // 4700,
+            "questions_used":     0,
+            "questions_limit":    94000 // 4700,
+        }
+
+    s = sub.data[0]
+
+    # Reset if monthly period has expired
+    period_end = datetime.fromisoformat(s["current_period_end"].replace("Z", "+00:00"))
+    if datetime.now(timezone.utc) > period_end:
+        now = datetime.now(timezone.utc)
+        supabase_admin.table("subscriptions").update({
+            "tokens_used_this_month": 0,
+            "current_period_start":   now.isoformat(),
+            "current_period_end":     (now + timedelta(days=30)).isoformat(),
+        }).eq("user_id", user_id).execute()
+        s["tokens_used_this_month"] = 0
+
+    tokens_remaining = s["tokens_limit"] - s["tokens_used_this_month"]
+    return {
+        "allowed":             tokens_remaining > 1000,
+        "tokens_used":         s["tokens_used_this_month"],
+        "tokens_limit":        s["tokens_limit"],
+        "tokens_remaining":    tokens_remaining,
+        "plan":                s["plan_tier"],
+        "questions_remaining": math.floor(tokens_remaining / 4700),
+        "questions_used":      math.floor(s["tokens_used_this_month"] / 4700),
+        "questions_limit":     math.floor(s["tokens_limit"] / 4700),
+    }
+
+
+async def consume_tokens(user_id: str, question: str, response: str) -> int:
+    input_tokens  = estimate_tokens(question) + 2000  # +2000 for system prompt overhead
+    output_tokens = estimate_tokens(response)
+    total_tokens  = input_tokens + output_tokens
+
+    sub = supabase_admin.table("subscriptions").select("tokens_used_this_month").eq("user_id", user_id).execute()
+    if sub.data:
+        current = sub.data[0]["tokens_used_this_month"]
+        supabase_admin.table("subscriptions").update({
+            "tokens_used_this_month": current + total_tokens,
+            "updated_at":             datetime.now(timezone.utc).isoformat(),
+        }).eq("user_id", user_id).execute()
+
+    supabase_admin.table("token_usage_log").insert({
+        "user_id":          user_id,
+        "question_tokens":  input_tokens,
+        "response_tokens":  output_tokens,
+        "total_tokens":     total_tokens,
+        "question_preview": question[:100],
+    }).execute()
+
+    return total_tokens
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PLANS & SUBSCRIPTION ENDPOINTS
+# ─────────────────────────────────────────────────────────────────────────────
+
+@app.get("/plans")
+async def get_plans():
+    plans = supabase_admin.table("subscription_plans").select("*").eq("active", True).execute()
+    return {"plans": plans.data}
+
+
+@app.get("/subscription/me")
+async def get_my_subscription(user=Depends(get_current_user)):
+    return await check_token_limit(str(user.id))
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PAYMENT ENDPOINTS
+# ─────────────────────────────────────────────────────────────────────────────
+
+@app.post("/payment/submit")
+async def submit_payment(request: Request, user=Depends(get_current_user)):
+    body    = await request.json()
+    user_id = str(user.id)
+
+    plan_tier             = body.get("plan_tier")
+    amount_etb            = body.get("amount_etb")
+    payment_method        = body.get("payment_method")
+    transaction_reference = body.get("transaction_reference", "")
+    screenshot_base64     = body.get("screenshot_base64")
+    filename              = body.get("filename", "payment.jpg")
+
+    if not all([plan_tier, amount_etb, screenshot_base64]):
+        raise HTTPException(status_code=400, detail="Missing required fields")
+
+    plan = supabase_admin.table("subscription_plans").select("*").eq("tier", plan_tier).execute()
+    if not plan.data:
+        raise HTTPException(status_code=404, detail="Invalid plan")
+
+    expected = plan.data[0]["price_etb"]
+    if float(amount_etb) < float(expected):
+        raise HTTPException(status_code=400, detail=f"Amount must be at least {expected} ETB")
+
+    try:
+        img_data = base64.b64decode(screenshot_base64)
+        path = f"{user_id}/{datetime.now().strftime('%Y%m%d_%H%M%S')}_{filename}"
+        supabase_admin.storage.from_("payment-screenshots").upload(path, img_data, {"content-type": "image/jpeg"})
+        screenshot_url = path
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
+
+    payment = supabase_admin.table("payments").insert({
+        "user_id":               user_id,
+        "plan_tier":             plan_tier,
+        "amount_etb":            amount_etb,
+        "payment_method":        payment_method,
+        "transaction_reference": transaction_reference,
+        "screenshot_url":        screenshot_url,
+        "status":                "pending_review",
+    }).execute()
+
+    return {
+        "success":    True,
+        "payment_id": payment.data[0]["id"],
+        "message":    "Payment submitted for review. Your subscription will be activated within 1-24 hours.",
+        "status":     "pending_review",
+    }
+
+
+@app.post("/student/verify")
+async def submit_student_id(request: Request, user=Depends(get_current_user)):
+    body    = await request.json()
+    user_id = str(user.id)
+
+    document_base64 = body.get("document_base64")
+    document_type   = body.get("document_type", "student_id")
+    institution     = body.get("institution", "")
+    filename        = body.get("filename", "student_id.jpg")
+    content_type    = body.get("content_type", "image/jpeg")
+
+    if not document_base64:
+        raise HTTPException(status_code=400, detail="Document required")
+
+    try:
+        doc_data = base64.b64decode(document_base64)
+        path = f"{user_id}/{datetime.now().strftime('%Y%m%d_%H%M%S')}_{filename}"
+        supabase_admin.storage.from_("student-ids").upload(path, doc_data, {"content-type": content_type})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
+
+    existing = supabase_admin.table("student_verifications").select("id").eq("user_id", user_id).execute()
+    if existing.data:
+        supabase_admin.table("student_verifications").update({
+            "document_url":  path,
+            "document_type": document_type,
+            "institution":   institution,
+            "status":        "pending",
+        }).eq("user_id", user_id).execute()
+    else:
+        supabase_admin.table("student_verifications").insert({
+            "user_id":       user_id,
+            "document_url":  path,
+            "document_type": document_type,
+            "institution":   institution,
+        }).execute()
+
+    return {"success": True, "message": "Student ID submitted for verification. This usually takes 1-24 hours."}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ADMIN: PAYMENT MANAGEMENT
+# ─────────────────────────────────────────────────────────────────────────────
+
+@app.get("/admin/payments")
+async def admin_get_payments(status: str = "pending_review", user=Depends(get_current_user)):
+    if not ADMIN_EMAIL or getattr(user, "email", "") != ADMIN_EMAIL:
+        raise HTTPException(status_code=403, detail="Unauthorized")
+    payments = (
+        supabase_admin.table("payments")
+        .select("*")
+        .eq("status", status)
+        .order("created_at", desc=False)
+        .execute()
+    )
+    return {"payments": payments.data}
+
+
+@app.get("/admin/payment/screenshot/{payment_id}")
+async def admin_get_screenshot(payment_id: str, user=Depends(get_current_user)):
+    if not ADMIN_EMAIL or getattr(user, "email", "") != ADMIN_EMAIL:
+        raise HTTPException(status_code=403, detail="Unauthorized")
+    payment = supabase_admin.table("payments").select("screenshot_url").eq("id", payment_id).execute()
+    if not payment.data:
+        raise HTTPException(status_code=404, detail="Payment not found")
+    path = payment.data[0]["screenshot_url"]
+    signed = supabase_admin.storage.from_("payment-screenshots").create_signed_url(path, 300)
+    return {"signed_url": signed.get("signedURL") or signed.get("signed_url") or signed.get("signedUrl")}
+
+
+@app.post("/admin/payment/approve")
+async def approve_payment(request: Request, user=Depends(get_current_user)):
+    if not ADMIN_EMAIL or getattr(user, "email", "") != ADMIN_EMAIL:
+        raise HTTPException(status_code=403, detail="Unauthorized")
+
+    body       = await request.json()
+    payment_id = body.get("payment_id")
+
+    payment = supabase_admin.table("payments").select("*").eq("id", payment_id).execute()
+    if not payment.data:
+        raise HTTPException(status_code=404, detail="Payment not found")
+
+    p         = payment.data[0]
+    user_id   = p["user_id"]
+    plan_tier = p["plan_tier"]
+
+    plan = supabase_admin.table("subscription_plans").select("*").eq("tier", plan_tier).execute()
+    if not plan.data:
+        raise HTTPException(status_code=404, detail="Plan not found")
+
+    pl         = plan.data[0]
+    now        = datetime.now(timezone.utc)
+    period_end = now + timedelta(days=30)
+
+    existing_sub = supabase_admin.table("subscriptions").select("id").eq("user_id", user_id).execute()
+    if existing_sub.data:
+        supabase_admin.table("subscriptions").update({
+            "plan_tier":              plan_tier,
+            "status":                 "active",
+            "tokens_limit":           pl["token_limit"],
+            "tokens_used_this_month": 0,
+            "current_period_start":   now.isoformat(),
+            "current_period_end":     period_end.isoformat(),
+            "updated_at":             now.isoformat(),
+        }).eq("user_id", user_id).execute()
+    else:
+        supabase_admin.table("subscriptions").insert({
+            "user_id":                user_id,
+            "plan_tier":              plan_tier,
+            "status":                 "active",
+            "tokens_limit":           pl["token_limit"],
+            "tokens_used_this_month": 0,
+            "current_period_start":   now.isoformat(),
+            "current_period_end":     period_end.isoformat(),
+        }).execute()
+
+    supabase_admin.table("payments").update({
+        "status":      "approved",
+        "reviewed_at": now.isoformat(),
+    }).eq("id", payment_id).execute()
+
+    return {"success": True, "message": f"Payment approved. User upgraded to {plan_tier}."}
+
+
+@app.post("/admin/payment/reject")
+async def reject_payment(request: Request, user=Depends(get_current_user)):
+    if not ADMIN_EMAIL or getattr(user, "email", "") != ADMIN_EMAIL:
+        raise HTTPException(status_code=403, detail="Unauthorized")
+
+    body       = await request.json()
+    payment_id = body.get("payment_id")
+    reason     = body.get("reason", "Payment could not be verified")
+
+    supabase_admin.table("payments").update({
+        "status":           "rejected",
+        "rejection_reason": reason,
+        "reviewed_at":      datetime.now(timezone.utc).isoformat(),
+    }).eq("id", payment_id).execute()
+
+    return {"success": True, "message": "Payment rejected"}

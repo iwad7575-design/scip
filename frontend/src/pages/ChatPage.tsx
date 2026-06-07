@@ -6,6 +6,7 @@ import { Sidebar } from "../components/Sidebar";
 import { MarkdownMessage } from "../components/MarkdownMessage";
 import { WelcomeModal } from "../components/WelcomeModal";
 import { GuestLimitModal } from "../components/GuestLimitModal";
+import { TokenUsageBar } from "../components/TokenUsageBar";
 import { ASK_API_URL, BACKEND_HEALTH_URL, BACKEND_PING_URL, SHARE_API_URL, BACKEND_URL } from "../lib/config";
 
 const EXAMPLE_QUESTIONS = [
@@ -556,6 +557,8 @@ export function ChatPage() {
             </span>
           </div>
         )}
+
+        {user && <TokenUsageBar />}
 
         <div style={{
           border: "2px solid var(--brand-green)",
