@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
+import { BACKEND_URL } from "../lib/config";
 import { LogoutModal } from "../components/LogoutModal";
 import { ReferralCard } from "../components/ReferralCard";
 
@@ -330,34 +331,98 @@ function NotificationsTab() {
 // ── Subscription ───────────────────────────────────────────────────────────────
 
 function SubscriptionTab({ user }: { user: User }) {
+  const navigate = useNavigate();
+  const [sub, setSub]         = useState<any>(null);
+  const [subLoading, setSubLoading] = useState(true);
+
   const memberSince = user.created_at
     ? new Date(user.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" })
     : "";
+
+  useEffect(() => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!session) { setSubLoading(false); return; }
+      try {
+        const res = await fetch(`${BACKEND_URL}/subscription/me`, {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        if (res.ok) setSub(await res.json());
+      } catch { /* ignore */ } finally {
+        setSubLoading(false);
+      }
+    });
+  }, []);
+
+  const planLabel = sub ? (sub.plan.charAt(0).toUpperCase() + sub.plan.slice(1)) : "Free";
+  const isPaid    = sub && sub.plan !== "free";
+  const used      = sub?.questions_used ?? 0;
+  const limit     = sub?.questions_limit ?? 20;
+  const remaining = sub?.questions_remaining ?? 20;
+  const pct       = Math.min((used / Math.max(limit, 1)) * 100, 100);
+  const barColor  = pct > 80 ? "#ef4444" : pct > 50 ? "#f59e0b" : "#2ECC71";
+  const periodEnd = sub?.current_period_end
+    ? new Date(sub.current_period_end).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+    : null;
+
   return (
     <Card title="Subscription" subtitle="Manage your SCIP plan">
-      <div
-        style={{
-          borderRadius: 12,
-          padding: "16px 20px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          background: "linear-gradient(135deg, #0B2545 0%, #1B3A6B 100%)",
-          marginBottom: 14,
-        }}
-      >
+      {/* Current plan badge */}
+      <div style={{
+        borderRadius: 12, padding: "16px 20px",
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        background: "linear-gradient(135deg, #0B2545 0%, #1B3A6B 100%)", marginBottom: 14,
+      }}>
         <div>
-          <div style={{ color: "#ffffff", fontWeight: 700, fontSize: 15 }}>SCIP Free</div>
+          <div style={{ color: "#ffffff", fontWeight: 700, fontSize: 15 }}>SCIP {planLabel}</div>
           <div style={{ color: "rgba(255,255,255,0.55)", fontSize: 13, marginTop: 2 }}>Member since {memberSince}</div>
         </div>
         <span style={{ background: "#2ECC71", color: "#ffffff", fontSize: 12, fontWeight: 600, padding: "3px 10px", borderRadius: 20 }}>
           Active
         </span>
       </div>
-      <div style={{ background: "var(--bg)", borderRadius: "var(--radius-md)", padding: "12px 14px", fontSize: 13, color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: 10, border: "1px solid var(--border)" }}>
-        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="var(--text-muted)" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
-        <span>Premium features and payment options are coming soon.</span>
-      </div>
+
+      {subLoading && (
+        <div style={{ textAlign: "center", padding: "18px 0", color: "var(--text-muted)", fontSize: 13 }}>Loading usage…</div>
+      )}
+
+      {!subLoading && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          {/* Usage bar */}
+          <div style={{ background: "var(--bg)", borderRadius: "var(--radius-md)", padding: "14px 16px", border: "1px solid var(--border)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>Questions this month</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: barColor }}>{used} / {limit}</span>
+            </div>
+            <div style={{ height: 6, background: "var(--border)", borderRadius: 6, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: `${pct}%`, background: barColor, borderRadius: 6, transition: "width 0.4s" }} />
+            </div>
+            <p style={{ margin: "7px 0 0", fontSize: 12, color: "var(--text-muted)" }}>
+              {remaining} remaining
+              {periodEnd && ` · Resets ${periodEnd}`}
+            </p>
+          </div>
+
+          {/* Upgrade or manage */}
+          {!isPaid ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <p style={{ margin: 0, fontSize: 13, color: "var(--text-secondary)" }}>
+                You are on the <strong>Free plan</strong> (20 questions/month). Upgrade for more.
+              </p>
+              <button
+                onClick={() => navigate("/pricing")}
+                className="btn-primary"
+                style={{ background: "var(--brand-green)" }}
+              >
+                View Plans & Upgrade
+              </button>
+            </div>
+          ) : (
+            <p style={{ margin: 0, fontSize: 13, color: "var(--text-secondary)" }}>
+              Your <strong>{planLabel}</strong> plan{periodEnd ? ` renews ${periodEnd}` : ""}. To change plans, contact support.
+            </p>
+          )}
+        </div>
+      )}
     </Card>
   );
 }

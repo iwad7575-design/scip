@@ -91,8 +91,9 @@ export function ChatPage() {
   const [shareLinkCopied, setShareLinkCopied] = useState(false);
   const [shareTextCopied, setShareTextCopied] = useState(false);
   const [copiedMsgId, setCopiedMsgId]         = useState<string | null>(null);
-  const [freeQuestions, setFreeQuestions]     = useState(0);
-  const [showWelcome, setShowWelcome]         = useState(false);
+  const [freeQuestions, setFreeQuestions]       = useState(0);
+  const [subscriptionTier, setSubscriptionTier] = useState<string>("free");
+  const [showWelcome, setShowWelcome]           = useState(false);
   const [wasReferred, setWasReferred]         = useState(false);
   const [showGuestLimitModal, setShowGuestLimitModal] = useState(false);
 
@@ -134,6 +135,12 @@ export function ChatPage() {
       })
         .then(r => r.json())
         .then(d => setFreeQuestions(d.free_questions_remaining ?? 0))
+        .catch(() => {});
+      fetch(`${BACKEND_URL}/subscription/me`, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+        .then(r => r.json())
+        .then(d => setSubscriptionTier(d.plan ?? "free"))
         .catch(() => {});
     });
   }, [user]);
@@ -1339,6 +1346,18 @@ export function ChatPage() {
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   {shareBtn}
                   <Link
+                    to="/pricing"
+                    style={{
+                      padding: "7px 14px", fontSize: 13, fontFamily: "var(--font-heading)",
+                      fontWeight: 600, borderRadius: 8,
+                      border: `1px solid ${heroMode ? "rgba(255,255,255,0.3)" : "var(--border)"}`,
+                      color: heroMode ? "rgba(255,255,255,0.9)" : "var(--text-secondary)",
+                      background: "transparent", textDecoration: "none", whiteSpace: "nowrap",
+                    }}
+                  >
+                    Plans
+                  </Link>
+                  <Link
                     to="/login"
                     style={{
                       padding: "7px 16px", fontSize: 13, fontFamily: "var(--font-heading)",
@@ -1392,7 +1411,22 @@ export function ChatPage() {
                   </span>
                 </a>
               </div>
-              {shareBtn}
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                {shareBtn}
+                {subscriptionTier === "free" && (
+                  <Link
+                    to="/pricing"
+                    style={{
+                      padding: "6px 14px", fontSize: 12, fontFamily: "var(--font-heading)",
+                      fontWeight: 700, borderRadius: 8,
+                      background: "var(--brand-green)", color: "#fff",
+                      textDecoration: "none", whiteSpace: "nowrap",
+                    }}
+                  >
+                    Upgrade
+                  </Link>
+                )}
+              </div>
             </header>
           )}
 
