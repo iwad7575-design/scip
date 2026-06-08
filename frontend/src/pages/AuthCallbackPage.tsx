@@ -14,50 +14,56 @@ export function AuthCallbackPage() {
   useEffect(() => {
     let done = false;
 
-    console.log("[CALLBACK] Starting...");
+    console.log("[CALLBACK] useEffect ran");
     console.log("[CALLBACK] URL:", window.location.href);
+    console.log("[CALLBACK] hash:", window.location.hash);
+    console.log("[CALLBACK] search:", window.location.search);
     console.log("[CALLBACK] pendingRefCode:", localStorage.getItem("pendingRefCode"));
 
-    async function applyPendingReferral(accessToken?: string | null, createdAt?: string | null) {
-      console.log("[REFERRAL] Function called");
-      console.log("[REFERRAL] Starting...");
+    async function applyPendingReferral(session: Session) {
+      console.log("[REFERRAL] START");
       const pendingRef = localStorage.getItem("pendingRefCode");
-      console.log("[REFERRAL] pendingRef:", pendingRef);
-      if (!pendingRef) { console.log("[REFERRAL] No pending ref code"); return; }
+      console.log("[REFERRAL] code:", pendingRef);
+      console.log("[REFERRAL] token exists:", !!session.access_token);
 
-      if (createdAt) {
-        const ageMs = Date.now() - new Date(createdAt).getTime();
-        const ageMinutes = ageMs / 1000 / 60;
-        console.log("[REFERRAL] ageMinutes:", ageMinutes);
-        if (ageMs > 10 * 60 * 1000) {
-          console.log("[REFERRAL] Skipping - existing user (age > 10 min)");
-          localStorage.removeItem("pendingRefCode");
-          return;
-        }
+      if (!pendingRef) {
+        console.log("[REFERRAL] No code — skip");
+        return;
       }
 
-      let token = accessToken;
-      if (!token) {
-        await new Promise(r => setTimeout(r, 800));
-        const { data: { session } } = await supabase.auth.getSession();
-        token = session?.access_token ?? null;
+      const ageMinutes = (Date.now() - new Date(session.user.created_at).getTime()) / 1000 / 60;
+      console.log("[REFERRAL] age (min):", ageMinutes.toFixed(2));
+
+      if (ageMinutes > 10) {
+        console.log("[REFERRAL] Too old — skip");
+        localStorage.removeItem("pendingRefCode");
+        return;
       }
-      console.log("[REFERRAL] token present:", !!token);
-      if (!token) { console.log("[REFERRAL] No token, aborting"); return; }
+
       try {
-        console.log("[REFERRAL] Calling /referral/apply with:", pendingRef);
-        const res = await fetch(`${BACKEND_URL}/referral/apply`, {
+        const url = `${BACKEND_URL}/referral/apply`;
+        console.log("[REFERRAL] Calling:", url);
+        const res = await fetch(url, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`,
+            "Authorization": `Bearer ${session.access_token}`,
           },
           body: JSON.stringify({ ref_code: pendingRef }),
         });
-        const result = await res.json().catch(() => ({}));
-        console.log("[REFERRAL] Result:", res.status, result);
+        console.log("[REFERRAL] HTTP status:", res.status);
+        const data = await res.json().catch(() => ({}));
+        console.log("[REFERRAL] Response:", JSON.stringify(data));
+        if (!res.ok) {
+          console.error("[REFERRAL] Failed:", data);
+        } else {
+          console.log("[REFERRAL] Success!");
+        }
+      } catch (e: unknown) {
+        console.error("[REFERRAL] Exception:", (e as Error).message);
+      } finally {
         localStorage.removeItem("pendingRefCode");
-      } catch (e) { console.error("[REFERRAL] Error:", e); }
+      }
     }
 
     function createFreeSubscription(accessToken: string) {
@@ -85,7 +91,7 @@ export function AuthCallbackPage() {
         // Read pendingRef BEFORE applyPendingReferral removes it
         const pendingRef = localStorage.getItem("pendingRefCode");
         console.log("[WELCOME] New user detected, pendingRef:", pendingRef);
-        await applyPendingReferral(session.access_token, session.user.created_at);
+        await applyPendingReferral(session);
         localStorage.setItem("showWelcome", "true");
         localStorage.setItem("wasReferred", pendingRef ? "true" : "false");
         localStorage.removeItem("guestQuestionsUsed");
