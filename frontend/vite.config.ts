@@ -20,6 +20,7 @@ export default defineConfig({
       "/health":       { target: backendTarget, changeOrigin: true },
       "/ping":         { target: backendTarget, changeOrigin: true },
       "/referral":     { target: backendTarget, changeOrigin: true },
+      "/auth/check-email": { target: backendTarget, changeOrigin: true },
       "/plans":        { target: backendTarget, changeOrigin: true },
       "/subscription": { target: backendTarget, changeOrigin: true },
       "/payment":      { target: backendTarget, changeOrigin: true },

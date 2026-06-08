@@ -562,6 +562,26 @@ def _generate_referral_code() -> str:
     return "".join(secrets.choice(chars) for _ in range(8))
 
 
+@app.post("/auth/check-email")
+async def check_email(request: Request):
+    body = await request.json()
+    email = body.get("email", "").lower().strip()
+    if not email:
+        raise HTTPException(400, "Email required")
+    try:
+        users = supabase_admin.auth.admin.list_users(page=1, per_page=1000)
+        for user in users:
+            if user.email and user.email.lower() == email:
+                return {
+                    "exists": True,
+                    "confirmed": user.email_confirmed_at is not None,
+                }
+        return {"exists": False, "confirmed": False}
+    except Exception:
+        # If check fails, let signup proceed and rely on Supabase's own validation
+        return {"exists": False, "confirmed": False}
+
+
 @app.get("/referral/code")
 async def get_referral_code(user=Depends(get_current_user)):
     user_id = str(user.id)

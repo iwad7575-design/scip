@@ -43,7 +43,8 @@ export function SignUpPage() {
   const [profession, setProfession]       = useState("");
   const [facility, setFacility]           = useState("");
   const [error, setError]                 = useState("");
-  const [errorWithLink, setErrorWithLink] = useState<{ message: string; linkText: string; linkHref: string } | null>(null);
+  const [formError, setFormError]         = useState<"already_registered" | "already_unconfirmed" | null>(null);
+  const [resendSuccess, setResendSuccess] = useState(false);
   const [loading, setLoading]             = useState(false);
   const [pwdFieldError, setPwdFieldError] = useState("");
   const [confirmError, setConfirmError]   = useState("");
@@ -67,13 +68,35 @@ export function SignUpPage() {
   const pwdMatch   = confirmPassword.length > 0 && password === confirmPassword;
   const pwdMismatch= confirmPassword.length > 0 && password !== confirmPassword;
 
+  async function checkEmail(emailToCheck: string): Promise<{ exists: boolean; confirmed: boolean }> {
+    try {
+      const res = await fetch(`${BACKEND_URL}/auth/check-email`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: emailToCheck }),
+      });
+      return await res.json();
+    } catch {
+      return { exists: false, confirmed: false };
+    }
+  }
+
   async function handleSignUp(e: React.FormEvent) {
     e.preventDefault();
-    setError(""); setErrorWithLink(null); setPwdFieldError(""); setConfirmError("");
+    setError(""); setFormError(null); setResendSuccess(false); setPwdFieldError(""); setConfirmError("");
     if (password.length < 8) { setPwdFieldError("Password must be at least 8 characters."); return; }
     if (password !== confirmPassword) { setConfirmError("Passwords do not match."); return; }
     setLoading(true);
     try {
+      // Check if email exists BEFORE calling signUp so we can distinguish
+      // confirmed vs unconfirmed accounts (not detectable from signUp response alone).
+      const emailCheck = await checkEmail(email);
+      if (emailCheck.exists) {
+        setFormError(emailCheck.confirmed ? "already_registered" : "already_unconfirmed");
+        return;
+      }
+
+      // Email is new — proceed with signUp
       const { data, error } = await supabase.auth.signUp({
         email, password,
         options: {
@@ -81,17 +104,8 @@ export function SignUpPage() {
           data: { full_name: fullName, profession, health_facility: facility },
         },
       });
-      console.log('[SIGNUP] error:', error);
-      console.log('[SIGNUP] data.user:', data?.user);
-      console.log('[SIGNUP] identities:', data?.user?.identities);
-      console.log('[SIGNUP] identities length:', data?.user?.identities?.length);
-      console.log('[SIGNUP] email_confirmed_at:', data?.user?.email_confirmed_at);
       if (error) {
         setError(friendlyError(error.message));
-      } else if (data.user?.identities?.length === 0) {
-        // identities=[] means email already exists (confirmed or unconfirmed).
-        // Supabase returns no error for this case — only the empty identities array.
-        setErrorWithLink({ message: "This email is already registered.", linkText: "Login instead →", linkHref: "/login" });
       } else {
         const pendingRef = localStorage.getItem("pendingRefCode");
         localStorage.setItem("showWelcome", "true");
@@ -100,7 +114,6 @@ export function SignUpPage() {
 
         if (data.session) {
           // Email confirmation is disabled — user has a live session immediately.
-          // Apply referral or give signup bonus now; AuthCallbackPage won't be hit.
           const token = data.session.access_token;
           if (pendingRef) {
             try {
@@ -140,6 +153,17 @@ export function SignUpPage() {
     } finally { setResendLoading(false); }
   }
 
+
+  async function resendConfirmation() {
+    setResendSuccess(false);
+    try {
+      const { error: resendErr } = await supabase.auth.resend({
+        type: "signup", email,
+        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+      });
+      if (!resendErr) setResendSuccess(true);
+    } catch { /* silent */ }
+  }
 
   async function handleGoogle() {
     await supabase.auth.signInWithOAuth({
@@ -332,17 +356,36 @@ export function SignUpPage() {
                 placeholder="e.g. Tikur Anbessa Specialized Hospital" className="input" />
             </FormField>
 
-            {errorWithLink && (
+            {formError === "already_registered" && (
               <div style={{ background: "var(--destructive-bg)", border: "1px solid #fecaca", borderRadius: "var(--radius-lg)", padding: "12px 14px", fontSize: 14, color: "var(--destructive)" }}>
-                <p style={{ margin: "0 0 4px" }}>
-                  {errorWithLink.message}{" "}
-                  <Link to={errorWithLink.linkHref} style={{ fontWeight: 700, color: "var(--destructive)", textDecoration: "underline" }}>
-                    {errorWithLink.linkText}
-                  </Link>
+                This email is already registered.{" "}
+                <Link to="/login" style={{ fontWeight: 700, color: "var(--destructive)", textDecoration: "underline" }}>
+                  Login instead →
+                </Link>
+              </div>
+            )}
+
+            {formError === "already_unconfirmed" && (
+              <div style={{ background: "#fefce8", border: "1px solid #fde68a", borderRadius: "var(--radius-lg)", padding: "12px 14px", fontSize: 14 }}>
+                <p style={{ margin: "0 0 6px", color: "#92400e", fontWeight: 600 }}>
+                  This email is registered but not yet confirmed.
                 </p>
-                <p style={{ margin: 0, fontSize: 12, opacity: 0.8 }}>
-                  If you haven't confirmed your email yet, check your inbox.
+                <p style={{ margin: "0 0 10px", color: "#78350f", fontSize: 13 }}>
+                  Check your inbox for the confirmation email.
                 </p>
+                {resendSuccess ? (
+                  <p style={{ margin: 0, color: "#15803d", fontSize: 13, fontWeight: 600 }}>
+                    ✅ Confirmation email resent! Check your inbox.
+                  </p>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={resendConfirmation}
+                    style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "#92400e", fontWeight: 700, textDecoration: "underline", padding: 0 }}
+                  >
+                    Resend confirmation email →
+                  </button>
+                )}
               </div>
             )}
 
