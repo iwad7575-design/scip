@@ -34,7 +34,7 @@ export function AuthCallbackPage() {
       const ageMinutes = (Date.now() - new Date(session.user.created_at).getTime()) / 1000 / 60;
       console.log("[REFERRAL] age (min):", ageMinutes.toFixed(2));
 
-      if (ageMinutes > 10) {
+      if (ageMinutes > 60) {
         console.log("[REFERRAL] Too old — skip");
         localStorage.removeItem("pendingRefCode");
         return;
@@ -87,7 +87,7 @@ export function AuthCallbackPage() {
       const ageMs = Date.now() - new Date(session.user.created_at).getTime();
       const ageMin = (ageMs / 1000 / 60).toFixed(1);
       console.log("[WELCOME] ageMin:", ageMin);
-      if (ageMs < 10 * 60 * 1000) {
+      if (ageMs < 60 * 60 * 1000) {
         // Read pendingRef BEFORE applyPendingReferral removes it
         const pendingRef = localStorage.getItem("pendingRefCode");
         console.log("[WELCOME] New user detected, pendingRef:", pendingRef);
@@ -98,7 +98,7 @@ export function AuthCallbackPage() {
         console.log("[WELCOME] Set showWelcome=true, wasReferred=", pendingRef ? "true" : "false");
         createFreeSubscription(session.access_token);
       } else {
-        console.log("[WELCOME] Existing user (age > 10 min), skipping welcome");
+        console.log("[WELCOME] Existing user (age > 60 min), skipping welcome");
       }
       markSuccess();
     }
