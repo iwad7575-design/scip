@@ -14,13 +14,18 @@ export function AuthCallbackPage() {
     let done = false;
 
     async function applyPendingReferral(accessToken?: string | null, createdAt?: string | null) {
+      console.log("[REFERRAL] Starting...");
       const pendingRef = localStorage.getItem("pendingRefCode");
-      if (!pendingRef) return;
+      console.log("[REFERRAL] pendingRef:", pendingRef);
+      if (!pendingRef) { console.log("[REFERRAL] No pending ref code"); return; }
 
       // Skip if account is older than 10 minutes — user is not new.
       if (createdAt) {
         const ageMs = Date.now() - new Date(createdAt).getTime();
+        const ageMinutes = ageMs / 1000 / 60;
+        console.log("[REFERRAL] ageMinutes:", ageMinutes);
         if (ageMs > 10 * 60 * 1000) {
+          console.log("[REFERRAL] Skipping - existing user (age > 10 min)");
           localStorage.removeItem("pendingRefCode");
           return;
         }
@@ -28,15 +33,15 @@ export function AuthCallbackPage() {
 
       let token = accessToken;
       if (!token) {
-        // Token passed directly from the auth event is preferred.
-        // Fallback: wait briefly for Supabase to persist the session to storage.
         await new Promise(r => setTimeout(r, 800));
         const { data: { session } } = await supabase.auth.getSession();
         token = session?.access_token ?? null;
       }
-      if (!token) return;
+      console.log("[REFERRAL] token present:", !!token);
+      if (!token) { console.log("[REFERRAL] No token, aborting"); return; }
       try {
-        await fetch(`${BACKEND_URL}/referral/apply`, {
+        console.log("[REFERRAL] Calling /referral/apply with:", pendingRef);
+        const res = await fetch(`${BACKEND_URL}/referral/apply`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -44,8 +49,10 @@ export function AuthCallbackPage() {
           },
           body: JSON.stringify({ ref_code: pendingRef }),
         });
+        const result = await res.json().catch(() => ({}));
+        console.log("[REFERRAL] Result:", res.status, result);
         localStorage.removeItem("pendingRefCode");
-      } catch { /* silent fail */ }
+      } catch (e) { console.error("[REFERRAL] Error:", e); }
     }
 
     function createFreeSubscription(accessToken: string) {
@@ -56,12 +63,15 @@ export function AuthCallbackPage() {
     }
 
     function handleNewUser(createdAt?: string | null, accessToken?: string | null) {
-      if (!createdAt) return;
+      if (!createdAt) { console.log("[WELCOME] handleNewUser: no createdAt, skipping"); return; }
       const ageMs = Date.now() - new Date(createdAt).getTime();
-      if (ageMs >= 10 * 60 * 1000) return;
+      const ageMin = (ageMs / 1000 / 60).toFixed(1);
+      console.log("[WELCOME] handleNewUser: ageMin =", ageMin);
+      if (ageMs >= 10 * 60 * 1000) { console.log("[WELCOME] handleNewUser: existing user, skipping"); return; }
       const pendingRef = localStorage.getItem("pendingRefCode");
       localStorage.setItem("showWelcome", "true");
       localStorage.setItem("wasReferred", pendingRef ? "true" : "false");
+      console.log("[WELCOME] handleNewUser: set showWelcome=true, wasReferred=", pendingRef ? "true" : "false");
       // Ensure free subscription row exists for ALL new users (referred or not)
       if (accessToken) createFreeSubscription(accessToken);
     }

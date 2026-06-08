@@ -15,7 +15,7 @@ const NAV_CARDS = [
   { icon: "💳", label: "Review Payments",       desc: "Approve or reject pending payment screenshots", path: "/admin/payments", badge: "pending_payments" },
   { icon: "📊", label: "Referral Analytics",    desc: "View referral codes, active subscribers, commissions", path: "/admin/referrals" },
   { icon: "🎓", label: "Student Verifications", desc: "Review student ID submissions",                 path: "/admin/students",  soon: true },
-  { icon: "👥", label: "All Users",             desc: "Browse registered users and subscriptions",     path: "/admin/users",     soon: true },
+  { icon: "👥", label: "All Users",             desc: "Browse registered users and subscriptions",     path: "/admin/users" },
 ];
 
 export function AdminPage() {

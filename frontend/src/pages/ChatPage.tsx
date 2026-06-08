@@ -7,6 +7,7 @@ import { MarkdownMessage } from "../components/MarkdownMessage";
 import { WelcomeModal } from "../components/WelcomeModal";
 import { GuestLimitModal } from "../components/GuestLimitModal";
 import { TokenUsageBar } from "../components/TokenUsageBar";
+import { NotificationBell } from "../components/NotificationBell";
 import { ASK_API_URL, BACKEND_HEALTH_URL, BACKEND_PING_URL, SHARE_API_URL, BACKEND_URL } from "../lib/config";
 
 const EXAMPLE_QUESTIONS = [
@@ -96,6 +97,9 @@ export function ChatPage() {
   const [showWelcome, setShowWelcome]           = useState(false);
   const [wasReferred, setWasReferred]         = useState(false);
   const [showGuestLimitModal, setShowGuestLimitModal] = useState(false);
+  const [guestUsed, setGuestUsed] = useState(() =>
+    parseInt(localStorage.getItem("guestQuestionsUsed") || "0", 10)
+  );
 
   const location    = useLocation();
   const isOnChatPage = location.pathname === "/chat";
@@ -108,9 +112,10 @@ export function ChatPage() {
 
   useEffect(() => {
     const shouldShow = localStorage.getItem("showWelcome");
+    console.log("[WELCOME] shouldShow:", shouldShow);
     if (shouldShow === "true") {
-      setShowWelcome(true);
       localStorage.removeItem("showWelcome");
+      setTimeout(() => setShowWelcome(true), 500);
     }
     const referred = localStorage.getItem("wasReferred");
     setWasReferred(referred === "true");
@@ -237,10 +242,18 @@ export function ChatPage() {
   const sendMessage = useCallback(async (text: string) => {
     if (!text.trim() || loading || isSendingRef.current) return;
 
-    if (user === null) {
+    if (!user) {
       const used = getGuestQuestionsUsed();
-      if (used >= GUEST_LIMIT) { setShowGuestLimitModal(true); return; }
+      console.log("[GUEST] used:", used, "limit:", GUEST_LIMIT);
+      if (used >= GUEST_LIMIT) {
+        console.log("[GUEST] Limit reached!");
+        setShowGuestLimitModal(true);
+        return;
+      }
       incrementGuestQuestions();
+      const newCount = used + 1;
+      setGuestUsed(newCount);
+      console.log("[GUEST] New count:", newCount);
     }
 
     isSendingRef.current = true;
@@ -559,7 +572,7 @@ export function ChatPage() {
               padding: "4px 12px", borderRadius: 20,
               fontFamily: "var(--font-heading)", textDecoration: "none",
             }}>
-              👤 {guestQuestionsRemaining()}/{GUEST_LIMIT} questions · Sign up for 20/month free
+              👤 {Math.max(0, GUEST_LIMIT - guestUsed)}/{GUEST_LIMIT} questions · Sign up for 20/month free
             </a>
           </div>
         )}
@@ -1425,6 +1438,7 @@ export function ChatPage() {
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 {shareBtn}
+                <NotificationBell heroMode={heroMode} />
                 {subscriptionTier === "free" && (
                   <Link
                     to="/pricing"

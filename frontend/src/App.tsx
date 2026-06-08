@@ -15,6 +15,7 @@ import { SharePage } from "./pages/SharePage";
 import { AdminPage } from "./pages/AdminPage";
 import { AdminPaymentsPage } from "./pages/AdminPaymentsPage";
 import { AdminReferralsPage } from "./pages/AdminReferralsPage";
+import { AdminUsersPage } from "./pages/AdminUsersPage";
 import { PricingPage } from "./pages/PricingPage";
 import { PaymentPage } from "./pages/PaymentPage";
 import { InstallBanner } from "./components/InstallBanner";
@@ -82,6 +83,7 @@ export default function App() {
         <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
         <Route path="/admin/payments" element={<AdminRoute><AdminPaymentsPage /></AdminRoute>} />
         <Route path="/admin/referrals" element={<AdminRoute><AdminReferralsPage /></AdminRoute>} />
+        <Route path="/admin/users" element={<AdminRoute><AdminUsersPage /></AdminRoute>} />
         <Route path="/pricing" element={<PricingPage />} />
         <Route path="/subscribe/:tier" element={<PaymentPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />

@@ -24,7 +24,8 @@ export default defineConfig({
       "/subscription": { target: backendTarget, changeOrigin: true },
       "/payment":      { target: backendTarget, changeOrigin: true },
       "/student":      { target: backendTarget, changeOrigin: true },
-      "/admin":        { target: backendTarget, changeOrigin: true },
+      "/admin":         { target: backendTarget, changeOrigin: true },
+      "/notifications": { target: backendTarget, changeOrigin: true },
       // Bypass HTML navigations so /share/:id serves the React app in dev
       "/share": {
         target: backendTarget,

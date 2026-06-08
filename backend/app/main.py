@@ -721,10 +721,20 @@ async def approve_student(request: Request, user=Depends(get_current_user)):
     if str(user.email) != os.getenv("ADMIN_EMAIL", ""):
         raise HTTPException(status_code=403, detail="Admin only")
     body = await request.json()
+    vid = body.get("id")
+    row = supabase_admin.table("student_verifications").select("user_id").eq("id", vid).execute()
+    student_user_id = row.data[0]["user_id"] if row.data else None
     supabase_admin.table("student_verifications").update({
         "status":      "verified",
         "reviewed_at": datetime.now(timezone.utc).isoformat(),
-    }).eq("id", body.get("id")).execute()
+    }).eq("id", vid).execute()
+    if student_user_id:
+        supabase_admin.table("notifications").insert({
+            "user_id": student_user_id,
+            "type":    "student_id_verified",
+            "title":   "✅ Student ID Verified!",
+            "message": "Your student ID has been verified. You can now subscribe to the Student plan at 99 ETB/month.",
+        }).execute()
     return {"success": True}
 
 
@@ -733,11 +743,23 @@ async def reject_student(request: Request, user=Depends(get_current_user)):
     if str(user.email) != os.getenv("ADMIN_EMAIL", ""):
         raise HTTPException(status_code=403, detail="Admin only")
     body = await request.json()
+    vid    = body.get("id")
+    reason = body.get("reason", "ID could not be verified")
+    row = supabase_admin.table("student_verifications").select("user_id").eq("id", vid).execute()
+    student_user_id = row.data[0]["user_id"] if row.data else None
     supabase_admin.table("student_verifications").update({
         "status":           "rejected",
-        "rejection_reason": body.get("reason", "ID could not be verified"),
+        "rejection_reason": reason,
         "reviewed_at":      datetime.now(timezone.utc).isoformat(),
-    }).eq("id", body.get("id")).execute()
+    }).eq("id", vid).execute()
+    if student_user_id:
+        supabase_admin.table("notifications").insert({
+            "user_id": student_user_id,
+            "type":    "student_id_rejected",
+            "title":   "❌ Student ID Not Verified",
+            "message": f"Your student ID could not be verified. Reason: {reason}. "
+                       "Please upload a clearer image of your valid student ID card.",
+        }).execute()
     return {"success": True}
 
 
@@ -1026,6 +1048,14 @@ async def approve_payment(request: Request, user=Depends(get_current_user)):
         "reviewed_at": now.isoformat(),
     }).eq("id", payment_id).execute()
 
+    supabase_admin.table("notifications").insert({
+        "user_id": user_id,
+        "type":    "payment_approved",
+        "title":   "✅ Payment Approved!",
+        "message": f"Your payment for the {plan_tier.title()} plan has been approved. "
+                   f"Your account is now active with {pl['question_estimate']} questions per month.",
+    }).execute()
+
     return {"success": True, "message": f"Payment approved. User upgraded to {plan_tier}."}
 
 
@@ -1038,10 +1068,78 @@ async def reject_payment(request: Request, user=Depends(get_current_user)):
     payment_id = body.get("payment_id")
     reason     = body.get("reason", "Payment could not be verified")
 
+    payment = supabase_admin.table("payments").select("user_id").eq("id", payment_id).execute()
+    user_id = payment.data[0]["user_id"] if payment.data else None
+
     supabase_admin.table("payments").update({
         "status":           "rejected",
         "rejection_reason": reason,
         "reviewed_at":      datetime.now(timezone.utc).isoformat(),
     }).eq("id", payment_id).execute()
 
+    if user_id:
+        supabase_admin.table("notifications").insert({
+            "user_id": user_id,
+            "type":    "payment_rejected",
+            "title":   "❌ Payment Not Verified",
+            "message": f"Your payment could not be verified. Reason: {reason}. "
+                       "Please resubmit with a clear screenshot showing the transaction details.",
+        }).execute()
+
     return {"success": True, "message": "Payment rejected"}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# NOTIFICATIONS
+# ─────────────────────────────────────────────────────────────────────────────
+
+@app.get("/notifications")
+async def get_notifications(user=Depends(get_current_user)):
+    notifs = supabase_admin.table("notifications") \
+        .select("*") \
+        .eq("user_id", str(user.id)) \
+        .order("created_at", desc=True) \
+        .limit(20) \
+        .execute()
+    return {"notifications": notifs.data}
+
+
+@app.post("/notifications/read")
+async def mark_notifications_read(user=Depends(get_current_user)):
+    supabase_admin.table("notifications") \
+        .update({"read": True}) \
+        .eq("user_id", str(user.id)) \
+        .execute()
+    return {"success": True}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ADMIN USERS
+# ─────────────────────────────────────────────────────────────────────────────
+
+@app.get("/admin/users")
+async def admin_users(user=Depends(get_current_user)):
+    if str(user.email) != os.getenv("ADMIN_EMAIL", ""):
+        raise HTTPException(status_code=403, detail="Admin only")
+    subs = supabase_admin.table("subscriptions").select("*").order("created_at", desc=True).execute()
+    # Batch-fetch all users to avoid N+1 calls
+    try:
+        all_users = supabase_admin.auth.admin.list_users()
+        users_by_id = {str(u.id): u for u in (all_users if isinstance(all_users, list) else [])}
+    except Exception:
+        users_by_id = {}
+    result = []
+    for s in subs.data:
+        u = users_by_id.get(s["user_id"])
+        result.append({
+            "user_id":                s["user_id"],
+            "email":                  u.email if u else "—",
+            "plan_tier":              s["plan_tier"],
+            "status":                 s["status"],
+            "tokens_used_this_month": s["tokens_used_this_month"],
+            "tokens_limit":           s["tokens_limit"],
+            "current_period_end":     s.get("current_period_end"),
+            "last_sign_in":           str(u.last_sign_in_at) if u else None,
+            "created_at":             s["created_at"],
+        })
+    return {"users": result, "total": len(result)}

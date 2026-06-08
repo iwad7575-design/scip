@@ -44,6 +44,8 @@ export function SignUpPage() {
   const [facility, setFacility]           = useState("");
   const [error, setError]                 = useState("");
   const [errorWithLink, setErrorWithLink] = useState<{ message: string; linkText: string; linkHref: string } | null>(null);
+  const [unconfirmedEmail, setUnconfirmedEmail] = useState(false);
+  const [resendSuccess, setResendSuccess]       = useState(false);
   const [loading, setLoading]             = useState(false);
   const [pwdFieldError, setPwdFieldError] = useState("");
   const [confirmError, setConfirmError]   = useState("");
@@ -69,7 +71,7 @@ export function SignUpPage() {
 
   async function handleSignUp(e: React.FormEvent) {
     e.preventDefault();
-    setError(""); setErrorWithLink(null); setPwdFieldError(""); setConfirmError("");
+    setError(""); setErrorWithLink(null); setUnconfirmedEmail(false); setResendSuccess(false); setPwdFieldError(""); setConfirmError("");
     if (password.length < 8) { setPwdFieldError("Password must be at least 8 characters."); return; }
     if (password !== confirmPassword) { setConfirmError("Passwords do not match."); return; }
     setLoading(true);
@@ -91,10 +93,11 @@ export function SignUpPage() {
         } else {
           setError(friendlyError(error.message));
         }
-      } else if (data.user?.identities?.length === 0 || !data.user?.identities) {
-        // Supabase silently resends a confirmation email and returns empty identities
-        // when the address exists but was never confirmed — tell the user to check inbox
-        setErrorWithLink({ message: "This email is already registered but not yet confirmed. Check your inbox for the confirmation email.", linkText: "Login instead →", linkHref: "/login" });
+      } else if (data.user?.identities !== null && data.user?.identities !== undefined && data.user.identities.length === 0) {
+        // Unconfirmed existing account: Supabase silently resends confirmation and
+        // returns success with identities = [] (empty array, NOT null).
+        // null identities = confirmed account (caught above via error path).
+        setUnconfirmedEmail(true);
       } else {
         const pendingRef = localStorage.getItem("pendingRefCode");
         localStorage.setItem("showWelcome", "true");
@@ -141,6 +144,17 @@ export function SignUpPage() {
       if (error) setResendMessage(error.message);
       else { setResendMessage("Confirmation email resent! Check your inbox."); setResendCooldown(60); }
     } finally { setResendLoading(false); }
+  }
+
+  async function resendConfirmation() {
+    setResendSuccess(false);
+    try {
+      const { error: resendErr } = await supabase.auth.resend({
+        type: "signup", email,
+        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+      });
+      if (!resendErr) setResendSuccess(true);
+    } catch { /* silent */ }
   }
 
   async function handleGoogle() {
@@ -340,6 +354,30 @@ export function SignUpPage() {
                 <Link to={errorWithLink.linkHref} style={{ fontWeight: 700, color: "var(--destructive)", textDecoration: "underline" }}>
                   {errorWithLink.linkText}
                 </Link>
+              </div>
+            )}
+
+            {unconfirmedEmail && (
+              <div style={{ background: "#fefce8", border: "1px solid #fde68a", borderRadius: "var(--radius-lg)", padding: "12px 14px", fontSize: 14 }}>
+                <p style={{ margin: "0 0 8px", color: "#92400e", fontWeight: 600 }}>
+                  This email is registered but not yet confirmed.
+                </p>
+                <p style={{ margin: "0 0 10px", color: "#78350f", fontSize: 13 }}>
+                  Check your inbox for the confirmation email, or resend it below.
+                </p>
+                {resendSuccess ? (
+                  <p style={{ margin: 0, color: "#15803d", fontSize: 13, fontWeight: 600 }}>
+                    ✅ Confirmation email resent! Check your inbox.
+                  </p>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={resendConfirmation}
+                    style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "#92400e", fontWeight: 700, textDecoration: "underline", padding: 0 }}
+                  >
+                    Resend confirmation email →
+                  </button>
+                )}
               </div>
             )}
 
