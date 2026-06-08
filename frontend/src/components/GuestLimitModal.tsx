@@ -31,9 +31,6 @@ export function GuestLimitModal({ isOpen, onClose }: { isOpen: boolean; onClose:
           Create a free account to get{" "}
           <strong style={{ color: "var(--text-primary)" }}>20 questions every month — free</strong>
           {" "}and full access to SCIP — Ethiopia's clinical AI assistant.
-          <br /><br />
-          Have a referral link? Sign up with it and get{" "}
-          <strong style={{ color: "var(--text-primary)" }}>10 bonus questions</strong> on top!
         </p>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 }}>

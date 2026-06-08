@@ -83,6 +83,11 @@ export function SignUpPage() {
           data: { full_name: fullName, profession, health_facility: facility },
         },
       });
+      console.log('[SIGNUP] error:', error);
+      console.log('[SIGNUP] data.user:', data?.user);
+      console.log('[SIGNUP] identities:', data?.user?.identities);
+      console.log('[SIGNUP] identities length:', data?.user?.identities?.length);
+      console.log('[SIGNUP] email_confirmed_at:', data?.user?.email_confirmed_at);
       if (error) {
         if (
           error.message.includes("already registered") ||

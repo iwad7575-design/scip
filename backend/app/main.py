@@ -733,7 +733,7 @@ async def approve_student(request: Request, user=Depends(get_current_user)):
             "user_id": student_user_id,
             "type":    "student_id_verified",
             "title":   "✅ Student ID Verified!",
-            "message": "Your student ID has been verified. You can now subscribe to the Student plan at 99 ETB/month.",
+            "message": "Your student ID has been verified.",
         }).execute()
     return {"success": True}
 

@@ -72,7 +72,7 @@ export function ReferralCard() {
 
   function shareWhatsApp() {
     const msg = encodeURIComponent(
-      `I use SCIP for clinical decisions — Ethiopia's first AI-powered medical assistant with 109 Ethiopian MoH guidelines. Join using my link and get 10 free questions: ${referralData?.link}`
+      `I use SCIP for clinical decisions — Ethiopia's first AI-powered medical assistant with 109 Ethiopian MoH guidelines. Join using my link and get 20 free questions/month: ${referralData?.link}`
     );
     window.open(`https://wa.me/?text=${msg}`, "_blank");
   }
@@ -121,7 +121,7 @@ export function ReferralCard() {
       {/* How it works */}
       <div style={{ background: "var(--success-bg)", border: "1px solid #bbf7d0", borderRadius: "var(--radius-lg)", padding: "12px 14px", marginBottom: 16 }}>
         <p style={{ margin: 0, fontSize: 13, color: "var(--success)", lineHeight: 1.5 }}>
-          Share your link → colleague signs up → <strong>they get 10 free questions</strong> → <strong>you earn 10% of their subscription fee every month</strong> they stay subscribed
+          Share your link → colleague signs up → <strong>they get 20 free questions/month</strong> → <strong>you earn 10% of their subscription fee every month</strong> they stay subscribed
         </p>
       </div>
 

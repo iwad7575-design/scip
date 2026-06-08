@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import type { Session } from "@supabase/supabase-js";
 import { supabase, initialAuthType, initialAccessToken, initialRefreshToken } from "../lib/supabase";
 import { BACKEND_URL } from "../lib/config";
 
@@ -13,13 +14,17 @@ export function AuthCallbackPage() {
   useEffect(() => {
     let done = false;
 
+    console.log("[CALLBACK] Starting...");
+    console.log("[CALLBACK] URL:", window.location.href);
+    console.log("[CALLBACK] pendingRefCode:", localStorage.getItem("pendingRefCode"));
+
     async function applyPendingReferral(accessToken?: string | null, createdAt?: string | null) {
+      console.log("[REFERRAL] Function called");
       console.log("[REFERRAL] Starting...");
       const pendingRef = localStorage.getItem("pendingRefCode");
       console.log("[REFERRAL] pendingRef:", pendingRef);
       if (!pendingRef) { console.log("[REFERRAL] No pending ref code"); return; }
 
-      // Skip if account is older than 10 minutes — user is not new.
       if (createdAt) {
         const ageMs = Date.now() - new Date(createdAt).getTime();
         const ageMinutes = ageMs / 1000 / 60;
@@ -62,18 +67,34 @@ export function AuthCallbackPage() {
       }).catch(() => { /* silent */ });
     }
 
-    function handleNewUser(createdAt?: string | null, accessToken?: string | null) {
-      if (!createdAt) { console.log("[WELCOME] handleNewUser: no createdAt, skipping"); return; }
-      const ageMs = Date.now() - new Date(createdAt).getTime();
+    // Handles new-user welcome setup and referral in correct order:
+    // 1. Apply referral (awaited) so pendingRefCode is still set when we read it
+    // 2. Set showWelcome + wasReferred AFTER referral completes
+    // 3. Navigate
+    async function handleSignedIn(session: Session | null) {
+      console.log("[CALLBACK] handleSignedIn: session present:", !!session, "user:", session?.user?.id);
+      if (!session?.user?.created_at) {
+        console.log("[WELCOME] No session or createdAt, skipping welcome");
+        markSuccess();
+        return;
+      }
+      const ageMs = Date.now() - new Date(session.user.created_at).getTime();
       const ageMin = (ageMs / 1000 / 60).toFixed(1);
-      console.log("[WELCOME] handleNewUser: ageMin =", ageMin);
-      if (ageMs >= 10 * 60 * 1000) { console.log("[WELCOME] handleNewUser: existing user, skipping"); return; }
-      const pendingRef = localStorage.getItem("pendingRefCode");
-      localStorage.setItem("showWelcome", "true");
-      localStorage.setItem("wasReferred", pendingRef ? "true" : "false");
-      console.log("[WELCOME] handleNewUser: set showWelcome=true, wasReferred=", pendingRef ? "true" : "false");
-      // Ensure free subscription row exists for ALL new users (referred or not)
-      if (accessToken) createFreeSubscription(accessToken);
+      console.log("[WELCOME] ageMin:", ageMin);
+      if (ageMs < 10 * 60 * 1000) {
+        // Read pendingRef BEFORE applyPendingReferral removes it
+        const pendingRef = localStorage.getItem("pendingRefCode");
+        console.log("[WELCOME] New user detected, pendingRef:", pendingRef);
+        await applyPendingReferral(session.access_token, session.user.created_at);
+        localStorage.setItem("showWelcome", "true");
+        localStorage.setItem("wasReferred", pendingRef ? "true" : "false");
+        localStorage.removeItem("guestQuestionsUsed");
+        console.log("[WELCOME] Set showWelcome=true, wasReferred=", pendingRef ? "true" : "false");
+        createFreeSubscription(session.access_token);
+      } else {
+        console.log("[WELCOME] Existing user (age > 10 min), skipping welcome");
+      }
+      markSuccess();
     }
 
     function goTo(path: string) {
@@ -104,10 +125,6 @@ export function AuthCallbackPage() {
     }
 
     // ── Hash flow ──────────────────────────────────────────────────────────────
-    // initialAuthType/Token values were captured before Supabase cleared the hash.
-    // Explicitly call setSession so the recovery session is fully established
-    // before we navigate — relying on Supabase's auto-processing alone can leave
-    // the token in a state where updateUser fails with "invalid/expired".
     if (initialAuthType === "recovery") {
       (async () => {
         if (initialAccessToken && initialRefreshToken) {
@@ -126,13 +143,12 @@ export function AuthCallbackPage() {
     }
 
     // ── PKCE code flow ─────────────────────────────────────────────────────────
-    // After exchangeCodeForSession, Supabase fires PASSWORD_RECOVERY (recovery
-    // codes) or SIGNED_IN (email confirmation, OAuth). Set up the listener
-    // BEFORE calling exchange so the event is never missed.
     const code = searchParams.get("code");
     if (code) {
       let sub: { unsubscribe(): void } | null = null;
       let timeout: ReturnType<typeof setTimeout> | null = null;
+
+      console.log("[CALLBACK] PKCE code flow detected");
 
       sub = supabase.auth.onAuthStateChange((event, session) => {
         if (event === "PASSWORD_RECOVERY") {
@@ -142,9 +158,8 @@ export function AuthCallbackPage() {
         } else if (event === "SIGNED_IN") {
           sub?.unsubscribe();
           if (timeout) clearTimeout(timeout);
-          handleNewUser(session?.user.created_at, session?.access_token);
-          applyPendingReferral(session?.access_token, session?.user.created_at);
-          markSuccess();
+          console.log("[CALLBACK] PKCE SIGNED_IN event");
+          handleSignedIn(session ?? null);
         }
       }).data.subscription;
 
@@ -161,7 +176,7 @@ export function AuthCallbackPage() {
       timeout = setTimeout(() => {
         sub?.unsubscribe();
         supabase.auth.getSession().then(({ data: { session } }) => {
-          if (session) { handleNewUser(session.user.created_at, session.access_token); applyPendingReferral(session.access_token, session.user.created_at); markSuccess(); }
+          if (session) { handleSignedIn(session); }
           else markError("Authentication failed or the link has expired. Please request a new link.");
         });
       }, 10000);
@@ -173,15 +188,19 @@ export function AuthCallbackPage() {
     }
 
     // ── No code, no hash recovery — hash-based email confirmation or OAuth ─────
-    // Supabase has auto-processed the tokens; wait for the SIGNED_IN event.
+    console.log("[CALLBACK] Hash/no-code flow");
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_IN" && session) { handleNewUser(session.user.created_at, session.access_token); applyPendingReferral(session.access_token, session.user.created_at); markSuccess(); }
+      if (event === "SIGNED_IN" && session) {
+        console.log("[CALLBACK] Hash SIGNED_IN event");
+        handleSignedIn(session);
+      }
     });
 
     const fallback = setTimeout(async () => {
       subscription.unsubscribe();
       const { data: { session } } = await supabase.auth.getSession();
-      if (session) markSuccess();
+      if (session) handleSignedIn(session);
       else markError("Email confirmation failed or the link has expired. Please request a new confirmation email.");
     }, 5000);
 
