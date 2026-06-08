@@ -95,10 +95,14 @@ export function AuthCallbackPage() {
         localStorage.setItem("showWelcome", "true");
         localStorage.setItem("wasReferred", pendingRef ? "true" : "false");
         localStorage.removeItem("guestQuestionsUsed");
+        localStorage.setItem("_dbg_welcome_set", new Date().toISOString());
         console.log("[WELCOME] Set showWelcome=true, wasReferred=", pendingRef ? "true" : "false");
+        // Small explicit delay to ensure localStorage writes are visible before navigation
+        await new Promise(r => setTimeout(r, 100));
         createFreeSubscription(session.access_token);
       } else {
         console.log("[WELCOME] Existing user (age > 60 min), skipping welcome");
+        localStorage.setItem("_dbg_welcome_skipped", `age=${ageMin}min ts=${new Date().toISOString()}`);
       }
       markSuccess();
     }
