@@ -101,6 +101,7 @@ export function SignUpPage() {
       const emailCallbackUrl = pendingRefForUrl
         ? `${window.location.origin}/auth/callback?ref=${pendingRefForUrl}`
         : `${window.location.origin}/auth/callback`;
+      console.log("[SIGNUP] emailRedirectTo:", emailCallbackUrl);
       const { data, error } = await supabase.auth.signUp({
         email, password,
         options: {
