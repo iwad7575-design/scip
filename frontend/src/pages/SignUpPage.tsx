@@ -97,10 +97,14 @@ export function SignUpPage() {
       }
 
       // Email is new — proceed with signUp
+      const pendingRefForUrl = localStorage.getItem("pendingRefCode");
+      const emailCallbackUrl = pendingRefForUrl
+        ? `${window.location.origin}/auth/callback?ref=${pendingRefForUrl}`
+        : `${window.location.origin}/auth/callback`;
       const { data, error } = await supabase.auth.signUp({
         email, password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          emailRedirectTo: emailCallbackUrl,
           data: { full_name: fullName, profession, health_facility: facility },
         },
       });
@@ -166,9 +170,13 @@ export function SignUpPage() {
   }
 
   async function handleGoogle() {
+    const pendingRefForUrl = localStorage.getItem("pendingRefCode");
+    const oauthCallbackUrl = pendingRefForUrl
+      ? `${window.location.origin}/auth/callback?ref=${pendingRefForUrl}`
+      : `${window.location.origin}/auth/callback`;
     await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: { redirectTo: oauthCallbackUrl },
     });
   }
 

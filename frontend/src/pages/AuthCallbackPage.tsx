@@ -18,6 +18,15 @@ export function AuthCallbackPage() {
     console.log("[CALLBACK] URL:", window.location.href);
     console.log("[CALLBACK] hash:", window.location.hash);
     console.log("[CALLBACK] search:", window.location.search);
+
+    // Ref code may arrive via URL param when the confirmation email opens in a
+    // new tab or browser where localStorage is empty. Sync it to localStorage
+    // so applyPendingReferral (which reads localStorage) finds it.
+    const _urlRef = new URLSearchParams(window.location.search).get("ref");
+    if (_urlRef && !localStorage.getItem("pendingRefCode")) {
+      localStorage.setItem("pendingRefCode", _urlRef);
+      console.log("[CALLBACK] ref from URL param, stored to localStorage:", _urlRef);
+    }
     console.log("[CALLBACK] pendingRefCode:", localStorage.getItem("pendingRefCode"));
 
     async function applyPendingReferral(session: Session) {
