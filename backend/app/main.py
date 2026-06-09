@@ -358,6 +358,9 @@ async def ask_endpoint(request: Request, _user=Depends(get_optional_user)):
         if cached:
             print(f"[CACHE] ✓ hit | chars={len(cached)} | question={user_question[:60]}", flush=True)
 
+            if _user:
+                asyncio.ensure_future(consume_tokens(str(_user.id), user_question, cached))
+
             async def _cached_gen():
                 yield f"data: {json.dumps({'delta': cached})}\n\n"
                 yield f"data: {json.dumps({'done': True})}\n\n"
@@ -856,27 +859,36 @@ async def check_token_limit(user_id: str) -> dict:
 
 
 async def consume_tokens(user_id: str, question: str, response: str) -> int:
-    input_tokens  = estimate_tokens(question) + 2000  # +2000 for system prompt overhead
-    output_tokens = estimate_tokens(response)
-    total_tokens  = input_tokens + output_tokens
+    try:
+        input_tokens  = estimate_tokens(question) + 2000  # +2000 for system prompt overhead
+        output_tokens = estimate_tokens(response)
+        total_tokens  = input_tokens + output_tokens
 
-    sub = supabase_admin.table("subscriptions").select("tokens_used_this_month").eq("user_id", user_id).execute()
-    if sub.data:
-        current = sub.data[0]["tokens_used_this_month"]
-        supabase_admin.table("subscriptions").update({
-            "tokens_used_this_month": current + total_tokens,
-            "updated_at":             datetime.now(timezone.utc).isoformat(),
-        }).eq("user_id", user_id).execute()
+        sub = supabase_admin.table("subscriptions").select("tokens_used_this_month").eq("user_id", user_id).execute()
+        if sub.data:
+            current = sub.data[0]["tokens_used_this_month"]
+            supabase_admin.table("subscriptions").update({
+                "tokens_used_this_month": current + total_tokens,
+            }).eq("user_id", user_id).execute()
+            print(f"[TOKENS] +{total_tokens} tokens for user {user_id[:8]} (total={current + total_tokens})", flush=True)
+        else:
+            print(f"[TOKENS] no subscription row found for user {user_id[:8]}", flush=True)
 
-    supabase_admin.table("token_usage_log").insert({
-        "user_id":          user_id,
-        "question_tokens":  input_tokens,
-        "response_tokens":  output_tokens,
-        "total_tokens":     total_tokens,
-        "question_preview": question[:100],
-    }).execute()
+        try:
+            supabase_admin.table("token_usage_log").insert({
+                "user_id":          user_id,
+                "question_tokens":  input_tokens,
+                "response_tokens":  output_tokens,
+                "total_tokens":     total_tokens,
+                "question_preview": question[:100],
+            }).execute()
+        except Exception as log_err:
+            print(f"[TOKENS] token_usage_log insert failed (non-critical): {log_err}", flush=True)
 
-    return total_tokens
+        return total_tokens
+    except Exception as e:
+        print(f"[TOKENS] consume_tokens FAILED for user {user_id[:8]}: {e}", flush=True)
+        return 0
 
 
 # ─────────────────────────────────────────────────────────────────────────────

@@ -96,6 +96,7 @@ export function ChatPage() {
   const [subscriptionTier, setSubscriptionTier] = useState<string>("free");
   const [showWelcome, setShowWelcome]           = useState(false);
   const [wasReferred, setWasReferred]         = useState(false);
+  const [subRefreshKey, setSubRefreshKey]     = useState(0);
   const [showGuestLimitModal, setShowGuestLimitModal] = useState(false);
   const [guestUsed, setGuestUsed] = useState(() =>
     parseInt(localStorage.getItem("guestQuestionsUsed") || "0", 10)
@@ -442,6 +443,7 @@ export function ChatPage() {
           .eq("id", sessionId);
       }
 
+      if (started && !aborted) setSubRefreshKey(k => k + 1);
       isSendingRef.current = false;
     }
   }, [messages, loading, currentSessionId, navigate]);
@@ -591,7 +593,7 @@ export function ChatPage() {
           </div>
         )}
 
-        {user && <TokenUsageBar />}
+        {user && <TokenUsageBar key={subRefreshKey} />}
 
         <div style={{
           border: "2px solid var(--brand-green)",
