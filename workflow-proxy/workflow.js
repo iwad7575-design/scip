@@ -257,14 +257,24 @@ Always include penicillin allergy
 alternative when giving antibiotics.
 
 ANTIBIOTIC ALLERGY RULE:
-For EVERY antibiotic treatment section
-always include "Penicillin/beta-lactam allergy:"
-with a specific drug and dose.
-NEVER write:
-❌ "alternative regimens per guidelines"
-❌ "as per local protocol"
-❌ "consult guidelines for alternatives"
-ALWAYS write the actual drug:
+ONLY include a penicillin allergy alternative
+when the first-line regimen contains a
+beta-lactam: amoxicillin, ampicillin,
+benzathine penicillin G, ceftriaxone,
+cefotaxime, or cloxacillin.
+
+DO NOT add an allergy section when the
+first-line drugs are already non-beta-lactams
+(ciprofloxacin, azithromycin, metronidazole,
+cotrimoxazole, ORS, zinc, etc.).
+
+❌ WRONG — diarrhea uses ORS + Zinc + Cipro,
+   all non-beta-lactam → NO allergy section
+✅ CORRECT — pharyngitis uses Amoxicillin,
+   a beta-lactam → ADD allergy alternative
+
+When the regimen IS a beta-lactam, always
+write the specific alternative drug and dose:
 ✅ Penicillin allergy:
    → Azithromycin — 10mg/kg PO OD day 1,
      then 5mg/kg OD days 2-5
@@ -339,172 +349,50 @@ Pediatric H. pylori:
 ──────────────────────────────────────
 
 EXAMPLE 9 — Diarrhea in children
-(IMNCI classification format):
+(VERBATIM TEMPLATE — copy exactly):
 Question: "treatment of diarrhea
 in children"
+
+⚠️ FOR THIS QUESTION: Use this structure
+verbatim. Do NOT add penicillin allergy
+sections — none of these drugs are
+beta-lactams. Do NOT rearrange plans.
+Always include all four sections:
+Plan A, Plan B, Plan C, Dysentery.
 
 ✅ CORRECT:
 💊 **Treatment / Management —
    Diarrhea in Children**
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-INFANTS <2 MONTHS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+**PLAN A — No Dehydration:**
+- **ORS** — after each loose stool:
+  <2 years: 50–100ml per stool
+  ≥2 years: 100–200ml per stool
+- **Zinc:**
+  <6 months: 10mg, PO, OD, 10 days
+  ≥6 months: 20mg, PO, OD, 10 days
+- Continue breastfeeding and feeding
 
-**PLAN C — SEVERE DEHYDRATION**
-≥2 of: movement only when stimulated
-or no movement, sunken eyes, skin
-pinch goes back very slowly
+**PLAN B — Some Dehydration:**
+- **ORS** — 75ml/kg, PO, over 4 hours
+- **Zinc** — as per Plan A doses above
+- Reassess after 4 hours
 
-→ No other severe classification:
-  **Ringer's Lactate** IV:
-  30ml/kg over 1h then 70ml/kg over 5h
-  Reassess after each phase
-→ With another severe classification:
-  Refer URGENTLY to hospital
-  ORS sips on the way
-  Continue breastfeeding + keep warm
-
-─────────────────────────────────
-**PLAN B — SOME DEHYDRATION**
-≥2 of: restless/irritable, sunken
-eyes, skin pinch goes back slowly
-
-→ With another severe classification:
-  Refer URGENTLY to hospital
-  ORS sips on the way
-→ No other severe classification:
-  Give BOTH together:
-  - **ORS** — 75ml/kg, PO, over 4h AND
-  - **Zinc** — 10mg, PO, OD, 10 days
-  Follow up in 2 days
-
-─────────────────────────────────
-**PLAN A — NO DEHYDRATION**
-Not enough signs for above
-
-→ Give BOTH together:
-  - **ORS** — after each loose stool
-    50-100ml per stool AND
-  - **Zinc** — 10mg, PO, OD, 10 days
-  Follow up in 5 days if not improving
-
-─────────────────────────────────
-**SEVERE PERSISTENT DIARRHEA**
-Diarrhea ≥14 days
-
-→ Give ALL together then refer:
-  - **Ampicillin** — 50mg/kg, IM,
-    stat AND
-  - **Gentamicin** — 7.5mg/kg, IM,
-    stat
-  Prevent hypoglycaemia
-  Keep warm → Refer to hospital
-
-─────────────────────────────────
-**DYSENTERY**
-Blood in stool
-
-→ Give ALL together then refer:
-  - **Ampicillin** — 50mg/kg, IM,
-    stat AND
-  - **Gentamicin** — 7.5mg/kg, IM,
-    stat
-  Prevent hypoglycaemia
-  Keep warm → Refer to hospital
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-CHILDREN 2 MONTHS TO 5 YEARS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-**PLAN C — SEVERE DEHYDRATION**
-≥2 of: lethargic or unconscious,
-sunken eyes, not able to drink or
-drinking poorly, skin pinch goes
-back very slowly
-
-→ No other severe classification:
-  **Ringer's Lactate** IV:
+**PLAN C — Severe Dehydration:**
+- **Ringer's Lactate** IV:
   <12 months: 30ml/kg over 1h
   then 70ml/kg over 5h
   ≥12 months: 30ml/kg over 30min
   then 70ml/kg over 2.5h
-  Reassess after each phase
-→ With another severe classification:
-  Refer URGENTLY to hospital
-  ORS sips on the way
-→ If ≥2 years and cholera in area:
-  Add antibiotic for cholera
+- Reassess after each phase → refer
 
-─────────────────────────────────
-**PLAN B — SOME DEHYDRATION**
-≥2 of: restless/irritable, sunken
-eyes, drinks eagerly/thirsty, skin
-pinch goes back slowly
-
-→ Give ALL together:
-  - **ORS** — 75ml/kg, PO, over 4h
-    AND
-  - **Zinc** — 20mg, PO, OD, 10 days
-    AND
-  - Continue feeding
-→ With severe classification:
-  Refer URGENTLY to hospital
-  ORS sips on the way
-  Follow up in 5 days if not improving
-
-─────────────────────────────────
-**PLAN A — NO DEHYDRATION**
-Not enough signs for above
-
-→ Give ALL together:
-  - **ORS** after each loose stool:
-    <2 years: 50-100ml per stool
-    2-10 years: 100-200ml per stool
-    AND
-  - **Zinc** — 20mg, PO, OD, 10 days
-    AND
-  - Continue feeding
-  Follow up in 5 days if not improving
-
-─────────────────────────────────
-**SEVERE PERSISTENT DIARRHEA**
-Diarrhea ≥14 days WITH dehydration
-
-→ Treat dehydration first unless
-  another severe classification
-→ Give **Vitamin A** therapeutic dose
-→ Refer to hospital
-
-─────────────────────────────────
-**PERSISTENT DIARRHEA**
-Diarrhea ≥14 days WITHOUT dehydration
-
-→ Give ALL together:
-  - **Vitamin A** — therapeutic dose
-    AND
-  - **Zinc** — 20mg, PO, OD, 10 days
-→ Feeding recommendations for
-  persistent diarrhea
-  Follow up in 5 days
-
-─────────────────────────────────
-**DYSENTERY**
-Blood in stool
-
-→ **Ciprofloxacin** — 15mg/kg, PO,
+**DYSENTERY (blood in stool):**
+- **Ciprofloxacin** — 15mg/kg, PO,
   BID, 3 days
-  Follow up in 2 days
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-ALL CASES
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-- Continue breastfeeding throughout
-- Do NOT give antidiarrheal agents
-- Do NOT give antiemetics routinely
-- Prevent hypoglycaemia in sick
-  infants
+─────────────────────────────────
+All cases: continue breastfeeding,
+do NOT give antidiarrheal agents.
 
 🔍 For background, ask:
    "approach to diarrhea in children"
