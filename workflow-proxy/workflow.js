@@ -1228,7 +1228,7 @@ export async function* runWorkflowStream({ input_as_text }) {
   const start = Date.now();
   const stream = await client.responses.create({
     model: 'gpt-5-nano',
-    reasoning: { effort: 'low' },
+    reasoning: { effort: 'medium' },
     max_output_tokens: 8000,
     input: [
       { role: 'system', content: SYSTEM_PROMPT },
