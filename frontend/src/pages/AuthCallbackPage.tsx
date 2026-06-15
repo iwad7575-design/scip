@@ -114,6 +114,7 @@ export function AuthCallbackPage() {
       } else {
         console.log("[WELCOME] Existing user (age > 60 min), skipping welcome");
         localStorage.setItem("_dbg_welcome_skipped", `age=${ageMin}min ts=${new Date().toISOString()}`);
+        localStorage.removeItem("guestQuestionsUsed");
       }
       markSuccess();
     }

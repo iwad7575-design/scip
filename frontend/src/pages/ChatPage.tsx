@@ -155,6 +155,11 @@ export function ChatPage() {
     supabase.auth.getUser().then(({ data }) => setUser(data.user));
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
+      if (event === "SIGNED_IN") {
+        // Clear any stale guest count from before the user logged in
+        localStorage.removeItem("guestQuestionsUsed");
+        setGuestUsed(0);
+      }
       if (event === "SIGNED_OUT") {
         setMessages([]);
         setCurrentSessionId(null);
@@ -244,7 +249,7 @@ export function ChatPage() {
     console.log('[SEND] clicked, loading:', loading, 'isSending:', isSendingRef.current);
     if (!text.trim() || loading || isSendingRef.current) return;
 
-    if (!user) {
+    if (user === null) {
       const used = getGuestQuestionsUsed();
       console.log("[GUEST] used:", used, "limit:", GUEST_LIMIT);
       if (used >= GUEST_LIMIT) {
@@ -446,7 +451,7 @@ export function ChatPage() {
 
       if (started && !aborted) setSubRefreshKey(k => k + 1);
     }
-  }, [messages, loading, currentSessionId, navigate]);
+  }, [messages, loading, currentSessionId, navigate, user]);
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(input); }
