@@ -60,6 +60,7 @@ app.post('/run-stream', async (req, res) => {
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('X-Accel-Buffering', 'no');
+  res.flushHeaders(); // send headers immediately so client knows connection is alive
 
   let total = '';
   try {

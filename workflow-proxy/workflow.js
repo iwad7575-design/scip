@@ -1225,8 +1225,7 @@ function extractText(response) {
 }
 
 export async function* runWorkflowStream({ input_as_text }) {
-  // stream: true returns an async iterable of server-sent events.
-  // response.output_text.delta carries each incremental text chunk in event.delta.
+  const start = Date.now();
   const stream = await client.responses.create({
     model: 'gpt-5-nano',
     reasoning: { effort: 'low' },
@@ -1244,11 +1243,20 @@ export async function* runWorkflowStream({ input_as_text }) {
     stream: true,
   });
 
+  let first = true;
+  let deltaCount = 0;
   for await (const event of stream) {
+    console.log(`[WF] event: ${event.type} at ${Date.now() - start}ms`);
     if (event.type === 'response.output_text.delta') {
+      if (first) {
+        console.log(`[WF] first delta at ${Date.now() - start}ms`);
+        first = false;
+      }
+      deltaCount++;
       yield event.delta;
     }
   }
+  console.log(`[WF] stream complete — ${deltaCount} deltas, total ${Date.now() - start}ms`);
 }
 
 export async function runWorkflow({ input_as_text }) {
