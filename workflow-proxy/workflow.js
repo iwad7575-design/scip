@@ -273,11 +273,25 @@ cotrimoxazole, ORS, zinc, etc.).
 ✅ CORRECT — pharyngitis uses Amoxicillin,
    a beta-lactam → ADD allergy alternative
 
-When the regimen IS a beta-lactam, always
-write the specific alternative drug and dose:
-✅ Penicillin allergy:
-   → Azithromycin — 10mg/kg PO OD day 1,
-     then 5mg/kg OD days 2-5
+When the regimen IS a beta-lactam:
+- Only add an allergy section if you can
+  give a SPECIFIC drug AND a specific dose.
+- If you do not know a concrete alternative,
+  OMIT the allergy section entirely.
+NEVER write:
+❌ "use an alternative per local policy"
+❌ "consult guidelines for alternatives"
+❌ "Azithromycin is not recommended here
+   — use another agent per protocol"
+These produce noise worse than no note.
+
+✅ CORRECT (specific drug + dose):
+Penicillin allergy:
+→ Azithromycin — 10mg/kg PO OD day 1,
+  then 5mg/kg OD days 2-5
+
+✅ ALSO CORRECT — omit entirely when
+no concrete alternative is known.
 
 FOR INVESTIGATIONS: All relevant tests.
 First line AND second line.
@@ -527,6 +541,79 @@ Duration:
 
 📚 **References**
 - IMNCI Ethiopia (2021)
+- Standard Treatment Guidelines for
+  General Hospitals (2021)
+- Pediatric Hospital Care Ethiopia
+  Pocket Book (2016)
+
+⚠️ This information is intended to
+support clinical decision-making and
+should not replace the judgment of
+a qualified clinician.
+
+──────────────────────────────────────
+
+EXAMPLE 11 — Bacterial meningitis:
+Question: "treatment of bacterial
+meningitis"
+
+✅ CORRECT:
+💊 **Treatment / Management —
+   Bacterial Meningitis**
+
+─────────────────────────────────
+ADULTS AND CHILDREN ≥2 MONTHS
+─────────────────────────────────
+
+First line:
+→ Give BOTH together:
+- **Ceftriaxone** — 2g, IV, q12h,
+  10–14 days
+  Children: 80mg/kg/day, IV, OD,
+  10–14 days AND
+- **Dexamethasone** — 0.15mg/kg, IV,
+  q6h × 4 days
+  (Give before or with first
+   antibiotic dose)
+
+Penicillin/cephalosporin allergy:
+→ Choose ONE regimen below and
+  always add Dexamethasone:
+- **Chloramphenicol** — 25mg/kg, IV,
+  q6h, 10–14 days (max 4g/day)
+  OR
+- **Meropenem** — Adults: 2g, IV, q8h
+  Children: 40mg/kg, IV, q8h
+  (max 2g/dose), 14 days
++ **Dexamethasone** — 0.15mg/kg, IV,
+  q6h × 4 days (all regimens)
+
+─────────────────────────────────
+NEONATES (0–28 DAYS)
+─────────────────────────────────
+
+→ Give ALL together:
+- **Ampicillin** — 100mg/kg/day, IV,
+  q6h, 21 days AND
+- **Cefotaxime** — 50mg/kg, IV, q8h,
+  21 days AND
+- **Gentamicin** — 5mg/kg, IV, OD,
+  21 days
+
+─────────────────────────────────
+SUPPORTIVE CARE (ALL AGES)
+─────────────────────────────────
+
+- IV fluids (maintenance)
+- Seizures: Phenobarbital 20mg/kg IV
+  stat
+- Monitor + treat hypoglycaemia
+- Barrier nursing if N. meningitidis
+
+🔍 For background, ask:
+   "approach to bacterial meningitis"
+
+📚 **References**
 - Standard Treatment Guidelines for
   General Hospitals (2021)
 - Pediatric Hospital Care Ethiopia

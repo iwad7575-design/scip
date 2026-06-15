@@ -38,7 +38,7 @@ limiter = Limiter(key_func=get_remote_address)
 # Increment CACHE_VERSION whenever system prompt / instructions change to
 # instantly invalidate all existing cached answers.
 
-CACHE_VERSION = "v17"
+CACHE_VERSION = "v18"
 _CACHE_TTL = 1_800    # 30 minutes
 _CACHE_SIZE = 50
 _STREAM_TIMEOUT_S = 55  # Cancel OpenAI call if no first token within this time
@@ -77,11 +77,23 @@ _DOSE_RE = re.compile(r"\d+\s*(?:mg|mcg|g\b|IU|ml|mL|units?|tabs?)", re.IGNORECA
 def _check_drug_doses(text: str) -> None:
     lower = text.lower()
     for drug in _COMMON_DRUGS:
-        idx = lower.find(drug.lower())
-        if idx == -1:
-            continue
-        window = text[max(0, idx - 20): idx + len(drug) + 80]
-        if not _DOSE_RE.search(window):
+        drug_lower = drug.lower()
+        drug_len = len(drug)
+        found_dose = False
+        search_start = 0
+        while True:
+            idx = lower.find(drug_lower, search_start)
+            if idx == -1:
+                break
+            # Wide window: 100 chars before (catches "Xmg dexamethasone") and
+            # 300 after (covers multi-line entries where dose is on the next line).
+            # Short-circuits at first occurrence that has a dose nearby.
+            window = text[max(0, idx - 100): idx + drug_len + 300]
+            if _DOSE_RE.search(window):
+                found_dose = True
+                break
+            search_start = idx + drug_len
+        if not found_dose:
             print(f"[DRUG WARNING] mentioned without dose: {drug}", flush=True)
 
 
