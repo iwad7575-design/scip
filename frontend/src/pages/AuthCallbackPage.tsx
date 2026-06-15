@@ -19,15 +19,17 @@ export function AuthCallbackPage() {
     console.log("[CALLBACK] hash:", window.location.hash);
     console.log("[CALLBACK] search:", window.location.search);
 
-    // Ref code may arrive via URL param when the confirmation email opens in a
-    // new tab or browser where localStorage is empty. Sync it to localStorage
-    // so applyPendingReferral (which reads localStorage) finds it.
-    const _urlRef = new URLSearchParams(window.location.search).get("ref");
-    if (_urlRef && !localStorage.getItem("pendingRefCode")) {
+    // Ref code can arrive via URL param (email link) or localStorage (same-browser flow).
+    // URL takes priority — it's embedded in the confirmation link and survives cross-browser
+    // contexts (phone email app, WhatsApp browser, incognito, etc).
+    const _urlRef     = new URLSearchParams(window.location.search).get("ref");
+    const _storageRef = localStorage.getItem("pendingRefCode");
+    console.log("[CALLBACK] ref from URL:", _urlRef);
+    console.log("[CALLBACK] ref from storage:", _storageRef);
+    if (_urlRef) {
       localStorage.setItem("pendingRefCode", _urlRef);
-      console.log("[CALLBACK] ref from URL param, stored to localStorage:", _urlRef);
     }
-    console.log("[CALLBACK] pendingRefCode:", localStorage.getItem("pendingRefCode"));
+    console.log("[CALLBACK] final pendingRef:", localStorage.getItem("pendingRefCode"));
 
     async function applyPendingReferral(session: Session) {
       console.log("[REFERRAL] START");
