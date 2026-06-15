@@ -14,22 +14,27 @@ interface Notification {
 export function NotificationBell({ heroMode }: { heroMode?: boolean }) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [open, setOpen]   = useState(false);
-  const [token, setToken] = useState("");
   const dropdownRef       = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.access_token) setToken(session.access_token);
-    });
-  }, []);
+  // Always fetch a fresh session token per-call — avoids 401s from stale tokens
+  // and fixes the race where the component mounts before auth is fully restored.
+  async function load() {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) return;
+      const res = await fetch(`${BACKEND_URL}/notifications`, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (res.ok) setNotifications((await res.json()).notifications ?? []);
+    } catch { /* silent */ }
+  }
 
   useEffect(() => {
-    if (!token) return;
     load();
-    const id = setInterval(load, 30_000);
+    const id = setInterval(load, 60_000); // 60s — notifications don't need aggressive polling
     return () => clearInterval(id);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
+  }, []);
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
@@ -41,20 +46,13 @@ export function NotificationBell({ heroMode }: { heroMode?: boolean }) {
     return () => document.removeEventListener("mousedown", onClickOutside);
   }, []);
 
-  async function load() {
-    try {
-      const res = await fetch(`${BACKEND_URL}/notifications`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) setNotifications((await res.json()).notifications ?? []);
-    } catch { /* silent */ }
-  }
-
   async function markAllRead() {
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) return;
       await fetch(`${BACKEND_URL}/notifications/read`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${session.access_token}` },
       });
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
     } catch { /* silent */ }

@@ -281,141 +281,6 @@ SPECIFICITY RULE:
 CORRECT EXAMPLES — STUDY THESE
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-EXAMPLE 1 — Treatment question:
-Question: "treatment of pharyngitis"
-
-✅ CORRECT:
-💊 **Treatment / Management — Pharyngitis**
-
-Viral pharyngitis:
-→ Choose ONE:
-- **Paracetamol** — 1g, PO, q6h, PRN
-  OR
-- **Ibuprofen** — 400mg, PO, TID, PRN
-
-Bacterial pharyngitis:
-→ Choose ONE antibiotic:
-- **Amoxicillin** — 500mg, PO, TID,
-  10 days
-  Children: 40mg/kg/day, PO, TID, 10d
-  OR
-- **Benzathine Pen G** — 1.2MU, IM, stat
-  Children <30kg: 600,000 units, IM, stat
-
-Penicillin allergy:
-- **Erythromycin** — 500mg, PO, QID,
-  10 days
-
-🔍 For background, ask: "approach to
-   pharyngitis"
-
-📚 **References**
-- Ethiopian Primary Health Care
-  Clinical Guidelines (2021)
-
-⚠️ This information is intended to
-support clinical decision-making and
-should not replace the judgment of
-a qualified clinician.
-
-──────────────────────────────────────
-
-EXAMPLE 2 — DDx question:
-Question: "DDx of ascites"
-
-✅ CORRECT:
-🔍 **Differential Diagnosis of Ascites**
-
-High SAAG (≥1.1 g/dL) — portal HTN:
-- **Cirrhosis** — most common in Ethiopia
-- **Congestive heart failure**
-- **Budd-Chiari syndrome**
-- **Constrictive pericarditis**
-- **Portal vein thrombosis**
-
-Low SAAG (<1.1 g/dL) — non-portal:
-- **TB peritonitis** — common in Ethiopia
-- **Peritoneal carcinomatosis**
-- **Nephrotic syndrome**
-- **Pancreatic ascites**
-- **Chylous ascites**
-
-💊 For management, ask:
-   "management of ascites"
-
-📚 **References**
-- Standard Treatment Guidelines for
-  General Hospitals (2021)
-
-⚠️ Disclaimer
-
-──────────────────────────────────────
-
-EXAMPLE 3 — Dose question:
-Question: "dose of amoxicillin
-for pneumonia in children"
-
-✅ CORRECT:
-💉 **Dosing — Amoxicillin,
-   Pediatric Pneumonia**
-
-- **Amoxicillin** — 40mg/kg/day,
-  PO, BID, 5 days
-
-💊 For full treatment, ask:
-   "treatment of pneumonia in children"
-
-📚 **References**
-- IMNCI Ethiopia (2021)
-
-⚠️ Disclaimer
-
-──────────────────────────────────────
-
-EXAMPLE 4 — Treatment with TB:
-Question: "treatment of TB"
-
-✅ CORRECT:
-💊 **Treatment / Management — TB**
-
-→ Give ALL together (intensive phase,
-  2 months):
-- **Isoniazid** — 5mg/kg, PO, OD
-  (max 300mg) Children: 10mg/kg OD
-  AND
-- **Rifampicin** — 10mg/kg, PO, OD
-  (max 600mg) Children: 15mg/kg OD
-  AND
-- **Pyrazinamide** — 25mg/kg, PO, OD
-  (max 2g) Children: 35mg/kg OD
-  AND
-- **Ethambutol** — 15mg/kg, PO, OD
-  (max 1.6g) Children: 20mg/kg OD
-
-→ Give BOTH together (continuation
-  phase, 4 months):
-- **Isoniazid** — 5mg/kg OD AND
-- **Rifampicin** — 10mg/kg OD
-
-Always add:
-- **Pyridoxine** — 50mg, PO, OD
-  throughout treatment
-
-TB/HIV coinfection:
-→ Start ART within 2 weeks of TB Rx
-
-🔍 For background, ask: "approach to TB"
-
-📚 **References**
-- Guidelines for Clinical and
-  Programmatic Management of TB,
-  TBHIV, DR-TB and Leprosy in
-  Ethiopia (2021)
-
-⚠️ Disclaimer
-
-──────────────────────────────────────
-
 EXAMPLE 5 — Treatment of PUD:
 Question: "treatment of PUD"
 
@@ -468,182 +333,6 @@ Pediatric H. pylori:
 📚 **References**
 - Standard Treatment Guidelines for
   General Hospitals (2021)
-
-⚠️ Disclaimer
-
-──────────────────────────────────────
-
-EXAMPLE 6 — RVI treatment:
-Question: "treatment of RVI"
-
-✅ CORRECT:
-💊 **Treatment / Management — RVI (HIV)**
-
-First line (adults/adolescents):
-→ Give ALL together:
-- **Tenofovir (TDF)** — 300mg, PO, OD
-  AND
-- **Lamivudine (3TC)** — 300mg, PO, OD
-  AND
-- **Dolutegravir (DTG)** — 50mg, PO, OD
-
-TB/HIV coinfection:
-→ DTG 50mg PO BID while on rifampicin
-
-Alternative (TDF contraindicated):
-→ Give ALL together:
-- **Zidovudine (AZT)** — 300mg, PO, BID
-  AND
-- **Lamivudine (3TC)** — 150mg, PO, BID
-  AND
-- **Dolutegravir (DTG)** — 50mg, PO, OD
-
-Children >4 weeks and <20kg:
-→ Give ALL together:
-- **Abacavir (ABC)** + **3TC** dispersible
-  by weight band AND
-- **Dolutegravir (DTG)** 10mg dispersible
-  by weight band
-
-🔍 For background, ask: "approach to RVI"
-
-📚 **References**
-- National Comprehensive HIV Prevention,
-  Care and Treatment Training Manual (2023)
-- Standard Treatment Guidelines for
-  General Hospitals (2021)
-
-⚠️ Disclaimer
-
-──────────────────────────────────────
-
-EXAMPLE 7 — Signs + Management:
-Question: "Signs and management
-of neonatal sepsis"
-
-✅ CORRECT:
-🩺 **Clinical Manifestations —
-   Neonatal Sepsis**
-
-Early signs:
-- Poor feeding, lethargy
-- Temperature instability
-- Tachycardia or bradycardia
-- Tachypnea or apnea
-
-CNS signs (suggest meningitis):
-- Bulging fontanelle
-- High-pitched cry
-- Seizures
-
-Skin/umbilical:
-- Mottling, pallor, petechiae
-- Umbilical redness/discharge
-
-💊 **Treatment / Management —
-   Neonatal Sepsis**
-
-Early-onset sepsis:
-→ Give BOTH together:
-- **Ampicillin** — 50mg/kg, IV,
-  q12h, 7-14 days AND
-- **Gentamicin** — 5mg/kg, IV,
-  q24h, 7-14 days
-
-Staphylococcal infection suspected:
-→ Give BOTH together:
-- **Cloxacillin** — 50mg/kg, IV,
-  q6h AND
-- **Gentamicin** — 5mg/kg, IV, q24h
-
-Meningitis confirmed:
-→ Give ALL together:
-- **Ampicillin** — 100mg/kg, IV,
-  q6h, 21 days AND
-- **Cefotaxime** — 50mg/kg, IV,
-  q12h, 21 days AND
-- **Gentamicin** — 5mg/kg, IV, q24h
-
-Supportive care:
-- Maintain normothermia
-- Correct hypoglycaemia:
-  10% glucose 2ml/kg IV stat
-- Treat seizures:
-  Phenobarbital 20mg/kg IV stat
-
-🔍 For background, ask:
-   "approach to neonatal sepsis"
-
-📚 **References**
-- Clinical Reference Manual for
-  Advanced Neonatal Care in
-  Ethiopia (2021)
-- Pediatric Hospital Care Ethiopia
-  Pocket Book (2016)
-
-⚠️ This information is intended to
-support clinical decision-making
-and should not replace the judgment
-of a qualified clinician.
-
-──────────────────────────────────────
-
-EXAMPLE 8 — Malaria in pregnancy:
-Question: "first line treatment for
-malaria in pregnant women in Ethiopia"
-
-✅ CORRECT:
-💊 **Treatment / Management —
-   Malaria in Pregnancy**
-
-Uncomplicated falciparum malaria:
-
-First trimester:
-→ Give BOTH together:
-- **Quinine** — 10mg/kg, PO, TID,
-  7 days AND
-- **Clindamycin** — 10mg/kg, PO,
-  BID, 7 days
-
-If clindamycin unavailable:
-→ Quinine monotherapy only
-
-Second and third trimesters:
-→ Artemether-lumefantrine (AL):
-  Weight-band dosing (each tab =
-  Artemether 20mg + Lumefantrine
-  120mg), PO, BID × 3 days:
-  - <15kg: 1 tab per dose
-  - 15-24kg: 2 tabs per dose
-  - 25-34kg: 3 tabs per dose
-  - ≥35kg: 4 tabs per dose
-  Day 1: dose at 0h and 8h
-  Days 2-3: morning and evening
-
-Uncomplicated vivax (all trimesters):
-→ **Chloroquine** — 25mg/kg total
-  PO over 3 days:
-  10mg/kg day 1, 10mg/kg day 2,
-  5mg/kg day 3
-  (Primaquine contraindicated in
-  pregnancy — defer to postpartum)
-
-Severe malaria (any trimester):
-→ **Artesunate** — 2.4mg/kg IV/IM
-  at 0, 12, 24h then OD until able
-  to take oral treatment
-  Then complete with AL as above
-
-🔍 For background, ask:
-   "approach to malaria in pregnancy"
-
-📚 **References**
-- National Malaria Guidelines (2018)
-- Obstetrics Management Protocol
-  for Hospitals (2021)
-- Malaria Case Management Training
-  Manual for Health Professionals
-  in Ethiopia (2022)
 
 ⚠️ Disclaimer
 
@@ -961,126 +650,6 @@ support clinical decision-making and
 should not replace the judgment of
 a qualified clinician.
 
-──────────────────────────────────────
-
-EXAMPLE 11 — Otitis media in children:
-Question: "treatment of otitis
-media in children"
-
-✅ CORRECT:
-💊 **Treatment / Management —
-   Acute Otitis Media (Children)**
-
-First line:
-→ Give BOTH together:
-- **Amoxicillin** — 80-90mg/kg/day,
-  PO, BID, 7-10 days
-  (standard dose 40mg/kg/day BID
-  if low resistance risk) AND
-- **Paracetamol** — 15mg/kg, PO,
-  q6h, PRN for pain/fever
-
-No improvement after 48-72 hours:
-→ Switch to:
-- **Amoxicillin-clavulanate** —
-  90/6.4mg/kg/day, PO, BID,
-  7-10 days
-
-Severe or failed oral therapy:
-→ **Ceftriaxone** — 50mg/kg,
-  IM/IV, OD, 3 days
-
-Penicillin allergy:
-→ Choose ONE:
-- **Azithromycin** — 10mg/kg PO OD
-  day 1, then 5mg/kg OD days 2-5
-  OR
-- **Clarithromycin** — 7.5mg/kg,
-  PO, BID, 7-10 days
-
-Non-pharmacologic:
-- Keep ear dry
-- Avoid water entry into ear canal
-
-Reassess at 48-72 hours:
-- Improving → complete course ✅
-- Not improving → escalate regimen
-- Complications (mastoiditis,
-  facial nerve palsy) → refer urgently
-
-🔍 For diagnosis, ask:
-   "diagnosis of otitis media"
-
-📚 **References**
-- Standard Treatment Guidelines for
-  General Hospitals (2021)
-- Ethiopian Primary Health Care
-  Clinical Guidelines (2021)
-- Pediatric Hospital Care Ethiopia
-  Pocket Book (2016)
-
-⚠️ This information is intended to
-support clinical decision-making and
-should not replace the judgment of
-a qualified clinician.
-
-──────────────────────────────────────
-
-EXAMPLE 12 — Tonsillitis in children:
-Question: "treatment of tonsillitis
-in children"
-
-✅ CORRECT:
-💊 **Treatment / Management —
-   Tonsillitis (Children)**
-
-Viral tonsillitis (most common):
-→ No antibiotics needed
-→ Give BOTH together:
-- **Paracetamol** — 15mg/kg, PO,
-  q6h, PRN for fever/pain AND
-- Salt water gargles + soft diet
-  + adequate fluids
-
-Bacterial tonsillitis
-(Group A Streptococcus):
-→ Choose ONE antibiotic:
-- **Benzathine Penicillin G** —
-  1.2MU, IM, stat
-  Children <30kg: 600,000 units
-  IM, stat
-  OR
-- **Amoxicillin** — 40mg/kg/day,
-  PO, BID, 10 days
-
-→ Add for symptomatic relief:
-- **Paracetamol** — 15mg/kg, PO,
-  q6h, PRN
-
-Penicillin allergy:
-→ Choose ONE:
-- **Azithromycin** — 10mg/kg PO OD
-  day 1, then 5mg/kg OD days 2-5
-  OR
-- **Erythromycin** — 40mg/kg/day,
-  PO, QID, 10 days
-
-Refer urgently if:
-- Peritonsillar abscess suspected
-- Airway compromise
-- Unable to swallow
-- No improvement after 48h
-
-🔍 For diagnosis, ask:
-   "diagnosis of tonsillitis"
-
-📚 **References**
-- Ethiopian Primary Health Care
-  Clinical Guidelines (2021)
-- Standard Treatment Guidelines
-  for General Hospitals (2021)
-
-⚠️ Disclaimer
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 FORMATTING RULES (MANDATORY)
@@ -1228,7 +797,7 @@ export async function* runWorkflowStream({ input_as_text }) {
   const start = Date.now();
   const stream = await client.responses.create({
     model: 'gpt-5-nano',
-    reasoning: { effort: 'medium' },
+    reasoning: { effort: 'low' },
     max_output_tokens: 8000,
     input: [
       { role: 'system', content: SYSTEM_PROMPT },
@@ -1237,26 +806,20 @@ export async function* runWorkflowStream({ input_as_text }) {
     tools: [{
       type: 'file_search',
       vector_store_ids: [VECTOR_STORE_ID],
-      max_num_results: 5,
+      max_num_results: 3,
       ranking_options: { score_threshold: 0.05 },
     }],
     stream: true,
   });
 
-  let first = true;
   let deltaCount = 0;
   for await (const event of stream) {
-    console.log(`[WF] event: ${event.type} at ${Date.now() - start}ms`);
     if (event.type === 'response.output_text.delta') {
-      if (first) {
-        console.log(`[WF] first delta at ${Date.now() - start}ms`);
-        first = false;
-      }
       deltaCount++;
       yield event.delta;
     }
   }
-  console.log(`[WF] stream complete — ${deltaCount} deltas, total ${Date.now() - start}ms`);
+  console.log(`[WF] done — ${deltaCount} deltas, ${Date.now() - start}ms`);
 }
 
 export async function runWorkflow({ input_as_text }) {
