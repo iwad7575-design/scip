@@ -351,21 +351,22 @@ in children"
 INFANTS <2 MONTHS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-**SEVERE DEHYDRATION**
+**PLAN C — SEVERE DEHYDRATION**
 ≥2 of: movement only when stimulated
 or no movement, sunken eyes, skin
 pinch goes back very slowly
 
+→ No other severe classification:
+  **Ringer's Lactate** IV:
+  30ml/kg over 1h then 70ml/kg over 5h
+  Reassess after each phase
 → With another severe classification:
   Refer URGENTLY to hospital
   ORS sips on the way
   Continue breastfeeding + keep warm
-→ No other severe classification:
-  **Ringer's Lactate** IV:
-  30ml/kg over 1h then 70ml/kg over 5h
 
 ─────────────────────────────────
-**SOME DEHYDRATION**
+**PLAN B — SOME DEHYDRATION**
 ≥2 of: restless/irritable, sunken
 eyes, skin pinch goes back slowly
 
@@ -374,12 +375,12 @@ eyes, skin pinch goes back slowly
   ORS sips on the way
 → No other severe classification:
   Give BOTH together:
-  - **ORS** — 75ml/kg over 4h AND
+  - **ORS** — 75ml/kg, PO, over 4h AND
   - **Zinc** — 10mg, PO, OD, 10 days
   Follow up in 2 days
 
 ─────────────────────────────────
-**NO DEHYDRATION**
+**PLAN A — NO DEHYDRATION**
 Not enough signs for above
 
 → Give BOTH together:
@@ -416,7 +417,7 @@ Blood in stool
 CHILDREN 2 MONTHS TO 5 YEARS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-**SEVERE DEHYDRATION**
+**PLAN C — SEVERE DEHYDRATION**
 ≥2 of: lethargic or unconscious,
 sunken eyes, not able to drink or
 drinking poorly, skin pinch goes
@@ -424,9 +425,10 @@ back very slowly
 
 → No other severe classification:
   **Ringer's Lactate** IV:
-  Children >12mo:
-  30ml/kg over 30min then
-  70ml/kg over 2.5h
+  <12 months: 30ml/kg over 1h
+  then 70ml/kg over 5h
+  ≥12 months: 30ml/kg over 30min
+  then 70ml/kg over 2.5h
   Reassess after each phase
 → With another severe classification:
   Refer URGENTLY to hospital
@@ -435,7 +437,7 @@ back very slowly
   Add antibiotic for cholera
 
 ─────────────────────────────────
-**SOME DEHYDRATION**
+**PLAN B — SOME DEHYDRATION**
 ≥2 of: restless/irritable, sunken
 eyes, drinks eagerly/thirsty, skin
 pinch goes back slowly
@@ -452,11 +454,11 @@ pinch goes back slowly
   Follow up in 5 days if not improving
 
 ─────────────────────────────────
-**NO DEHYDRATION**
+**PLAN A — NO DEHYDRATION**
 Not enough signs for above
 
 → Give ALL together:
-  - **ORS** Plan A:
+  - **ORS** after each loose stool:
     <2 years: 50-100ml per stool
     2-10 years: 100-200ml per stool
     AND
@@ -508,10 +510,7 @@ ALL CASES
    "approach to diarrhea in children"
 
 📚 **References**
-- IMNCI Ethiopia (2021),
-  Tables 6.5 and 6.6
-- Standard Treatment Guidelines for
-  General Hospitals (2021)
+- IMNCI Ethiopia (2021)
 - Pediatric Hospital Care Ethiopia
   Pocket Book (2016)
 
