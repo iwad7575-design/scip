@@ -241,6 +241,7 @@ export function ChatPage() {
   // ── Send message ─────────────────────────────────────────────────────────
 
   const sendMessage = useCallback(async (text: string) => {
+    console.log('[SEND] clicked, loading:', loading, 'isSending:', isSendingRef.current);
     if (!text.trim() || loading || isSendingRef.current) return;
 
     if (!user) {
@@ -401,6 +402,7 @@ export function ChatPage() {
       setMessages(prev => [...prev, { id: mkId(), role: "assistant", content: "Failed to connect to the server. Please try again." }]);
     } finally {
       setLoading(false);
+      isSendingRef.current = false; // reset first — before any awaits that might throw
 
       const isRefusal = REFUSAL_MARKERS.some(m => assistantContent.includes(m));
 
@@ -413,7 +415,6 @@ export function ChatPage() {
           setCurrentSessionId(null);
           setSidebarRefreshKey(k => k + 1);
         }
-        isSendingRef.current = false;
         return;
       }
 
@@ -444,7 +445,6 @@ export function ChatPage() {
       }
 
       if (started && !aborted) setSubRefreshKey(k => k + 1);
-      isSendingRef.current = false;
     }
   }, [messages, loading, currentSessionId, navigate]);
 
