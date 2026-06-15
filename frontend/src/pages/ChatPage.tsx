@@ -324,7 +324,7 @@ export function ChatPage() {
       const res = await fetch(ASK_API_URL, {
         method: "POST",
         headers,
-        body: JSON.stringify({ messages: newMessages }),
+        body: JSON.stringify({ messages: [userMsg] }),
         signal: controller.signal,
       });
 
