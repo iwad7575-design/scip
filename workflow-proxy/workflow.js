@@ -682,18 +682,22 @@ function extractText(response) {
 
 export async function* runWorkflowStream({ input_as_text }) {
   const start = Date.now();
+  // Classify hint: mirrors the playground's classify step cheaply.
+  // Signals question domain + expected output format to the model upfront
+  // so low-effort reasoning spends less budget on context-setting.
+  const classifiedInput = `Clinical question (answer with Ethiopian guidelines + doses): ${input_as_text}`;
   const stream = await client.responses.create({
     model: 'gpt-5-nano',
     reasoning: { effort: 'low' },
     max_output_tokens: 8000,
     input: [
       { role: 'system', content: SYSTEM_PROMPT },
-      { role: 'user',   content: input_as_text },
+      { role: 'user',   content: classifiedInput },
     ],
     tools: [{
       type: 'file_search',
       vector_store_ids: [VECTOR_STORE_ID],
-      max_num_results: 3,
+      max_num_results: 8,
       ranking_options: { score_threshold: 0.05 },
     }],
     stream: true,
@@ -710,18 +714,19 @@ export async function* runWorkflowStream({ input_as_text }) {
 }
 
 export async function runWorkflow({ input_as_text }) {
+  const classifiedInput = `Clinical question (answer with Ethiopian guidelines + doses): ${input_as_text}`;
   const response = await client.responses.create({
     model: 'gpt-5-nano',
     reasoning: { effort: 'low' },
     max_output_tokens: 8000,
     input: [
       { role: 'system', content: SYSTEM_PROMPT },
-      { role: 'user',   content: input_as_text },
+      { role: 'user',   content: classifiedInput },
     ],
     tools: [{
       type: 'file_search',
       vector_store_ids: [VECTOR_STORE_ID],
-      max_num_results: 5,
+      max_num_results: 8,
       ranking_options: { score_threshold: 0.05 },
     }],
     include: ['file_search_call.results'],
@@ -740,7 +745,7 @@ export async function runWorkflow({ input_as_text }) {
           role: 'system',
           content: SYSTEM_PROMPT + '\n\nNo Ethiopian guideline found in knowledge base. Answer from general medical knowledge and note this.',
         },
-        { role: 'user', content: input_as_text },
+        { role: 'user', content: classifiedInput },
       ],
     });
     return extractText(retryResponse);
