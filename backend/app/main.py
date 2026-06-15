@@ -27,7 +27,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
-from app.server import StarterChatServer, call_via_proxy, PROXY_URL  # IMPORTANT: absolute import
+from app.server import StarterChatServer, call_via_proxy, call_via_proxy_stream, PROXY_URL  # IMPORTANT: absolute import
 from app.supabase_client import supabase, supabase_admin
 
 bearer = HTTPBearer()
@@ -372,26 +372,41 @@ async def ask_endpoint(request: Request, _user=Depends(get_optional_user)):
             )
 
     async def generate():
+        full_text = ""
+        t_proxy = time.perf_counter()
+        first_chunk = True
         try:
-            print(f"[PROXY] → calling workflow proxy for: {user_question[:60]}", flush=True)
-            t_proxy = time.perf_counter()
-            proxy_text = await call_via_proxy(user_question)
-            proxy_text = _clean_citations(proxy_text) if proxy_text else ""
-            print(f"[PROXY] ✓ done in {(time.perf_counter()-t_proxy)*1000:.0f}ms | chars={len(proxy_text)}", flush=True)
-            if not proxy_text:
+            print(f"[PROXY] → streaming from proxy for: {user_question[:60]}", flush=True)
+            async for chunk in call_via_proxy_stream(user_question):
+                if first_chunk:
+                    print(f"[PROXY] ✓ first chunk at {(time.perf_counter()-t_proxy)*1000:.0f}ms", flush=True)
+                    first_chunk = False
+                full_text += chunk
+                yield f"data: {json.dumps({'delta': chunk})}\n\n"
+
+            if not full_text:
                 yield f"data: {json.dumps({'error': 'Failed to generate a response. Please try again.'})}\n\n"
                 return
-            _check_drug_doses(proxy_text)
+
+            print(f"[PROXY] ✓ stream done in {(time.perf_counter()-t_proxy)*1000:.0f}ms | chars={len(full_text)}", flush=True)
+
+            # Run post-processing on the complete assembled text
+            cleaned_text = _clean_citations(full_text)
+            _check_drug_doses(cleaned_text)
+
             if is_single_turn and user_question:
-                _cache.set(cache_key, proxy_text)
-                print(f"[CACHE] stored | chars={len(proxy_text)} | question={user_question[:60]}", flush=True)
-            yield f"data: {json.dumps({'delta': proxy_text})}\n\n"
+                _cache.set(cache_key, cleaned_text)
+                print(f"[CACHE] stored | chars={len(cleaned_text)} | question={user_question[:60]}", flush=True)
+
             if _user:
-                asyncio.ensure_future(consume_tokens(str(_user.id), user_question, proxy_text))
+                asyncio.ensure_future(consume_tokens(str(_user.id), user_question, cleaned_text))
+
             yield f"data: {json.dumps({'done': True})}\n\n"
+
         except Exception as e:
-            print(f"[PROXY] ✗ error: {e}", flush=True)
-            yield f"data: {json.dumps({'error': 'Failed to generate a response. Please try again.'})}\n\n"
+            print(f"[PROXY] ✗ stream error: {e}", flush=True)
+            if not full_text:
+                yield f"data: {json.dumps({'error': 'Failed to generate a response. Please try again.'})}\n\n"
 
     return StreamingResponse(
         generate(),

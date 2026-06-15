@@ -1224,6 +1224,33 @@ function extractText(response) {
   return { output_text: text };
 }
 
+export async function* runWorkflowStream({ input_as_text }) {
+  // stream: true returns an async iterable of server-sent events.
+  // response.output_text.delta carries each incremental text chunk in event.delta.
+  const stream = await client.responses.create({
+    model: 'gpt-5-nano',
+    reasoning: { effort: 'low' },
+    max_output_tokens: 8000,
+    input: [
+      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'user',   content: input_as_text },
+    ],
+    tools: [{
+      type: 'file_search',
+      vector_store_ids: [VECTOR_STORE_ID],
+      max_num_results: 5,
+      ranking_options: { score_threshold: 0.05 },
+    }],
+    stream: true,
+  });
+
+  for await (const event of stream) {
+    if (event.type === 'response.output_text.delta') {
+      yield event.delta;
+    }
+  }
+}
+
 export async function runWorkflow({ input_as_text }) {
   const response = await client.responses.create({
     model: 'gpt-5-nano',

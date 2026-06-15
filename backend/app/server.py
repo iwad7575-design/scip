@@ -44,6 +44,22 @@ async def call_via_proxy(question: str) -> str:
         resp.raise_for_status()
         return resp.json().get("response", "")
 
+
+async def call_via_proxy_stream(question: str):
+    """Stream raw text chunks from the Node.js proxy's /run-stream endpoint."""
+    async with httpx.AsyncClient(timeout=120.0) as http:
+        async with http.stream(
+            "POST",
+            f"{PROXY_URL}/run-stream",
+            headers={"x-proxy-secret": PROXY_SECRET, "Content-Type": "application/json"},
+            json={"question": question},
+        ) as resp:
+            resp.raise_for_status()
+            async for chunk in resp.aiter_text():
+                if chunk:
+                    yield chunk
+
+
 _CITATION_RE = re.compile(
     r"filecite\s*turn\d+\s*file\d+"   # fileciteturn0file1  (full pattern)
     r"|turn\d+file\d+"                 # turn0file0
