@@ -691,6 +691,23 @@ export function ChatPage() {
               {" "}to save history.</>
           )}
         </p>
+
+        {user === null && (
+          <p style={{
+            marginTop: 4, fontSize: 11, textAlign: "center",
+            color: heroMode ? "rgba(255,255,255,0.22)" : "var(--text-muted)",
+            fontFamily: "var(--font-body)",
+          }}>
+            Questions?{" "}
+            <a href="mailto:info@scip-et.com" style={{ color: heroMode ? "rgba(255,255,255,0.45)" : "var(--text-secondary)", textDecoration: "none" }}>
+              📧 info@scip-et.com
+            </a>
+            {" · "}
+            <a href="tel:+251966217319" style={{ color: heroMode ? "rgba(255,255,255,0.45)" : "var(--text-secondary)", textDecoration: "none" }}>
+              📞 +251 966 217 319
+            </a>
+          </p>
+        )}
       </div>
     </div>
   );

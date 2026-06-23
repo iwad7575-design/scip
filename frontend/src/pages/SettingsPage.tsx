@@ -6,7 +6,7 @@ import { BACKEND_URL } from "../lib/config";
 import { LogoutModal } from "../components/LogoutModal";
 import { ReferralCard } from "../components/ReferralCard";
 
-type Tab = "profile" | "security" | "notifications" | "subscription" | "referrals" | "danger";
+type Tab = "profile" | "security" | "notifications" | "subscription" | "referrals" | "support" | "danger";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "profile", label: "Profile" },
@@ -14,6 +14,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "notifications", label: "Notifications" },
   { id: "subscription", label: "Subscription" },
   { id: "referrals", label: "Refer & Earn" },
+  { id: "support", label: "Support" },
   { id: "danger", label: "Danger Zone" },
 ];
 
@@ -99,6 +100,7 @@ export function SettingsPage() {
         {activeTab === "notifications" && <NotificationsTab />}
         {activeTab === "subscription"  && <SubscriptionTab user={user} />}
         {activeTab === "referrals"     && <ReferralCard />}
+        {activeTab === "support"       && <SupportTab />}
         {activeTab === "danger"        && <DangerTab user={user} />}
       </div>
     </div>
@@ -504,6 +506,58 @@ function DangerTab({ user }: { user: User }) {
             </div>
           </div>
         )}
+      </div>
+    </Card>
+  );
+}
+
+// ── Support ────────────────────────────────────────────────────────────────────
+
+function SupportTab() {
+  return (
+    <Card title="Contact Us" subtitle="Reach the SCIP team for help or feedback">
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <a
+          href="mailto:info@scip-et.com"
+          style={{
+            display: "flex", alignItems: "center", gap: 14,
+            background: "var(--bg)", border: "1px solid var(--border)",
+            borderRadius: "var(--radius-md)", padding: "14px 16px",
+            textDecoration: "none", color: "var(--text-primary)",
+            transition: "border-color var(--transition-fast)",
+          }}
+          onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = "var(--brand-navy-400)"; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = "var(--border)"; }}
+        >
+          <span style={{ fontSize: 22, flexShrink: 0 }}>📧</span>
+          <div>
+            <div style={{ fontSize: 12, fontFamily: "var(--font-heading)", fontWeight: 600, color: "var(--text-secondary)", marginBottom: 2 }}>Email</div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "var(--brand-navy-700)" }}>info@scip-et.com</div>
+          </div>
+        </a>
+
+        <a
+          href="tel:+251966217319"
+          style={{
+            display: "flex", alignItems: "center", gap: 14,
+            background: "var(--bg)", border: "1px solid var(--border)",
+            borderRadius: "var(--radius-md)", padding: "14px 16px",
+            textDecoration: "none", color: "var(--text-primary)",
+            transition: "border-color var(--transition-fast)",
+          }}
+          onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = "var(--brand-navy-400)"; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = "var(--border)"; }}
+        >
+          <span style={{ fontSize: 22, flexShrink: 0 }}>📞</span>
+          <div>
+            <div style={{ fontSize: 12, fontFamily: "var(--font-heading)", fontWeight: 600, color: "var(--text-secondary)", marginBottom: 2 }}>Phone</div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "var(--brand-navy-700)" }}>+251 966 217 319</div>
+          </div>
+        </a>
+
+        <p style={{ margin: 0, fontSize: 12, color: "var(--text-muted)", lineHeight: 1.5 }}>
+          We typically respond within 1 business day.
+        </p>
       </div>
     </Card>
   );
