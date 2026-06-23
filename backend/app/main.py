@@ -38,7 +38,7 @@ limiter = Limiter(key_func=get_remote_address)
 # Increment CACHE_VERSION whenever system prompt / instructions change to
 # instantly invalidate all existing cached answers.
 
-CACHE_VERSION = "v22"
+CACHE_VERSION = "v23"
 _CACHE_TTL = 1_800    # 30 minutes
 _CACHE_SIZE = 50
 _STREAM_TIMEOUT_S = 55  # Cancel OpenAI call if no first token within this time
@@ -58,43 +58,6 @@ def _clean_citations(text: str) -> str:
     text = re.sub(r" {2,}", " ", text)          # collapse double spaces
     text = re.sub(r" ([,\.;:!?])", r"\1", text) # remove space before punctuation
     return text
-
-
-_COMMON_DRUGS = [
-    "artemether", "lumefantrine", "artesunate", "quinine",
-    "amoxicillin", "ampicillin", "penicillin", "ceftriaxone",
-    "cotrimoxazole", "metronidazole", "doxycycline", "azithromycin",
-    "ciprofloxacin", "gentamicin", "isoniazid", "rifampicin",
-    "ethambutol", "pyrazinamide", "fluconazole",
-    "nevirapine", "tenofovir", "lamivudine", "efavirenz",
-    "oxytocin", "magnesium sulfate", "diazepam", "hydrocortisone",
-    "dexamethasone", "salbutamol", "adrenaline", "atropine",
-    "furosemide", "digoxin", "morphine", "paracetamol", "ibuprofen",
-    "insulin", "zinc", "vitamin A",
-]
-_DOSE_RE = re.compile(r"\d+\s*(?:mg|mcg|g\b|IU|ml|mL|units?|tabs?)", re.IGNORECASE)
-
-def _check_drug_doses(text: str) -> None:
-    lower = text.lower()
-    for drug in _COMMON_DRUGS:
-        drug_lower = drug.lower()
-        drug_len = len(drug)
-        found_dose = False
-        search_start = 0
-        while True:
-            idx = lower.find(drug_lower, search_start)
-            if idx == -1:
-                break
-            # Wide window: 100 chars before (catches "Xmg dexamethasone") and
-            # 300 after (covers multi-line entries where dose is on the next line).
-            # Short-circuits at first occurrence that has a dose nearby.
-            window = text[max(0, idx - 100): idx + drug_len + 300]
-            if _DOSE_RE.search(window):
-                found_dose = True
-                break
-            search_start = idx + drug_len
-        if not found_dose:
-            print(f"[DRUG WARNING] mentioned without dose: {drug}", flush=True)
 
 
 class _ResponseCache:
@@ -404,7 +367,6 @@ async def ask_endpoint(request: Request, _user=Depends(get_optional_user)):
 
             # Run post-processing on the complete assembled text
             cleaned_text = _clean_citations(full_text)
-            # _check_drug_doses(cleaned_text)  # disabled: produces noisy false-positive logs
 
             if is_single_turn and user_question:
                 _cache.set(cache_key, cleaned_text)
