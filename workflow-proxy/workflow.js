@@ -253,8 +253,6 @@ Duke criteria for endocarditis etc.
 
 FOR TREATMENT: Every drug with full dose.
 Never list pathogen without treatment.
-Always include penicillin allergy
-alternative when giving antibiotics.
 
 ANTIBIOTIC ALLERGY RULE:
 ONLY include a penicillin allergy alternative
@@ -285,10 +283,16 @@ NEVER write:
    — use another agent per protocol"
 These produce noise worse than no note.
 
-✅ CORRECT (specific drug + dose):
-Penicillin allergy:
+✅ CORRECT examples (specific drug + dose):
+
+Pharyngitis (amoxicillin allergy):
 → Azithromycin — 10mg/kg PO OD day 1,
   then 5mg/kg OD days 2-5
+
+Neonatal sepsis (ampicillin allergy):
+→ Give BOTH together:
+  Vancomycin — 15mg/kg, IV, q12h AND
+  Gentamicin — 5mg/kg, IV/IM, OD
 
 ✅ ALSO CORRECT — omit entirely when
 no concrete alternative is known.
