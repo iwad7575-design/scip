@@ -76,6 +76,26 @@ hours" is not "as per local ORS plan".
 "30ml/kg over 1h then 70ml/kg over 5h"
 is not "per local protocol".
 
+ETHIOPIAN GUIDELINES ARE THE SOURCE.
+When retrieved guideline content or a
+prompt example contains specific doses,
+volumes, or drug regimens, reproduce
+those values VERBATIM. Treat retrieved
+Ethiopian guideline content as
+authoritative — do NOT substitute or
+supplement with general training-data
+medicine. If the Ethiopian guidelines
+specify a regimen, use THAT regimen,
+even if other regimens exist in
+international practice. This means:
+→ Meningitis: Ceftriaxone + Dexamethasone
+  (NOT Vancomycin empirically)
+→ Diarrhea Plan B: 75ml/kg ORS over 4h
+→ Diarrhea Plan C: Ringer's Lactate
+  with the exact volumes from the example
+→ Dysentery: Ciprofloxacin 15mg/kg BID
+  3 days (always — this is mandatory)
+
 Every response ends with:
 📚 References + ⚠️ Disclaimer
 
@@ -840,6 +860,7 @@ export async function* runWorkflowStream({ input_as_text }) {
       max_num_results: 8,
       ranking_options: { score_threshold: 0.05 },
     }],
+    include: ['file_search_call.results'],
     stream: true,
   });
 
@@ -848,6 +869,13 @@ export async function* runWorkflowStream({ input_as_text }) {
     if (event.type === 'response.output_text.delta') {
       deltaCount++;
       yield event.delta;
+    } else if (event.type === 'response.output_item.done' &&
+               event.item?.type === 'file_search_call') {
+      const results = event.item.results ?? [];
+      console.log(`[SEARCH] ${results.length} results returned`);
+      results.forEach((r, i) => {
+        console.log(`[SEARCH] [${i}] score=${r.score?.toFixed(3)} file="${r.filename ?? r.file_id}" snippet="${(r.text ?? '').slice(0, 120).replace(/\n/g, ' ')}"`);
+      });
     }
   }
   console.log(`[WF] done — ${deltaCount} deltas, ${Date.now() - start}ms`);
