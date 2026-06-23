@@ -38,7 +38,7 @@ limiter = Limiter(key_func=get_remote_address)
 # Increment CACHE_VERSION whenever system prompt / instructions change to
 # instantly invalidate all existing cached answers.
 
-CACHE_VERSION = "v21"
+CACHE_VERSION = "v22"
 _CACHE_TTL = 1_800    # 30 minutes
 _CACHE_SIZE = 50
 _STREAM_TIMEOUT_S = 55  # Cancel OpenAI call if no first token within this time
@@ -404,7 +404,7 @@ async def ask_endpoint(request: Request, _user=Depends(get_optional_user)):
 
             # Run post-processing on the complete assembled text
             cleaned_text = _clean_citations(full_text)
-            _check_drug_doses(cleaned_text)
+            # _check_drug_doses(cleaned_text)  # disabled: produces noisy false-positive logs
 
             if is_single_turn and user_question:
                 _cache.set(cache_key, cleaned_text)
