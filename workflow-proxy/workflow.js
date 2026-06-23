@@ -852,7 +852,7 @@ export async function* runWorkflowStream({ input_as_text }) {
   const stream = await client.responses.create({
     model: 'gpt-5-nano',
     reasoning: { effort: 'low' },
-    max_output_tokens: 1200,
+    max_output_tokens: 1500,
     input: [
       { role: 'system', content: SYSTEM_PROMPT },
       { role: 'user',   content: classifiedInput },
@@ -889,7 +889,7 @@ export async function runWorkflow({ input_as_text }) {
   const response = await client.responses.create({
     model: 'gpt-5-nano',
     reasoning: { effort: 'low' },
-    max_output_tokens: 1200,
+    max_output_tokens: 1500,
     input: [
       { role: 'system', content: SYSTEM_PROMPT },
       { role: 'user',   content: classifiedInput },
