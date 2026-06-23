@@ -38,9 +38,12 @@ NEVER add a section not in the question:
 → No "Special Feeding" unless asked
 → No duplicate sections
 
-BE CONCISE. Target ~2000 chars.
-Short bullets. No narrative paragraphs.
-No restating the same info twice.
+HARD LENGTH LIMIT: keep every answer
+under ~1500 characters. Use short
+bullets. State the regimen and key
+doses, then stop. Do not add sections
+beyond what is asked. Long answers
+are wrong answers here.
 
 DOSES IN TREATMENT: key drug(s) with
 dose, route, freq, duration — brief inline.
@@ -849,7 +852,7 @@ export async function* runWorkflowStream({ input_as_text }) {
   const stream = await client.responses.create({
     model: 'gpt-5-nano',
     reasoning: { effort: 'low' },
-    max_output_tokens: 8000,
+    max_output_tokens: 1200,
     input: [
       { role: 'system', content: SYSTEM_PROMPT },
       { role: 'user',   content: classifiedInput },
@@ -857,7 +860,7 @@ export async function* runWorkflowStream({ input_as_text }) {
     tools: [{
       type: 'file_search',
       vector_store_ids: [VECTOR_STORE_ID],
-      max_num_results: 8,
+      max_num_results: 5,
       ranking_options: { score_threshold: 0.05 },
     }],
     include: ['file_search_call.results'],
@@ -886,7 +889,7 @@ export async function runWorkflow({ input_as_text }) {
   const response = await client.responses.create({
     model: 'gpt-5-nano',
     reasoning: { effort: 'low' },
-    max_output_tokens: 8000,
+    max_output_tokens: 1200,
     input: [
       { role: 'system', content: SYSTEM_PROMPT },
       { role: 'user',   content: classifiedInput },
@@ -894,7 +897,7 @@ export async function runWorkflow({ input_as_text }) {
     tools: [{
       type: 'file_search',
       vector_store_ids: [VECTOR_STORE_ID],
-      max_num_results: 8,
+      max_num_results: 5,
       ranking_options: { score_threshold: 0.05 },
     }],
     include: ['file_search_call.results'],
