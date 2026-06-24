@@ -199,7 +199,7 @@ export function ReferralCard() {
         {(stats?.monthly_earning_potential ?? 0) > 0 && (
           <div style={{ marginTop: 10, background: "var(--success-bg)", border: "1px solid #bbf7d0", borderRadius: "var(--radius-md)", padding: "10px 14px", textAlign: "center" }}>
             <p style={{ margin: 0, fontSize: 13, color: "var(--success)" }}>
-              📈 You are earning <strong>{stats!.monthly_earning_potential} ETB/month</strong> from active referrals
+              📈 You are earning <strong>{stats!.monthly_earning_potential.toFixed(1)} ETB/month</strong> from active referrals
             </p>
           </div>
         )}

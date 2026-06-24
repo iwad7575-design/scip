@@ -39,6 +39,8 @@ limiter = Limiter(key_func=get_remote_address)
 # instantly invalidate all existing cached answers.
 
 CACHE_VERSION = "v34"
+COMMISSION_RATE = 0.10   # referral commission — 10% of amount paid
+
 _CACHE_TTL = 1_800    # 30 minutes
 _CACHE_SIZE = 50
 _STREAM_TIMEOUT_S = 55  # Cancel OpenAI call if no first token within this time
@@ -587,9 +589,7 @@ async def get_referral_code(user=Depends(get_current_user)):
         "code": code,
         "link": f"https://scip-et.com/signup?ref={code}",
         "commission_rate": "10%",
-        "commission_etb": 25,
-        "subscription_etb": 250,
-        "message": "Share this link. Earn 25 ETB every month your referral stays subscribed.",
+        "message": "Share this link. Earn 10% of every subscription fee, every month your referral stays subscribed.",
     }
 
 
@@ -600,7 +600,24 @@ async def get_referral_stats(user=Depends(get_current_user)):
     earnings  = supabase_admin.table("referral_earnings").select("*").eq("referrer_id", user_id).execute()
     credits   = supabase_admin.table("question_credits").select("*").eq("user_id", user_id).execute()
 
-    active_referrals = sum(1 for r in referrals.data if r["status"] == "active")
+    active_referral_rows = [r for r in referrals.data if r["status"] == "active"]
+    active_referrals = len(active_referral_rows)
+
+    # Calculate actual monthly commission from each referred user's current plan price
+    monthly_earning_potential = 0.0
+    if active_referral_rows:
+        referred_ids = [r["referred_id"] for r in active_referral_rows]
+        paid_subs = supabase_admin.table("subscriptions").select("user_id, plan_tier") \
+            .in_("user_id", referred_ids).eq("status", "active").neq("plan_tier", "free").execute()
+        if paid_subs.data:
+            plan_tiers = list({s["plan_tier"] for s in paid_subs.data})
+            plans_res = supabase_admin.table("subscription_plans").select("tier, price_etb") \
+                .in_("tier", plan_tiers).execute()
+            price_map = {p["tier"]: float(p["price_etb"]) for p in plans_res.data}
+            monthly_earning_potential = round(
+                sum(price_map.get(s["plan_tier"], 0) * COMMISSION_RATE for s in paid_subs.data), 2
+            )
+
     return {
         "total_referrals": len(referrals.data),
         "active_referrals": active_referrals,
@@ -610,7 +627,7 @@ async def get_referral_stats(user=Depends(get_current_user)):
         "total_paid_etb": sum(
             e["commission_amount"] for e in earnings.data if e["status"] == "paid"
         ),
-        "monthly_earning_potential": active_referrals * 25,
+        "monthly_earning_potential": monthly_earning_potential,
         "free_questions_remaining": credits.data[0]["free_questions_remaining"] if credits.data else 0,
     }
 
@@ -1076,6 +1093,24 @@ async def approve_payment(request: Request, user=Depends(get_current_user)):
         "message": f"Your payment for the {plan_tier.title()} plan has been approved. "
                    f"Your account is now active with {pl['question_estimate']} questions per month.",
     }).execute()
+
+    # Track referral commission — 10% of the actual amount paid
+    try:
+        ref_row = supabase_admin.table("referrals").select("referrer_id") \
+            .eq("referred_id", user_id).eq("status", "active").execute()
+        if ref_row.data:
+            referrer_id = ref_row.data[0]["referrer_id"]
+            commission  = round(float(p["amount_etb"]) * COMMISSION_RATE, 2)
+            supabase_admin.table("referral_earnings").insert({
+                "referrer_id":      referrer_id,
+                "referred_id":      user_id,
+                "payment_id":       payment_id,
+                "commission_amount": commission,
+                "status":           "pending",
+            }).execute()
+            print(f"[REFERRAL] Commission {commission} ETB queued for referrer {referrer_id[:8]}", flush=True)
+    except Exception as ref_err:
+        print(f"[REFERRAL] Commission tracking failed (non-critical): {ref_err}", flush=True)
 
     return {"success": True, "message": f"Payment approved. User upgraded to {plan_tier}."}
 
