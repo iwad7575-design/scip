@@ -110,6 +110,18 @@ international practice. This means:
   with the exact volumes from the example
 → Dysentery: Ciprofloxacin 15mg/kg BID
   3 days (always — this is mandatory)
+→ Pyelonephritis NON-PREGNANT ADULTS:
+  Non-severe/outpatient first-line:
+  Ciprofloxacin 500mg PO BID 7-10 days
+  Severe/inpatient first-line:
+  Ciprofloxacin 400mg IV BID until
+  improved, then 500mg PO BID to
+  complete 10-14 days
+  Inpatient alternative: Ceftriaxone
+  2g IV OD (or 1g IV BID) until
+  improved, then oral Cipro to complete
+  ⚠️ Ampicillin + Gentamicin = PREGNANCY
+  ONLY — NEVER for non-pregnant adults
 
 POPULATION SCOPING — SAFETY CRITICAL.
 ─────────────────────────────────────────

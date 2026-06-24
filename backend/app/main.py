@@ -38,7 +38,7 @@ limiter = Limiter(key_func=get_remote_address)
 # Increment CACHE_VERSION whenever system prompt / instructions change to
 # instantly invalidate all existing cached answers.
 
-CACHE_VERSION = "v36"
+CACHE_VERSION = "v37"
 COMMISSION_RATE = 0.10   # referral commission — 10% of amount paid
 
 _CACHE_TTL = 1_800    # 30 minutes
