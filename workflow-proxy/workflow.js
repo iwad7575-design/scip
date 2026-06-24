@@ -138,23 +138,6 @@ regimen as the general default without
 labelling it. Giving a pregnancy
 regimen to a clinician treating a
 non-pregnant adult is a safety error.
-
-FLAG POPULATION DIFFERENCES (one line).
-ONLY on general/unqualified answers:
-if the condition has a meaningfully
-different regimen for a special
-population (especially pregnancy, where
-drugs like ciprofloxacin, tetracyclines,
-or metronidazole have restrictions),
-add ONE note at the end:
-  "⚠️ Pregnancy differs — ask
-   'treatment of X in pregnancy'."
-NEVER add this flag when the question
-already specifies the population
-("in pregnancy", "in children", etc.) —
-that would be self-referential and wrong.
-Do NOT give the full alternate regimen
-unless the question asks for it.
 ─────────────────────────────────────────
 
 Every response ends with:
