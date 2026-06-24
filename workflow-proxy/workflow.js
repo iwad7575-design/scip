@@ -1,6 +1,6 @@
 import OpenAI from 'openai';
 
-const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY }); // v36
 
 const VECTOR_STORE_ID =
   process.env.VECTOR_STORE_ID || 'vs_69d7ea3f2f5c8191abfee9317ddcb1b8';
