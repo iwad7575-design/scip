@@ -72,7 +72,7 @@ export function ReferralCard() {
 
   function shareWhatsApp() {
     const msg = encodeURIComponent(
-      `I use SCIP for clinical decisions — Ethiopia's first AI-powered medical assistant with 109 Ethiopian MoH guidelines. Join using my link and get 20 free questions/month: ${referralData?.link}`
+      `Join me on SCIP 🇪🇹 — AI clinical assistant trained on 109 Ethiopian & WHO guidelines. 20 free questions every month: ${referralData?.link}`
     );
     window.open(`https://wa.me/?text=${msg}`, "_blank");
   }
