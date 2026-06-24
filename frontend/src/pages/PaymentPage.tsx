@@ -12,18 +12,14 @@ const PAYMENT_ACCOUNTS = [
 const ACCOUNT_NAME = "Mahmud Ahmed Mohammed";
 // ─────────────────────────────────────────────────────────────────────────────
 
-const TIER_PRICES: Record<string, number> = {
-  student:     99,
-  clinician:   249,
-  pro:         499,
-  institution: 3000,
-};
-
 const TIER_NAMES: Record<string, string> = {
-  student:     "Student",
-  clinician:   "Clinician",
-  pro:         "Pro",
-  institution: "Institution",
+  student:                "Student",
+  clinician:              "Clinician",
+  pro:                    "Pro",
+  institution:            "Institution",
+  institution_starter:    "Institution Starter",
+  institution_standard:   "Institution Standard",
+  institution_enterprise: "Institution Enterprise",
 };
 
 const PAYMENT_METHODS = ["Telebirr", "Ebirr", "CBE", "Bank Transfer", "Other"];
@@ -42,6 +38,7 @@ export function PaymentPage() {
   const navigate     = useNavigate();
 
   const [session, setSession]                     = useState<any>(null);
+  const [price, setPrice]                         = useState(0);
   const [paymentMethod, setPaymentMethod]         = useState("Telebirr");
   const [txRef, setTxRef]                         = useState("");
   const [screenshotFile, setScreenshotFile]       = useState<File | null>(null);
@@ -57,7 +54,6 @@ export function PaymentPage() {
   const studentIdRef  = useRef<HTMLInputElement>(null);
 
   const tierName  = tier ? (TIER_NAMES[tier] ?? tier) : "";
-  const price     = tier ? (TIER_PRICES[tier] ?? 0) : 0;
   const isStudent = tier === "student";
 
   useEffect(() => {
@@ -66,6 +62,16 @@ export function PaymentPage() {
       setSession(s);
     });
   }, [tier, navigate]);
+
+  useEffect(() => {
+    fetch(`${BACKEND_URL}/plans`)
+      .then(r => r.json())
+      .then(d => {
+        const plan = (d.plans ?? []).find((p: any) => p.tier === tier);
+        if (plan) setPrice(plan.price_etb);
+      })
+      .catch(() => {});
+  }, [tier]);
 
   function handleScreenshot(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];

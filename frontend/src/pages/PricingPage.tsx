@@ -8,12 +8,17 @@ interface Plan {
   name: string;
   tier: string;
   price_etb: number;
+  original_price?: number;
+  promo_active?: boolean;
   token_limit: number;
   question_estimate: number;
   features: string[];
 }
 
-const TIER_ORDER = ["free", "student", "clinician", "pro", "institution"];
+const TIER_ORDER = [
+  "free", "student", "clinician", "pro",
+  "institution", "institution_starter", "institution_standard", "institution_enterprise",
+];
 
 const TIER_ACCENT: Record<string, string> = {
   free:        "#6b7280",
@@ -29,15 +34,18 @@ export function PricingPage() {
   const [loading, setLoading]         = useState(true);
   const [currentTier, setCurrentTier] = useState<string | null>(null);
   const [loggedIn, setLoggedIn]       = useState(false);
+  const [hasPromo, setHasPromo]       = useState(false);
 
   useEffect(() => {
     fetch(`${BACKEND_URL}/plans`)
       .then(r => r.json())
       .then(d => {
-        const sorted = [...(d.plans ?? [])].sort(
-          (a: Plan, b: Plan) => TIER_ORDER.indexOf(a.tier) - TIER_ORDER.indexOf(b.tier)
+        const raw = (d.plans ?? []) as Plan[];
+        const sorted = [...raw].sort(
+          (a, b) => TIER_ORDER.indexOf(a.tier) - TIER_ORDER.indexOf(b.tier)
         );
         setPlans(sorted);
+        setHasPromo(raw.some(p => p.promo_active && p.original_price));
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -91,6 +99,18 @@ export function PricingPage() {
             Access all 109 Ethiopian clinical guidelines. Pay monthly via Telebirr, CBE, or bank transfer.
           </p>
         </div>
+
+        {/* Launch promo banner */}
+        {hasPromo && (
+          <div style={{
+            background: "linear-gradient(135deg, #d97706, #f59e0b)",
+            color: "#fff", borderRadius: 12, padding: "13px 20px",
+            textAlign: "center", marginBottom: 24,
+            fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 14,
+          }}>
+            Launch Promotion — Prices shown include your discount. Limited time only.
+          </div>
+        )}
 
         {loading && (
           <div style={{ textAlign: "center", padding: "60px 0" }}>
@@ -147,10 +167,26 @@ export function PricingPage() {
                     <p style={{ margin: 0, fontSize: 11, fontWeight: 600, color: accent, textTransform: "uppercase", letterSpacing: 0.8 }}>
                       {plan.name}
                     </p>
-                    <p style={{ margin: "4px 0 0", fontSize: 28, fontWeight: 800, color: "var(--text-primary)", lineHeight: 1 }}>
-                      {plan.price_etb === 0 ? "Free" : `${plan.price_etb} ETB`}
-                      {plan.price_etb > 0 && <span style={{ fontSize: 13, fontWeight: 400, color: "var(--text-muted)" }}>/mo</span>}
-                    </p>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 7, flexWrap: "wrap", marginTop: 4 }}>
+                      <p style={{ margin: 0, fontSize: 28, fontWeight: 800, color: "var(--text-primary)", lineHeight: 1 }}>
+                        {plan.price_etb === 0 ? "Free" : `${plan.price_etb} ETB`}
+                        {plan.price_etb > 0 && <span style={{ fontSize: 13, fontWeight: 400, color: "var(--text-muted)" }}>/mo</span>}
+                      </p>
+                      {plan.promo_active && plan.original_price && (
+                        <span style={{ fontSize: 13, color: "var(--text-muted)", textDecoration: "line-through" }}>
+                          {plan.original_price} ETB
+                        </span>
+                      )}
+                    </div>
+                    {plan.promo_active && plan.original_price && (
+                      <div style={{
+                        display: "inline-block", marginTop: 5,
+                        background: "#fef3c7", color: "#92400e",
+                        fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 20,
+                      }}>
+                        {Math.round((1 - plan.price_etb / plan.original_price) * 100)}% off
+                      </div>
+                    )}
                   </div>
 
                   {/* Question estimate */}
