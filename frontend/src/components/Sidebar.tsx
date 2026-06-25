@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+﻿import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
@@ -144,7 +144,7 @@ export function Sidebar({
       <div style={{ padding: "16px 14px 10px" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
           <a href="/" style={{ display: "flex", alignItems: "center", gap: 9, textDecoration: "none" }}>
-            <img src="/logo.jpg" alt="SCIP" style={{ width: 28, height: 28, objectFit: "contain", borderRadius: 6 }} />
+            <img src="/icon-192x192.png" alt="SCIP" style={{ width: 28, height: 28, objectFit: "contain", borderRadius: 6 }} />
             <span style={{ color: "#ffffff", fontWeight: 700, fontSize: 15, letterSpacing: "-0.01em" }}>SCIP</span>
           </a>
           <button

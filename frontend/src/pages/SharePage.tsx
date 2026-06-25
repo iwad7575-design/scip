@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { MarkdownMessage } from "../components/MarkdownMessage";
 import { SHARE_API_URL } from "../lib/config";
@@ -47,7 +47,7 @@ export function SharePage() {
         position: "sticky", top: 0, zIndex: 10,
       }}>
         <a href="/" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}>
-          <img src="/logo.jpg" alt="SCIP" style={{ width: 30, height: 30, objectFit: "contain", borderRadius: 6 }} />
+          <img src="/icon-192x192.png" alt="SCIP" style={{ width: 30, height: 30, objectFit: "contain", borderRadius: 6 }} />
           <span style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 15, color: "var(--text-primary)" }}>
             SCIP
           </span>
@@ -131,7 +131,7 @@ export function SharePage() {
                       width: 32, height: 32, borderRadius: "50%", background: "var(--brand-navy)",
                       display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2,
                     }}>
-                      <img src="/logo.jpg" alt="SCIP" style={{ width: 18, height: 18, objectFit: "contain", borderRadius: 4 }} />
+                      <img src="/icon-192x192.png" alt="SCIP" style={{ width: 18, height: 18, objectFit: "contain", borderRadius: 4 }} />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{

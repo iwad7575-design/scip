@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 
@@ -58,7 +58,7 @@ export function ForgotPasswordPage() {
     <AuthShell>
       <div style={{ marginBottom: 28 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 28 }}>
-          <img src="/logo.jpg" alt="SCIP" style={{ width: 32, height: 32, borderRadius: 6 }} />
+          <img src="/icon-192x192.png" alt="SCIP" style={{ width: 32, height: 32, borderRadius: 6 }} />
           <span style={{ fontFamily: "var(--font-heading)", fontSize: 18, fontWeight: 700, color: "var(--brand-navy)" }}>SCIP</span>
         </div>
         <h2 style={{ fontFamily: "var(--font-heading)", fontSize: 24, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 6px" }}>

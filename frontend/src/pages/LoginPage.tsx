@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { GoogleButton } from "../components/GoogleButton";
@@ -98,7 +98,7 @@ export function LoginPage() {
 
         <div style={{ position: "relative", zIndex: 1 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 48 }}>
-            <img src="/logo.jpg" alt="SCIP" style={{ width: 36, height: 36, objectFit: "contain", borderRadius: 8 }} />
+            <img src="/icon-192x192.png" alt="SCIP" style={{ width: 36, height: 36, objectFit: "contain", borderRadius: 8 }} />
             <span style={{ fontFamily: "var(--font-heading)", fontSize: 20, fontWeight: 700, color: "#ffffff" }}>SCIP</span>
           </div>
           <h1 style={{ fontFamily: "var(--font-heading)", fontSize: 30, fontWeight: 700, color: "#ffffff", lineHeight: 1.2, marginBottom: 16 }}>
@@ -165,7 +165,7 @@ export function LoginPage() {
 
           {/* Mobile logo */}
           <div className="md:hidden" style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 32 }}>
-            <img src="/logo.jpg" alt="SCIP" style={{ width: 32, height: 32, borderRadius: 6 }} />
+            <img src="/icon-192x192.png" alt="SCIP" style={{ width: 32, height: 32, borderRadius: 6 }} />
             <span style={{ fontFamily: "var(--font-heading)", fontSize: 18, fontWeight: 700, color: "var(--brand-navy)" }}>SCIP</span>
           </div>
 

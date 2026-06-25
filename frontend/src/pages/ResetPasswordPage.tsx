@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+﻿import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 
@@ -142,7 +142,7 @@ export function ResetPasswordPage() {
   return (
     <AuthShell>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 28 }}>
-        <img src="/logo.jpg" alt="SCIP" style={{ width: 32, height: 32, borderRadius: 6 }} />
+        <img src="/icon-192x192.png" alt="SCIP" style={{ width: 32, height: 32, borderRadius: 6 }} />
         <span style={{ fontFamily: "var(--font-heading)", fontSize: 18, fontWeight: 700, color: "var(--brand-navy)" }}>SCIP</span>
       </div>
 
